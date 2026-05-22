@@ -43,10 +43,10 @@ class HomeViewModel extends ChangeNotifier {
     }
     
     // Category/Dex Filter
-    if ((_selectedTab == 'CRYPTO' || _selectedTab == 'HIP') && _selectedCryptoCategory != 'All') {
+    if ((_selectedTab == 'CRYPTO' || _selectedTab == 'HIP-3') && _selectedCryptoCategory != 'All') {
       final query = _selectedCryptoCategory.toLowerCase().trim();
       list = list.where((t) {
-        if (_selectedTab == 'HIP') {
+        if (_selectedTab == 'HIP-3') {
           return t.dex.toLowerCase().contains(query);
         } else {
           return t.cryptoCategory.toLowerCase().contains(query);
@@ -82,7 +82,7 @@ class HomeViewModel extends ChangeNotifier {
     if (_selectedTab == tab) return;
     _selectedTab = tab;
     
-    // Populate categories instantly (especially for HIP hardcoded list)
+    // Populate categories instantly (especially for HIP-3 hardcoded list)
     _extractCategories();
     
     _currentPage = 1;
@@ -103,13 +103,15 @@ class HomeViewModel extends ChangeNotifier {
       
       final url = _selectedTab == 'ALL'
           ? 'http://localhost:4001/hip3/all'
-          : _selectedTab == 'HIP' 
+          : _selectedTab == 'HIP-3' 
               ? '$hipBaseUrl/hip3/all' 
               : _selectedTab == 'PERPS'
                   ? '$baseUrl/perps'
                   : _selectedTab == 'CRYPTO'
                       ? '$baseUrl/crypto'
-                      : '$baseUrl/spot';
+                      : _selectedTab == 'TRADFI'
+                          ? '$baseUrl/tradfi'
+                          : '$baseUrl/spot';
 
       final response = await http.get(Uri.parse(url));
 
@@ -128,8 +130,8 @@ class HomeViewModel extends ChangeNotifier {
         }
 
         debugPrint('Initial API data fetched successfully for $_selectedTab, count: ${jsonList.length}');
-        if (_selectedTab == 'HIP' && jsonList.isNotEmpty) {
-          debugPrint('DEBUG HIP FIRST TICKER: ${jsonList[0]}');
+        if (_selectedTab == 'HIP-3' && jsonList.isNotEmpty) {
+          debugPrint('DEBUG HIP-3 FIRST TICKER: ${jsonList[0]}');
         }
         _tickers = jsonList.map((json) => TickerModel.fromJson(json)).toList();
         _extractDexes();
@@ -151,7 +153,7 @@ class HomeViewModel extends ChangeNotifier {
       // Close existing connection if any
       _channel?.sink.close();
 
-      final wsUrl = (_selectedTab == 'HIP') 
+      final wsUrl = (_selectedTab == 'HIP-3') 
           ? (dotenv.env['HIP_WS_URL'] ?? 'ws://localhost:4000')
           : (dotenv.env['WS_URL'] ?? 'ws://localhost:4001');
       
@@ -219,7 +221,7 @@ class HomeViewModel extends ChangeNotifier {
       // Logic for adding new tickers from WS:
       // Only add if it matches the current tab's characteristics
       bool shouldAdd = _selectedTab == 'ALL';
-      if (_selectedTab == 'HIP' && updateData['dex'] != null) shouldAdd = true;
+      if (_selectedTab == 'HIP-3' && updateData['dex'] != null) shouldAdd = true;
       if (_selectedTab == 'CRYPTO' && updateData['cryptoCategory'] != null) shouldAdd = true;
       
       if (shouldAdd && updateData['symbol'] != null) {
@@ -245,8 +247,8 @@ class HomeViewModel extends ChangeNotifier {
   void _extractCategories() {
     final Set<String> categorySet = {'All'};
     
-    if (_selectedTab == 'HIP') {
-      // For HIP, categories are actually in the 'dex' field
+    if (_selectedTab == 'HIP-3') {
+      // For HIP-3, categories are actually in the 'dex' field
       // We start with the user's preferred list and add any new ones from the data
       categorySet.addAll(['xyz', 'flx', 'vntl', 'hyna', 'km', 'cash', 'para']);
       for (var ticker in _tickers) {

@@ -19,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  final ScrollController _tabScrollController = ScrollController();
   
   String _formatVolume(double value) {
     if (value >= 1e9) {
@@ -133,21 +134,28 @@ class _HomeScreenState extends State<HomeScreen> {
                       // Tabs
                       Container(
                         height: 38,
-                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
                           color: AppColors.background,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AppColors.surfaceBright),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _buildTab(viewModel, 'ALL', res),
-                            _buildTab(viewModel, 'HIP', res),
-                            _buildTab(viewModel, 'SPOT', res),
-                            _buildTab(viewModel, 'PERPS', res),
-                            _buildTab(viewModel, 'CRYPTO', res),
-                          ],
+                        clipBehavior: Clip.antiAlias,
+                        child: SingleChildScrollView(
+                          controller: _tabScrollController,
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.all(4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildTab(viewModel, 'ALL', res),
+                              _buildTab(viewModel, 'PERPS', res),
+                              _buildTab(viewModel, 'SPOT', res),
+                              _buildTab(viewModel, 'CRYPTO', res),
+                              _buildTab(viewModel, 'TRADFI', res),
+                              _buildTab(viewModel, 'HIP-3', res),
+                            ],
+                          ),
                         ),
                       ),
                       SizedBox(height: res.spacing(12)),
@@ -167,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         )
                       else ...[
                         // Horizontal Filters Row
-                        if (viewModel.selectedTab != 'ALL')
+                        if (viewModel.selectedTab == 'HIP-3' || viewModel.selectedTab == 'CRYPTO')
                           SizedBox(
                             height: 32,
                             child: ListView.separated(
