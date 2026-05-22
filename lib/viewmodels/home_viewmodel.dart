@@ -12,12 +12,12 @@ class HomeViewModel extends ChangeNotifier {
   String _errorMessage = '';
   WebSocketChannel? _channel;
 
-  String _selectedTab = 'HIP';
+  String _selectedTab = 'ALL';
   String _selectedDex = 'All';
   List<String> _availableDexes = ['All'];
   
   String _selectedCryptoCategory = 'All';
-  List<String> _cryptoCategories = ['All'];
+  List<String> _cryptoCategories = ['All', 'xyz', 'flx', 'vntl', 'hyna', 'km', 'cash', 'para'];
 
   String _searchQuery = '';
   int _rowsPerPage = 10;
@@ -42,9 +42,16 @@ class HomeViewModel extends ChangeNotifier {
       ).toList();
     }
     
-    // Category Filter (only for Crypto tab)
-    if (_selectedTab == 'CRYPTO' && _selectedCryptoCategory != 'All') {
-      list = list.where((t) => t.cryptoCategory.toLowerCase() == _selectedCryptoCategory.toLowerCase().replaceAll(' ', '')).toList();
+    // Category/Dex Filter
+    if ((_selectedTab == 'CRYPTO' || _selectedTab == 'HIP') && _selectedCryptoCategory != 'All') {
+      final query = _selectedCryptoCategory.toLowerCase().trim();
+      list = list.where((t) {
+        if (_selectedTab == 'HIP') {
+          return t.dex.toLowerCase().contains(query);
+        } else {
+          return t.cryptoCategory.toLowerCase().contains(query);
+        }
+      }).toList();
     }
     
     return list;
@@ -74,6 +81,10 @@ class HomeViewModel extends ChangeNotifier {
   void setTab(String tab) {
     if (_selectedTab == tab) return;
     _selectedTab = tab;
+    
+    // Populate categories instantly (especially for HIP hardcoded list)
+    _extractCategories();
+    
     _currentPage = 1;
     _selectedDex = 'All';
     _selectedCryptoCategory = 'All';
@@ -87,16 +98,18 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:4000';
-      // HIP uses port 4000 (usually) and /hip3/all
-      // PERPS and SPOT use port 4001
-      final url = _selectedTab == 'HIP' 
-          ? '$baseUrl/hip3/all' 
-          : _selectedTab == 'PERPS'
-              ? 'http://localhost:4001/perps'
-              : _selectedTab == 'CRYPTO'
-                  ? 'http://localhost:4001/crypto'
-                  : 'http://localhost:4001/spot';
+      final baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:4001';
+      final hipBaseUrl = dotenv.env['HIP_BASE_URL'] ?? 'http://localhost:4000';
+      
+      final url = _selectedTab == 'ALL'
+          ? 'http://localhost:4001/hip3/all'
+          : _selectedTab == 'HIP' 
+              ? '$hipBaseUrl/hip3/all' 
+              : _selectedTab == 'PERPS'
+                  ? '$baseUrl/perps'
+                  : _selectedTab == 'CRYPTO'
+                      ? '$baseUrl/crypto'
+                      : '$baseUrl/spot';
 
       final response = await http.get(Uri.parse(url));
 
@@ -115,6 +128,9 @@ class HomeViewModel extends ChangeNotifier {
         }
 
         debugPrint('Initial API data fetched successfully for $_selectedTab, count: ${jsonList.length}');
+        if (_selectedTab == 'HIP' && jsonList.isNotEmpty) {
+          debugPrint('DEBUG HIP FIRST TICKER: ${jsonList[0]}');
+        }
         _tickers = jsonList.map((json) => TickerModel.fromJson(json)).toList();
         _extractDexes();
         _extractCategories();
@@ -135,9 +151,9 @@ class HomeViewModel extends ChangeNotifier {
       // Close existing connection if any
       _channel?.sink.close();
 
-      final wsUrl = _selectedTab == 'HIP'
-          ? (dotenv.env['WS_URL'] ?? 'ws://localhost:4000')
-          : 'http://localhost:4001'.replaceFirst('http', 'ws'); // Fallback to ws version of rest url
+      final wsUrl = (_selectedTab == 'HIP') 
+          ? (dotenv.env['HIP_WS_URL'] ?? 'ws://localhost:4000')
+          : (dotenv.env['WS_URL'] ?? 'ws://localhost:4001');
       
       debugPrint('Connecting to WebSocket: $wsUrl for tab $_selectedTab');
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
@@ -195,14 +211,21 @@ class HomeViewModel extends ChangeNotifier {
     );
 
     if (index != -1) {
-      debugPrint('WS MATCH FOUND: ${updateData['symbol'] ?? updateData['_id']}');
       _tickers[index] = _tickers[index].copyWithPartial(updateData);
+      _extractDexes();
+      _extractCategories();
       return true;
     } else {
-      // If it's a new ticker completely and has essential data
-      if (updateData['symbol'] != null && (updateData['dex'] != null || updateData['marketType'] != null)) {
+      // Logic for adding new tickers from WS:
+      // Only add if it matches the current tab's characteristics
+      bool shouldAdd = _selectedTab == 'ALL';
+      if (_selectedTab == 'HIP' && updateData['dex'] != null) shouldAdd = true;
+      if (_selectedTab == 'CRYPTO' && updateData['cryptoCategory'] != null) shouldAdd = true;
+      
+      if (shouldAdd && updateData['symbol'] != null) {
         _tickers.add(TickerModel.fromJson(updateData));
         _extractDexes();
+        _extractCategories();
         return true;
       }
     }
@@ -221,28 +244,41 @@ class HomeViewModel extends ChangeNotifier {
   
   void _extractCategories() {
     final Set<String> categorySet = {'All'};
-    for (var ticker in _tickers) {
-      if (ticker.cryptoCategory.isNotEmpty) {
-        // Format to Title Case for UI (e.g., 'layer1' -> 'Layer 1', 'defi' -> 'Defi')
-        String cat = ticker.cryptoCategory;
-        if (cat == 'layer1') cat = 'Layer 1';
-        if (cat == 'layer2') cat = 'Layer 2';
-        if (cat == 'defi') cat = 'Defi';
-        if (cat == 'ai') cat = 'AI';
-        if (cat == 'gaming') cat = 'Gaming';
-        if (cat == 'meme') cat = 'Meme';
-        
-        // Capitalize first letter if not specifically handled
-        if (cat.length > 0 && cat == ticker.cryptoCategory) {
-           cat = cat[0].toUpperCase() + cat.substring(1);
+    
+    if (_selectedTab == 'HIP') {
+      // For HIP, categories are actually in the 'dex' field
+      // We start with the user's preferred list and add any new ones from the data
+      categorySet.addAll(['xyz', 'flx', 'vntl', 'hyna', 'km', 'cash', 'para']);
+      for (var ticker in _tickers) {
+        if (ticker.dex.isNotEmpty && ticker.dex != 'hyperliquid') {
+          categorySet.add(ticker.dex);
         }
-        
-        categorySet.add(cat);
+      }
+    } else {
+      // Original logic for CRYPTO and others
+      for (var ticker in _tickers) {
+        if (ticker.cryptoCategory.isNotEmpty) {
+          String cat = ticker.cryptoCategory;
+          
+          if (_selectedTab == 'CRYPTO') {
+            if (cat == 'layer1') cat = 'Layer 1';
+            if (cat == 'layer2') cat = 'Layer 2';
+            if (cat == 'defi') cat = 'Defi';
+            if (cat == 'ai') cat = 'AI';
+            if (cat == 'gaming') cat = 'Gaming';
+            if (cat == 'meme') cat = 'Meme';
+            
+            if (cat.length > 0 && cat == ticker.cryptoCategory) {
+              cat = cat[0].toUpperCase() + cat.substring(1);
+            }
+          }
+          categorySet.add(cat);
+        }
       }
     }
+    
     _cryptoCategories = categorySet.toList();
     
-    // Sort to keep 'All' first then alphabetical
     _cryptoCategories.sort((a, b) {
       if (a == 'All') return -1;
       if (b == 'All') return 1;
@@ -275,6 +311,11 @@ class HomeViewModel extends ChangeNotifier {
   void setRowsPerPage(int count) {
     _rowsPerPage = count;
     _currentPage = 1; // Reset to first page when changing page size
+    notifyListeners();
+  }
+
+  void setPage(int page) {
+    _currentPage = page;
     notifyListeners();
   }
 

@@ -46,7 +46,7 @@ class TickerModel {
       openInterestUSD: (json['openInterestUSD'] ?? 0.0).toDouble(),
       updatedAt: json['updatedAt'] ?? '',
       volume24hUSD: (json['volume24hUSD'] ?? 0.0).toDouble(),
-      cryptoCategory: json['cryptoCategory'] ?? '',
+      cryptoCategory: json['cryptoCategory'] ?? json['category'] ?? '',
     );
   }
 

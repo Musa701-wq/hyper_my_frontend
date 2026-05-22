@@ -1,0 +1,19 @@
+Analyzing hyper...                                              
+
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:56:11 • unnecessary_this
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:57:34 • unnecessary_this
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:58:40 • unnecessary_this
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:59:100 • unnecessary_this
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:60:50 • unnecessary_this
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:61:48 • unnecessary_this
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:62:100 • unnecessary_this
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:63:42 • unnecessary_this
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:64:48 • unnecessary_this
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:65:91 • unnecessary_this
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:66:109 • unnecessary_this
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:67:46 • unnecessary_this
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:68:100 • unnecessary_this
+   info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:69:56 • unnecessary_this
+   info • Use 'isNotEmpty' instead of 'length' to test whether the collection is empty • lib/viewmodels/home_viewmodel.dart:271:17 • prefer_is_empty
+
+15 issues found. (ran in 2.2s)

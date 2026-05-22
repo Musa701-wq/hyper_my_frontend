@@ -9,4 +9,6 @@ class AppColors {
   static const Color textPrimary = Colors.white;
   static const Color textSecondary = Colors.grey;
   static const Color lossRed = Colors.redAccent;
+  static const Color trendGreen = Color(0xFF10B981);
+  static const Color trendRed = Color(0xFFF43F5E);
 }
