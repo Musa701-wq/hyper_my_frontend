@@ -15,6 +15,9 @@ class HomeViewModel extends ChangeNotifier {
   String _selectedTab = 'HIP';
   String _selectedDex = 'All';
   List<String> _availableDexes = ['All'];
+  
+  String _selectedCryptoCategory = 'All';
+  List<String> _cryptoCategories = ['All'];
 
   String _searchQuery = '';
   int _rowsPerPage = 10;
@@ -39,6 +42,11 @@ class HomeViewModel extends ChangeNotifier {
       ).toList();
     }
     
+    // Category Filter (only for Crypto tab)
+    if (_selectedTab == 'CRYPTO' && _selectedCryptoCategory != 'All') {
+      list = list.where((t) => t.cryptoCategory.toLowerCase() == _selectedCryptoCategory.toLowerCase().replaceAll(' ', '')).toList();
+    }
+    
     return list;
   }
   
@@ -60,12 +68,15 @@ class HomeViewModel extends ChangeNotifier {
   int get currentPage => _currentPage;
   int get rowsPerPage => _rowsPerPage;
   String get searchQuery => _searchQuery;
+  String get selectedCryptoCategory => _selectedCryptoCategory;
+  List<String> get cryptoCategories => _cryptoCategories;
 
   void setTab(String tab) {
     if (_selectedTab == tab) return;
     _selectedTab = tab;
     _currentPage = 1;
     _selectedDex = 'All';
+    _selectedCryptoCategory = 'All';
     _searchQuery = '';
     fetchTickers();
   }
@@ -83,7 +94,9 @@ class HomeViewModel extends ChangeNotifier {
           ? '$baseUrl/hip3/all' 
           : _selectedTab == 'PERPS'
               ? 'http://localhost:4001/perps'
-              : 'http://localhost:4001/spot';
+              : _selectedTab == 'CRYPTO'
+                  ? 'http://localhost:4001/crypto'
+                  : 'http://localhost:4001/spot';
 
       final response = await http.get(Uri.parse(url));
 
@@ -104,6 +117,7 @@ class HomeViewModel extends ChangeNotifier {
         debugPrint('Initial API data fetched successfully for $_selectedTab, count: ${jsonList.length}');
         _tickers = jsonList.map((json) => TickerModel.fromJson(json)).toList();
         _extractDexes();
+        _extractCategories();
       } else {
         _errorMessage = 'Server Error (${response.statusCode}): Please try again later.';
       }
@@ -203,6 +217,45 @@ class HomeViewModel extends ChangeNotifier {
       }
     }
     _availableDexes = dexSet.toList();
+  }
+  
+  void _extractCategories() {
+    final Set<String> categorySet = {'All'};
+    for (var ticker in _tickers) {
+      if (ticker.cryptoCategory.isNotEmpty) {
+        // Format to Title Case for UI (e.g., 'layer1' -> 'Layer 1', 'defi' -> 'Defi')
+        String cat = ticker.cryptoCategory;
+        if (cat == 'layer1') cat = 'Layer 1';
+        if (cat == 'layer2') cat = 'Layer 2';
+        if (cat == 'defi') cat = 'Defi';
+        if (cat == 'ai') cat = 'AI';
+        if (cat == 'gaming') cat = 'Gaming';
+        if (cat == 'meme') cat = 'Meme';
+        
+        // Capitalize first letter if not specifically handled
+        if (cat.length > 0 && cat == ticker.cryptoCategory) {
+           cat = cat[0].toUpperCase() + cat.substring(1);
+        }
+        
+        categorySet.add(cat);
+      }
+    }
+    _cryptoCategories = categorySet.toList();
+    
+    // Sort to keep 'All' first then alphabetical
+    _cryptoCategories.sort((a, b) {
+      if (a == 'All') return -1;
+      if (b == 'All') return 1;
+      return a.compareTo(b);
+    });
+  }
+
+  void setSelectedCryptoCategory(String category) {
+    if (_cryptoCategories.contains(category)) {
+      _selectedCryptoCategory = category;
+      _currentPage = 1;
+      notifyListeners();
+    }
   }
 
   void setSelectedDex(String dex) {

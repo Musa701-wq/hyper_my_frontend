@@ -124,6 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         _buildTab(viewModel, 'HIP'),
                         _buildTab(viewModel, 'PERPS'),
                         _buildTab(viewModel, 'SPOT'),
+                        _buildTab(viewModel, 'CRYPTO'),
                       ],
                     ),
                   ),
@@ -156,16 +157,22 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
                               dropdownColor: AppColors.background,
-                              value: viewModel.selectedDex,
+                              value: viewModel.selectedTab == 'CRYPTO' ? viewModel.selectedCryptoCategory : viewModel.selectedDex,
                             style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 12),
                             icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary, size: 18),
                             onChanged: (String? newValue) {
-                              if (newValue != null) viewModel.setSelectedDex(newValue);
+                              if (newValue != null) {
+                                if (viewModel.selectedTab == 'CRYPTO') {
+                                  viewModel.setSelectedCryptoCategory(newValue);
+                                } else {
+                                  viewModel.setSelectedDex(newValue);
+                                }
+                              }
                             },
-                            items: viewModel.availableDexes.map<DropdownMenuItem<String>>((String value) {
+                            items: (viewModel.selectedTab == 'CRYPTO' ? viewModel.cryptoCategories : viewModel.availableDexes).map<DropdownMenuItem<String>>((String value) {
                               return DropdownMenuItem<String>(
                                 value: value,
-                                child: Text(value == 'All' ? 'ALL' : value),
+                                child: Text(value == 'All' ? 'ALL' : value.toUpperCase()),
                               );
                             }).toList(),
                           ),
@@ -237,7 +244,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                               color: AppColors.brandAccent.withValues(alpha: 0.1),
                                               borderRadius: BorderRadius.circular(2),
                                             ),
-                                            child: Text(ticker.dex.toUpperCase(), style: GoogleFonts.jetBrainsMono(color: AppColors.brandAccent, fontSize: 8)),
+                                            child: Text(
+                                              viewModel.selectedTab == 'CRYPTO' 
+                                                ? ticker.cryptoCategory.toUpperCase() 
+                                                : ticker.dex.toUpperCase(), 
+                                              style: GoogleFonts.jetBrainsMono(color: AppColors.brandAccent, fontSize: 8)
+                                            ),
                                           ),
                                         ],
                                       ),

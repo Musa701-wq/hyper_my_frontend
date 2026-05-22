@@ -12,6 +12,7 @@ class TickerModel {
   final double openInterestUSD;
   final String updatedAt;
   final double volume24hUSD;
+  final String cryptoCategory;
 
   TickerModel({
     required this.id,
@@ -27,6 +28,7 @@ class TickerModel {
     required this.openInterestUSD,
     required this.updatedAt,
     required this.volume24hUSD,
+    required this.cryptoCategory,
   });
 
   factory TickerModel.fromJson(Map<String, dynamic> json) {
@@ -44,6 +46,7 @@ class TickerModel {
       openInterestUSD: (json['openInterestUSD'] ?? 0.0).toDouble(),
       updatedAt: json['updatedAt'] ?? '',
       volume24hUSD: (json['volume24hUSD'] ?? 0.0).toDouble(),
+      cryptoCategory: json['cryptoCategory'] ?? '',
     );
   }
 
@@ -63,6 +66,7 @@ class TickerModel {
       openInterestUSD: partialData['openInterestUSD'] != null ? partialData['openInterestUSD'].toDouble() : this.openInterestUSD,
       updatedAt: partialData['updatedAt'] ?? this.updatedAt,
       volume24hUSD: partialData['volume24hUSD'] != null ? partialData['volume24hUSD'].toDouble() : this.volume24hUSD,
+      cryptoCategory: partialData['cryptoCategory'] ?? this.cryptoCategory,
     );
   }
 }
