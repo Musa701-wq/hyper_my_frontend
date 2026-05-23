@@ -16,4 +16,4 @@ Analyzing hyper...
    info • Unnecessary 'this.' qualifier • lib/models/ticker_model.dart:69:56 • unnecessary_this
    info • Use 'isNotEmpty' instead of 'length' to test whether the collection is empty • lib/viewmodels/home_viewmodel.dart:273:17 • prefer_is_empty
 
-15 issues found. (ran in 1.8s)
+15 issues found. (ran in 2.7s)

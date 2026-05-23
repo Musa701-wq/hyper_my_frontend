@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import '../utils/app_colors.dart';
 import '../utils/common_widgets.dart';
 import '../viewmodels/home_viewmodel.dart';
+import '../models/ticker_model.dart';
 import '../widgets/coming_soon_dialog.dart';
 import '../widgets/error_state_widget.dart';
 import '../widgets/sparkline_widget.dart';
+import '../widgets/ticker_detail_dialog.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/responsive.dart';
 
@@ -21,6 +23,13 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final ScrollController _tabScrollController = ScrollController();
   
+  void _showTickerDetail(TickerModel ticker) {
+    showDialog(
+      context: context,
+      builder: (context) => TickerDetailDialog(ticker: ticker),
+    );
+  }
+
   String _formatVolume(double value) {
     if (value >= 1e9) {
       return '\$${(value / 1e9).toStringAsFixed(1)}B';
@@ -152,7 +161,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               _buildTab(viewModel, 'PERPS', res),
                               _buildTab(viewModel, 'SPOT', res),
                               _buildTab(viewModel, 'CRYPTO', res),
-                              _buildTab(viewModel, 'TRADFI', res),
                               _buildTab(viewModel, 'HIP-3', res),
                             ],
                           ),
@@ -274,7 +282,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                     final ticker = entry.value;
                                     final rank = (viewModel.currentPage - 1) * viewModel.rowsPerPage + (index + 1);
                                     
-                                    return Container(
+                                    return GestureDetector(
+                                      onTap: () => _showTickerDetail(ticker),
+                                      behavior: HitTestBehavior.opaque,
+                                      child: Container(
                                       height: 56,
                                       padding: const EdgeInsets.only(left: 8.0, right: 4.0, top: 12.0, bottom: 12.0),
                                       decoration: const BoxDecoration(
@@ -318,6 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                         ],
                                       ),
+                                    ),
                                     );
                                   }),
                                 ],
@@ -353,7 +365,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                       final formattedFunding = '${ticker.funding8hPct.toStringAsFixed(4)}%';
                                       final formattedOI = '\$${(ticker.openInterestUSD / 1e6).toStringAsFixed(1)}M';
 
-                                      return Container(
+                                      return GestureDetector(
+                                        onTap: () => _showTickerDetail(ticker),
+                                        behavior: HitTestBehavior.opaque,
+                                        child: Container(
                                         height: 56,
                                         width: res.columnWidth(616),
                                         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
@@ -381,6 +396,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             ),
                                           ],
                                         ),
+                                      ),
                                       );
                                     }),
                                   ],
@@ -439,28 +455,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 8),
                             _buildPageButton(res, icon: Icons.chevron_right, isEnabled: (viewModel.currentPage * viewModel.rowsPerPage < viewModel.totalFilteredCount), isActive: false, onTap: () => viewModel.nextPage()),
                           ],
-                        ),
-                        SizedBox(height: res.spacing(24)),
-                        
-                        // Status Indicator
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.background,
-                              border: Border.all(color: AppColors.surfaceBright),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.brandAccent, shape: BoxShape.circle)),
-                                const SizedBox(width: 8),
-                                Text('MAINNET ONLINE', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(10))),
-                              ],
-                            ),
-                          ),
                         ),
                       ],
                     ],
