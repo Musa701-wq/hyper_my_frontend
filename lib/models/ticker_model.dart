@@ -154,6 +154,19 @@ class TickerModel {
     return double.tryParse(v.toString()) ?? 0.0;
   }
 
+  /// Coin id for order book API path — always bare `symbol` (e.g. `XYZ100`, `BTC`).
+  String get orderBookSymbol => symbol;
+
+  /// Orderbook API sirf symbol URL mein chahti hai — dex query param nahi.
+  /// Always return null so URL = /api/orderbook/XYZ100?levels=10
+  String? get orderBookDex => null;
+
+  String get orderBookLabel {
+    final d = orderBookDex;
+    if (d != null) return '$d:$symbol';
+    return symbol;
+  }
+
   TickerModel copyWithPartial(Map<String, dynamic> p) {
     return TickerModel(
       id: id,

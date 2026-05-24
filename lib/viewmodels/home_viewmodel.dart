@@ -102,7 +102,7 @@ class HomeViewModel extends ChangeNotifier {
       final hipBaseUrl = dotenv.env['HIP_BASE_URL'] ?? 'http://localhost:4000';
       
       final url = _selectedTab == 'ALL'
-          ? 'http://localhost:4001/hip3/all'
+          ? '$baseUrl/all'
           : _selectedTab == 'HIP-3' 
               ? '$hipBaseUrl/hip3/all' 
               : _selectedTab == 'PERPS'
