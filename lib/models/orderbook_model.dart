@@ -57,7 +57,7 @@ class OrderBookSnapshot {
     required this.lastUpdate,
   });
 
-  static const int displayLevels = 5;
+  static const int displayLevels = 6;
 
   /// Best asks first in API — show 5 nearest to spread, highest price at top.
   List<OrderBookLevel> get displayAsks {

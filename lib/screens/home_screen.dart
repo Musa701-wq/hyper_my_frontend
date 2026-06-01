@@ -9,6 +9,7 @@ import '../widgets/coming_soon_dialog.dart';
 import '../widgets/error_state_widget.dart';
 import '../widgets/sparkline_widget.dart';
 import '../widgets/ticker_detail_dialog.dart';
+import '../widgets/funding_legend_dialog.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/responsive.dart';
 
@@ -349,8 +350,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                       child: Row(
                                         children: [
                                           SizedBox(width: res.columnWidth(110), child: Text('Price', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
-                                          SizedBox(width: res.columnWidth(110), child: Text('24h Change', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
-                                          SizedBox(width: res.columnWidth(100), child: Text('8h Funding', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
+                                            SizedBox(width: res.columnWidth(110), child: Text('24h Change', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
+                                            SizedBox(
+                                              width: res.columnWidth(100),
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Text('8h Funding', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11))),
+                                                  const SizedBox(width: 4),
+                                                  GestureDetector(
+                                                    onTap: () => showDialog(
+                                                      context: context,
+                                                      builder: (context) => const FundingLegendDialog(),
+                                                    ),
+                                                    child: Icon(Icons.info_outline, size: 12, color: AppColors.textSecondary.withValues(alpha: 0.8)),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                           SizedBox(width: res.columnWidth(100), child: Text('VOLUME (24H)', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
                                           SizedBox(width: res.columnWidth(120), child: Text('Open Interest', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
                                           SizedBox(width: res.columnWidth(60), child: Text('TRENDS', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),

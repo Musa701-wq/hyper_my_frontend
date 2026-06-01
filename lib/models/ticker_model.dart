@@ -5,7 +5,7 @@ class TickerModel {
   final String symbol;
   final String fullSymbol;
   final String displayName;
-  final String marketType; // "perp" | "spot" | "crypto"
+  final String marketType;
   final String source;
   final bool isDelisted;
   final String iconUrl;
@@ -157,9 +157,13 @@ class TickerModel {
   /// Coin id for order book API path — always bare `symbol` (e.g. `XYZ100`, `BTC`).
   String get orderBookSymbol => symbol;
 
-  /// Orderbook API sirf symbol URL mein chahti hai — dex query param nahi.
-  /// Always return null so URL = /api/orderbook/XYZ100?levels=10
-  String? get orderBookDex => null;
+  /// Returns the dex query param for the order book API.
+  /// - hyperliquid coins → null (no dex param, backend uses WebSocket)
+  /// - all other dex coins (xyz, flx, etc.) → dex value (backend uses REST)
+  String? get orderBookDex {
+    if (dex.isEmpty || dex.toLowerCase() == 'hyperliquid') return null;
+    return dex;
+  }
 
   String get orderBookLabel {
     final d = orderBookDex;

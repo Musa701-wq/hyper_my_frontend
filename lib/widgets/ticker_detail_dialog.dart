@@ -129,6 +129,7 @@ class _TickerDetailDialogState extends State<TickerDetailDialog> with SingleTick
                 Tab(text: 'Order Book'),
               ],
             ),
+            const SizedBox(height: 12), // Added margin to prevent content from touching tabs
             Flexible(
               child: TabBarView(
                 controller: _tabController,

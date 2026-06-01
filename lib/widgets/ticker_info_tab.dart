@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/ticker_model.dart';
 import '../utils/app_colors.dart';
 import '../utils/ticker_formatters.dart';
+import 'funding_legend_dialog.dart';
 
 class TickerInfoTab extends StatelessWidget {
   final TickerModel ticker;
@@ -146,6 +147,11 @@ class TickerInfoTab extends StatelessWidget {
             Text(
               'FUNDING RATE (8H)',
               style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10, letterSpacing: 0.5),
+            ),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: () => showDialog(context: context, builder: (context) => const FundingLegendDialog()),
+              child: Icon(Icons.info_outline, size: 11, color: AppColors.textSecondary.withValues(alpha: 0.8)),
             ),
             const Spacer(),
             Text(

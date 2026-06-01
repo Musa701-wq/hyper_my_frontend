@@ -47,7 +47,11 @@ class OrderBookService {
       }
     });
 
-    unawaited(_connectSymbolWebSocket(onUpdate, onError));
+    // Only connect WS for hyperliquid coins — xyz/other DEX coins use REST only
+    final isHyperliquid = dex == null || dex!.isEmpty || dex!.toLowerCase() == 'hyperliquid';
+    if (isHyperliquid) {
+      unawaited(_connectSymbolWebSocket(onUpdate, onError));
+    }
   }
 
   Future<void> _connectSymbolWebSocket(
@@ -75,13 +79,18 @@ class OrderBookService {
   static Future<OrderBookSnapshot?> fetchSnapshot(
     String symbol, {
     String? dex,
-    int levels = 5,
+    int levels = 8,
     int maxAttempts = 2,
   }) async {
     final query = <String, String>{'levels': levels.toString()};
     if (dex != null && dex.isNotEmpty) query['dex'] = dex;
 
-    final uri = Uri.parse('$_baseUrl/api/orderbook/${Uri.encodeComponent(symbol)}').replace(
+    final baseUri = Uri.parse(_baseUrl);
+    final uri = Uri(
+      scheme: baseUri.scheme,
+      host: baseUri.host,
+      port: baseUri.port,
+      path: '/api/orderbook/$symbol',
       queryParameters: query,
     );
 
