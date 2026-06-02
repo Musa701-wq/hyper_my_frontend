@@ -91,7 +91,7 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
               duration: const Duration(milliseconds: 600),
               switchInCurve: Curves.easeIn,
               switchOutCurve: Curves.easeOut,
-              child: (vm.isLoading && vm.trades.isEmpty)
+              child: (vm.trades.isEmpty)
                   ? _buildShimmerSkeleton(res)
                   : Padding(
                       key: const ValueKey('trades_content'),
@@ -131,47 +131,105 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
       padding: EdgeInsets.all(res.spacing(16)),
       child: Shimmer.fromColors(
         baseColor: const Color(0xFF1E222D),
-        highlightColor: const Color(0xFF2C3344),
+        highlightColor: const Color(0xFF3A3F4E), // Brighter for better visibility
+        period: const Duration(milliseconds: 1500),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header Mock
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                      color: Colors.black, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _skeletonPill(100, 12),
+                    const SizedBox(height: 6),
+                    _skeletonPill(60, 8),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
             // Stats Skeleton
             Container(
               height: 100,
               decoration: BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
-            ),
-            const SizedBox(height: 16),
-            // Table Skeleton
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: List.generate(10, (index) => Container(
-                    height: 52,
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Padding(
+                padding: EdgeInsets.all(res.spacing(16)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(width: 60, height: 10, color: Colors.black),
-                        Container(width: 40, height: 10, color: Colors.black),
-                        Container(width: 70, height: 10, color: Colors.black),
-                        Container(width: 60, height: 10, color: Colors.black),
+                        _skeletonPill(40, 8),
+                        const SizedBox(height: 10),
+                        _skeletonPill(60, 16),
                       ],
                     ),
-                  )),
+                    _skeletonPill(80, 20),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _skeletonPill(40, 8),
+                        const SizedBox(height: 10),
+                        _skeletonPill(60, 16),
+                      ],
+                    ),
+                  ],
                 ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Table Header Mock
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(5, (i) => _skeletonPill(40, 12)),
+            ),
+            const SizedBox(height: 12),
+            // Table Rows Skeleton
+            Expanded(
+              child: Column(
+                children: List.generate(
+                    8,
+                    (index) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(child: Center(child: _skeletonPill(50, 10))),
+                              Expanded(child: Center(child: _skeletonPill(30, 10))),
+                              Expanded(child: Center(child: _skeletonPill(60, 10))),
+                              Expanded(child: Center(child: _skeletonPill(40, 10))),
+                              Expanded(child: Center(child: _skeletonPill(50, 10))),
+                            ],
+                          ),
+                        )),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _skeletonPill(double width, double height) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(height / 2),
       ),
     );
   }

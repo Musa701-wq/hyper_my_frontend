@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../models/orderbook_model.dart';
 import '../utils/app_colors.dart';
@@ -30,12 +31,7 @@ class OrderBookPanel extends StatelessWidget {
     final res = Responsive(context);
 
     if (isLoading && snapshot == null) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.all(res.spacing(32)),
-          child: const CircularProgressIndicator(color: AppColors.brandAccent, strokeWidth: 2),
-        ),
-      );
+      return _buildShimmerSkeleton(res);
     }
 
     if (errorMessage != null && snapshot == null) {
@@ -53,23 +49,7 @@ class OrderBookPanel extends StatelessWidget {
 
     final book = snapshot;
     if (book == null || (book.bids.isEmpty && book.asks.isEmpty)) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: res.fontSize(22),
-              height: res.fontSize(22),
-              child: const CircularProgressIndicator(color: AppColors.brandAccent, strokeWidth: 2),
-            ),
-            SizedBox(height: res.spacing(12)),
-            Text(
-              'Loading live order book…',
-              style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(12)),
-            ),
-          ],
-        ),
-      );
+      return _buildShimmerSkeleton(res);
     }
 
     final isPro = context.watch<SubscriptionViewModel>().isPro;
@@ -145,6 +125,94 @@ class OrderBookPanel extends StatelessWidget {
           SizedBox(height: res.spacing(8)),
           _DepthChart(snapshot: book, maxAskCum: maxAskCum, maxBidCum: maxBidCum, res: res),
         ],
+      ),
+    );
+  }
+
+  Widget _buildShimmerSkeleton(Responsive res) {
+    return Padding(
+      padding: EdgeInsets.all(res.spacing(16)),
+      child: Shimmer.fromColors(
+        baseColor: const Color(0xFF1E222D),
+        highlightColor: const Color(0xFF3A3F4E),
+        period: const Duration(milliseconds: 1500),
+        child: Column(
+          children: [
+            // Top Stats Box Mock
+            Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Header Skeleton
+            Row(
+              children: List.generate(
+                  3,
+                  (i) => Expanded(
+                      child: Center(child: _skeletonPill(50, 10)))),
+            ),
+            const SizedBox(height: 16),
+            // Rows Skeleton (Asks)
+            ...List.generate(
+                8,
+                (index) => Padding(
+                      padding: EdgeInsets.symmetric(vertical: res.spacing(4)),
+                      child: Row(
+                        children: [
+                          Expanded(child: Center(child: _skeletonPill(40, 10))),
+                          Expanded(child: Center(child: _skeletonPill(60, 10))),
+                          Expanded(child: Center(child: _skeletonPill(50, 10))),
+                        ],
+                      ),
+                    )),
+            // Spread Skeleton
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 16),
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            // Rows Skeleton (Bids)
+            ...List.generate(
+                8,
+                (index) => Padding(
+                      padding: EdgeInsets.symmetric(vertical: res.spacing(4)),
+                      child: Row(
+                        children: [
+                          Expanded(child: Center(child: _skeletonPill(40, 10))),
+                          Expanded(child: Center(child: _skeletonPill(60, 10))),
+                          Expanded(child: Center(child: _skeletonPill(50, 10))),
+                        ],
+                      ),
+                    )),
+            const SizedBox(height: 20),
+            // Depth Chart Skeleton
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _skeletonPill(double width, double height) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(height / 2),
       ),
     );
   }
