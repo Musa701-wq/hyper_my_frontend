@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:shimmer/shimmer.dart';
 import '../viewmodels/trades_viewmodel.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
@@ -9,9 +10,10 @@ import '../models/trade_model.dart';
 
 class RecentTradesScreen extends StatefulWidget {
   final String symbol;
+  final String? dex;
   final String? iconUrl;
 
-  const RecentTradesScreen({super.key, required this.symbol, this.iconUrl});
+  const RecentTradesScreen({super.key, required this.symbol, this.dex, this.iconUrl});
 
   @override
   State<RecentTradesScreen> createState() => _RecentTradesScreenState();
@@ -23,8 +25,8 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
   @override
   void initState() {
     super.initState();
-    _viewModel = TradesViewModel(symbol: widget.symbol);
-    _viewModel.startPolling();
+    _viewModel = TradesViewModel(symbol: widget.symbol, dex: widget.dex);
+    _viewModel.startUpdates();
   }
 
   @override
@@ -85,33 +87,90 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
         ),
         body: Consumer<TradesViewModel>(
           builder: (context, vm, child) {
-            if (vm.isLoading && vm.trades.isEmpty) {
-              return const Center(child: CircularProgressIndicator(color: AppColors.brandAccent, strokeWidth: 2));
-            }
-
-            return Padding(
-              padding: EdgeInsets.all(res.spacing(16)),
-              child: Column(
-                children: [
-                  _buildStats(vm, res),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF161A22),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.5)),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: _buildTradesTable(vm, res),
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 600),
+              switchInCurve: Curves.easeIn,
+              switchOutCurve: Curves.easeOut,
+              child: (vm.isLoading && vm.trades.isEmpty)
+                  ? _buildShimmerSkeleton(res)
+                  : Padding(
+                      key: const ValueKey('trades_content'),
+                      padding: EdgeInsets.all(res.spacing(16)),
+                      child: Column(
+                        children: [
+                          _buildStats(vm, res),
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF161A22),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: AppColors.surfaceBright
+                                        .withValues(alpha: 0.5)),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: _buildTradesTable(vm, res),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerSkeleton(Responsive res) {
+    return Padding(
+      key: const ValueKey('shimmer_skeleton'),
+      padding: EdgeInsets.all(res.spacing(16)),
+      child: Shimmer.fromColors(
+        baseColor: const Color(0xFF1E222D),
+        highlightColor: const Color(0xFF2C3344),
+        child: Column(
+          children: [
+            // Stats Skeleton
+            Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Table Skeleton
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: List.generate(10, (index) => Container(
+                    height: 52,
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(width: 60, height: 10, color: Colors.black),
+                        Container(width: 40, height: 10, color: Colors.black),
+                        Container(width: 70, height: 10, color: Colors.black),
+                        Container(width: 60, height: 10, color: Colors.black),
+                      ],
+                    ),
+                  )),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -164,31 +223,24 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
       );
     }
 
-    // Wrap in horizontal scroll to ensure header and body scroll together
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const ClampingScrollPhysics(),
-      child: SizedBox(
-        width: res.columnWidth(65) + res.columnWidth(45) + res.columnWidth(85) + res.columnWidth(85) + res.columnWidth(100) + 32, // Padding included
-        child: Column(
-          children: [
-            // Sticky Table Header
-            _buildTableHeader(res),
-            // Scrollable Body
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: vm.paginatedTrades.length,
-                itemBuilder: (context, index) {
-                  return _buildTradeRow(vm.paginatedTrades[index], res, index % 2 != 0);
-                },
-              ),
-            ),
-            // Pagination Footer
-            _buildPaginationControls(vm, res),
-          ],
+    return Column(
+      children: [
+        // Table Header
+        _buildTableHeader(res),
+        // Scrollable Body
+        Expanded(
+          child: ListView.builder(
+            padding: EdgeInsets.zero,
+            itemCount: vm.paginatedTrades.length,
+            itemBuilder: (context, index) {
+              return _buildTradeRow(
+                  vm.paginatedTrades[index], res, index % 2 != 0);
+            },
+          ),
         ),
-      ),
+        // Pagination Footer
+        _buildPaginationControls(vm, res),
+      ],
     );
   }
 
@@ -198,15 +250,17 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       decoration: BoxDecoration(
         color: const Color(0xFF1E222D),
-        border: Border(bottom: BorderSide(color: AppColors.surfaceBright.withValues(alpha: 0.5))),
+        border: Border(
+            bottom: BorderSide(
+                color: AppColors.surfaceBright.withValues(alpha: 0.5))),
       ),
       child: Row(
         children: [
-          SizedBox(width: res.columnWidth(65), child: Text('TIME', style: _headerStyle(res))),
-          SizedBox(width: res.columnWidth(45), child: Text('DIR', style: _headerStyle(res))),
-          SizedBox(width: res.columnWidth(85), child: Text('PRICE', textAlign: TextAlign.right, style: _headerStyle(res))),
-          SizedBox(width: res.columnWidth(85), child: Text('SIZE', textAlign: TextAlign.right, style: _headerStyle(res))),
-          SizedBox(width: res.columnWidth(100), child: Text('VALUE', textAlign: TextAlign.right, style: _headerStyle(res))),
+          Expanded(child: Center(child: Text('TIME', style: _headerStyle(res)))),
+          Expanded(child: Center(child: Text('DIR', style: _headerStyle(res)))),
+          Expanded(child: Center(child: Text('PRICE', style: _headerStyle(res)))),
+          Expanded(child: Center(child: Text('SIZE', style: _headerStyle(res)))),
+          Expanded(child: Center(child: Text('VALUE', style: _headerStyle(res)))),
         ],
       ),
     );
@@ -214,28 +268,44 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
 
   Widget _buildTradeRow(Trade trade, Responsive res, bool isEven) {
     final color = trade.isBuy ? AppColors.trendGreen : AppColors.trendRed;
-    
+
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       decoration: BoxDecoration(
-        color: isEven ? Colors.white.withValues(alpha: 0.015) : Colors.transparent,
-        border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.03), width: 0.5)),
+        color:
+            isEven ? Colors.white.withValues(alpha: 0.015) : Colors.transparent,
+        border: Border(
+            bottom: BorderSide(
+                color: Colors.white.withValues(alpha: 0.03), width: 0.5)),
       ),
       child: Row(
         children: [
-          SizedBox(width: res.columnWidth(65), child: Text(trade.timeFormatted, style: _rowStyle(res, color: AppColors.textSecondary))),
-          SizedBox(width: res.columnWidth(45), child: Text(trade.direction, style: _rowStyle(res, color: color, bold: true))),
-          SizedBox(
-            width: res.columnWidth(85), 
-            child: Text(
-              '\$${trade.price.toStringAsFixed(2)}', 
-              textAlign: TextAlign.right, 
-              style: _rowStyle(res, color: color, bold: true),
+          Expanded(
+              child: Center(
+                  child: Text(trade.timeFormatted,
+                      style: _rowStyle(res, color: AppColors.textSecondary)))),
+          Expanded(
+              child: Center(
+                  child: Text(trade.direction,
+                      style: _rowStyle(res, color: color, bold: true)))),
+          Expanded(
+            child: Center(
+              child: Text(
+                '\$${trade.price.toStringAsFixed(2)}',
+                style: _rowStyle(res, color: color, bold: true),
+              ),
             ),
           ),
-          SizedBox(width: res.columnWidth(85), child: Text(trade.size.toStringAsFixed(4), textAlign: TextAlign.right, style: _rowStyle(res))),
-          SizedBox(width: res.columnWidth(100), child: Text('\$${trade.value.toStringAsFixed(2)}', textAlign: TextAlign.right, style: _rowStyle(res, color: AppColors.textPrimary.withValues(alpha: 0.8)))),
+          Expanded(
+              child: Center(
+                  child: Text(trade.size.toStringAsFixed(4),
+                      style: _rowStyle(res)))),
+          Expanded(
+              child: Center(
+                  child: Text('\$${trade.value.toStringAsFixed(2)}',
+                      style: _rowStyle(res,
+                          color: AppColors.textPrimary.withValues(alpha: 0.8))))),
         ],
       ),
     );

@@ -47,19 +47,20 @@ class OrderBookService {
       }
     });
 
-    // Only connect WS for hyperliquid coins — xyz/other DEX coins use REST only
-    final isHyperliquid = dex == null || dex!.isEmpty || dex!.toLowerCase() == 'hyperliquid';
-    if (isHyperliquid) {
-      unawaited(_connectSymbolWebSocket(onUpdate, onError));
-    }
+    // Connect WS for both hyperliquid and DEX coins
+    unawaited(_connectSymbolWebSocket(onUpdate, onError));
   }
 
   Future<void> _connectSymbolWebSocket(
     void Function(OrderBookSnapshot snapshot) onUpdate,
     void Function(Object error)? onError,
   ) async {
-    final query = (dex != null && dex!.isNotEmpty) ? '?dex=${Uri.encodeComponent(dex!)}' : '';
-    final wsUrl = '$_wsBase/orderbook/${Uri.encodeComponent(symbol)}$query';
+    final effectiveDex = (dex != null && dex!.isNotEmpty && dex!.toLowerCase() != 'hyperliquid')
+        ? dex
+        : null;
+
+    final query = effectiveDex != null ? '?dex=${Uri.encodeComponent(effectiveDex)}' : '';
+    final wsUrl = '$_wsBase/orderbook/${Uri.encodeComponent(symbol.toUpperCase())}$query';
 
     try {
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));

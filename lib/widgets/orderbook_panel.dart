@@ -160,16 +160,19 @@ class _HeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = GoogleFonts.jetBrainsMono(
-      color: AppColors.textSecondary, 
+      color: AppColors.textSecondary,
       fontSize: res.fontSize(10),
     );
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: res.spacing(8), vertical: res.spacing(4)),
+      padding: EdgeInsets.symmetric(
+          horizontal: res.spacing(8), vertical: res.spacing(4)),
       child: Row(
         children: [
-          Expanded(child: Text('Price', style: style)),
-          Expanded(child: Text('Size ($sizeLabel)', textAlign: TextAlign.center, style: style)),
-          Expanded(child: Text('Total ($sizeLabel)', textAlign: TextAlign.end, style: style)),
+          Expanded(child: Center(child: Text('Price', style: style))),
+          Expanded(
+              child: Center(child: Text('Size ($sizeLabel)', style: style))),
+          Expanded(
+              child: Center(child: Text('Total ($sizeLabel)', style: style))),
         ],
       ),
     );
@@ -317,28 +320,36 @@ class _BookRow extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Row(
-                    children: [
-                      Text(_fmtNum(level.price), style: textStyle.copyWith(color: priceColor)),
-                      if (isWhale) ...[
-                        const SizedBox(width: 4),
-                        Text('🐳', style: TextStyle(fontSize: res.fontSize(10))),
+                  child: Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_fmtNum(level.price),
+                            style: textStyle.copyWith(color: priceColor)),
+                        if (isWhale) ...[
+                          const SizedBox(width: 4),
+                          Text('🐳', style: TextStyle(fontSize: res.fontSize(10))),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
                 Expanded(
-                  child: Text(
-                    _fmtNum(level.size),
-                    textAlign: TextAlign.center,
-                    style: textStyle.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.9)),
+                  child: Center(
+                    child: Text(
+                      _fmtNum(level.size),
+                      style: textStyle.copyWith(
+                          color: AppColors.textPrimary.withValues(alpha: 0.9)),
+                    ),
                   ),
                 ),
                 Expanded(
-                  child: Text(
-                    _fmtNum(level.cumulative),
-                    textAlign: TextAlign.end,
-                    style: textStyle.copyWith(color: AppColors.textPrimary.withValues(alpha: 0.75)),
+                  child: Center(
+                    child: Text(
+                      _fmtNum(level.cumulative),
+                      style: textStyle.copyWith(
+                          color: AppColors.textPrimary.withValues(alpha: 0.75)),
+                    ),
                   ),
                 ),
               ],

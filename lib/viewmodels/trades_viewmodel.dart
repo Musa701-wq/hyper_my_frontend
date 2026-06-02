@@ -1,27 +1,27 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 import '../models/trade_model.dart';
+import '../services/trades_service.dart';
 
 class TradesViewModel extends ChangeNotifier {
   final String symbol;
+  final String? dex;
+
+  final TradesService _tradesService;
   List<Trade> _trades = [];
   bool _isLoading = false;
   String? _error;
-  Timer? _pollTimer;
   bool _disposed = false;
 
   int _currentPage = 1;
   int _rowsPerPage = 10;
 
-  TradesViewModel({required this.symbol});
+  TradesViewModel({required this.symbol, this.dex})
+      : _tradesService = TradesService(symbol: symbol, dex: dex);
 
   List<Trade> get trades => _trades;
   bool get isLoading => _isLoading;
   String? get error => _error;
-
   int get currentPage => _currentPage;
   int get rowsPerPage => _rowsPerPage;
   int get totalTrades => _trades.length;
@@ -29,14 +29,14 @@ class TradesViewModel extends ChangeNotifier {
   List<Trade> get paginatedTrades {
     final startIndex = (_currentPage - 1) * _rowsPerPage;
     if (startIndex >= _trades.length) return [];
-    final endIndex = (startIndex + _rowsPerPage > _trades.length) 
-        ? _trades.length 
+    final endIndex = (startIndex + _rowsPerPage > _trades.length)
+        ? _trades.length
         : startIndex + _rowsPerPage;
     return _trades.sublist(startIndex, endIndex);
   }
 
   double get lastPrice => _trades.isNotEmpty ? _trades.first.price : 0.0;
-  
+
   double get buyPercentage {
     if (_trades.isEmpty) return 50.0;
     final buys = _trades.where((t) => t.isBuy).length;
@@ -49,7 +49,7 @@ class TradesViewModel extends ChangeNotifier {
     if (_trades.isEmpty) return 0.0;
     double totalValue = 0;
     double totalSize = 0;
-    for (var t in _trades) {
+    for (final t in _trades) {
       totalValue += t.value;
       totalSize += t.size;
     }
@@ -67,50 +67,71 @@ class TradesViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> startPolling() async {
+  Future<void> startUpdates() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
-    
-    await _fetchTrades();
+
+    await _tradesService.start(
+      onSnapshot: _handleSnapshot,
+      onUpdates: _handleUpdates,
+      onError: (e) {
+        _error = e.toString();
+        _isLoading = false;
+        notifyListeners();
+      },
+    );
+
     _isLoading = false;
     notifyListeners();
-
-    _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _fetchTrades());
   }
 
-  Future<void> _fetchTrades() async {
+  void _handleSnapshot(List<Trade> snapshot) {
+    if (_disposed) return;
+    // Strictly follow breakdown: snapshots REPLACE the entire list
+    _trades = snapshot;
+    if (_trades.length > 50) {
+      _trades = _trades.sublist(0, 50);
+    }
+    _sortTrades();
+    notifyListeners();
+  }
+
+  void _handleUpdates(List<Trade> updates) {
     if (_disposed) return;
     
-    try {
-      final baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:4001';
-      // Fetch more to support local pagination
-      final url = Uri.parse('$baseUrl/api/trades/$symbol?limit=200');
-      
-      final response = await http.get(url);
-      
-      if (_disposed) return;
+    // Deduplication key: ${trade.time}-${trade.hash ?? trade.price}
+    final existingKeys = _trades.map((t) => _getTradeKey(t)).toSet();
+    
+    final newTrades = updates.where((t) {
+      final key = _getTradeKey(t);
+      return !existingKeys.contains(key);
+    }).toList();
 
-      if (response.statusCode == 200) {
-        final decoded = json.decode(response.body);
-        if (decoded['success'] == true && decoded['data'] != null) {
-          final List tradesJson = decoded['data']['trades'] ?? [];
-          _trades = tradesJson.map((j) => Trade.fromJson(j)).toList();
-          _error = null;
-        }
-      } else {
-        _error = 'Server Error: ${response.statusCode}';
+    if (newTrades.isNotEmpty) {
+      _trades.insertAll(0, newTrades);
+      _sortTrades();
+      
+      // Breakdown requirement: Keep max 50
+      if (_trades.length > 50) {
+        _trades = _trades.sublist(0, 50);
       }
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      if (!_disposed) notifyListeners();
+      notifyListeners();
     }
+  }
+
+  String _getTradeKey(Trade t) {
+    return '${t.time}-${t.hash ?? t.price}';
+  }
+
+  void _sortTrades() {
+    _trades.sort((a, b) => b.time.compareTo(a.time));
   }
 
   @override
   void dispose() {
     _disposed = true;
-    _pollTimer?.cancel();
+    _tradesService.dispose();
     super.dispose();
   }
 }

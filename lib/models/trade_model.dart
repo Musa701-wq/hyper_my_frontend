@@ -2,7 +2,8 @@ class Trade {
   final String symbol;
   final int time;
   final String timeFormatted;
-  final String direction; // "BUY" or "SELL"
+  final String direction;    // "BUY" or "SELL"
+  final String directionRaw; // "B" or "A"
   final double price;
   final double size;
   final double value;
@@ -13,6 +14,7 @@ class Trade {
     required this.time,
     required this.timeFormatted,
     required this.direction,
+    required this.directionRaw,
     required this.price,
     required this.size,
     required this.value,
@@ -25,6 +27,7 @@ class Trade {
       time: (j['time'] as num?)?.toInt() ?? 0,
       timeFormatted: j['timeFormatted'] ?? '',
       direction: j['direction'] ?? 'BUY',
+      directionRaw: j['directionRaw'] ?? (j['direction'] == 'SELL' ? 'A' : 'B'),
       price: _toDouble(j['price']),
       size: _toDouble(j['size']),
       value: _toDouble(j['value']),

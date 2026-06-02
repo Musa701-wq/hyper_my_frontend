@@ -42,6 +42,7 @@ dependencies:
   flutter_svg: ^2.3.0
   in_app_purchase: ^3.2.0
   shared_preferences: ^2.5.2
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:

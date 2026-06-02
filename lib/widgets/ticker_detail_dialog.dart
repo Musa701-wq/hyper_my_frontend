@@ -233,6 +233,7 @@ class _DialogHeader extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (context) => RecentTradesScreen(
                             symbol: ticker.symbol,
+                            dex: ticker.dex,
                             iconUrl: ticker.iconUrl,
                           ),
                         ),
