@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'utils/app_colors.dart';
 import 'screens/home_screen.dart';
 import 'viewmodels/home_viewmodel.dart';
+import 'viewmodels/subscription_viewmodel.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +15,7 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => HomeViewModel()..fetchTickers()),
+        ChangeNotifierProvider(create: (_) => SubscriptionViewModel()),
       ],
       child: const MyApp(),
     ),
@@ -26,7 +28,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Hyperliquid Clone',
+      title: 'HyperView',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,

@@ -32,6 +32,16 @@ class Responsive {
     return width * 1.5;
   }
 
+  bool get isWide => width > 800;
+  Orientation get orientation => MediaQuery.of(context).orientation;
+
+  /// Helper for responsive padding
+  double horizontalPadding(double padding) {
+    if (isMobile) return padding;
+    if (isTablet) return padding * 2.0;
+    return padding * 3.0;
+  }
+
   /// Returns a value based on device type
   T value<T>({
     required T mobile,
@@ -42,4 +52,12 @@ class Responsive {
     if (isTablet && tablet != null) return tablet;
     return mobile;
   }
+
+  /// Integer count for grids
+  int gridColumnCount({int mobile = 1, int tablet = 2, int desktop = 3}) {
+    if (isDesktop) return desktop;
+    if (isTablet) return tablet;
+    return mobile;
+  }
 }
+

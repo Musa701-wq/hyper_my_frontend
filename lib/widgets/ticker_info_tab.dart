@@ -121,7 +121,8 @@ class TickerInfoTab extends StatelessWidget {
               )),
             ]),
           ],
-          if (_isPerp || ticker.maxLeverage > 0) ...[
+          if (_isPerp && ticker.maxLeverage > 0) ...[
+
             const SizedBox(height: 14),
             Row(children: [
               Expanded(child: _Cell(

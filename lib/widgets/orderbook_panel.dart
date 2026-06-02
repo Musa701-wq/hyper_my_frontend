@@ -3,6 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../models/orderbook_model.dart';
 import '../utils/app_colors.dart';
+import '../viewmodels/subscription_viewmodel.dart';
+import 'package:provider/provider.dart';
+import 'paywall_widget.dart';
+import '../screens/subscription_screen.dart';
+import 'coming_soon_dialog.dart';
+
+import '../utils/responsive.dart';
 
 class OrderBookPanel extends StatelessWidget {
   final OrderBookSnapshot? snapshot;
@@ -20,11 +27,13 @@ class OrderBookPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final res = Responsive(context);
+
     if (isLoading && snapshot == null) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(32),
-          child: CircularProgressIndicator(color: AppColors.brandAccent, strokeWidth: 2),
+          padding: EdgeInsets.all(res.spacing(32)),
+          child: const CircularProgressIndicator(color: AppColors.brandAccent, strokeWidth: 2),
         ),
       );
     }
@@ -32,11 +41,11 @@ class OrderBookPanel extends StatelessWidget {
     if (errorMessage != null && snapshot == null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(res.spacing(24)),
           child: Text(
             errorMessage!,
             textAlign: TextAlign.center,
-            style: GoogleFonts.jetBrainsMono(color: AppColors.trendRed, fontSize: 12),
+            style: GoogleFonts.jetBrainsMono(color: AppColors.trendRed, fontSize: res.fontSize(12)),
           ),
         ),
       );
@@ -48,17 +57,29 @@ class OrderBookPanel extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(color: AppColors.brandAccent, strokeWidth: 2),
+            SizedBox(
+              width: res.fontSize(22),
+              height: res.fontSize(22),
+              child: const CircularProgressIndicator(color: AppColors.brandAccent, strokeWidth: 2),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: res.spacing(12)),
             Text(
               'Loading live order book…',
-              style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 12),
+              style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(12)),
             ),
           ],
+        ),
+      );
+    }
+
+    final isPro = context.watch<SubscriptionViewModel>().isPro;
+
+    if (!isPro) {
+      return PaywallWidget(
+        title: 'Premium Analytics',
+        description: 'Unlock real-time orderbook depth, liquidity walls, and depth charts.',
+        onUpgrade: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
         ),
       );
     }
@@ -66,17 +87,12 @@ class OrderBookPanel extends StatelessWidget {
     final asks = book.displayAsks;
     final bids = book.displayBids;
     
-    // Find max cumulative per side for the chart/bars
-        // displayAsks is [Furthest...Best], so first is max cumulative.
     final maxAskCum = asks.isEmpty ? 1.0 : asks.first.cumulative;
-    // displayBids is [Best...Furthest], so last is max cumulative.
     final maxBidCum = bids.isEmpty ? 1.0 : bids.last.cumulative;
     
-    // Find max size per side for the "Heat" bars
     final maxAskSize = asks.isEmpty ? 0.0 : asks.map((e) => e.size).reduce((a, b) => a > b ? a : b);
     final maxBidSize = bids.isEmpty ? 0.0 : bids.map((e) => e.size).reduce((a, b) => a > b ? a : b);
 
-    // Calculate global thresholds for whale detection
     final allLevels = [...asks, ...bids];
     final avgSizes = allLevels.where((l) => l.orders > 0).map((l) => l.size / l.orders).toList();
     avgSizes.sort();
@@ -84,12 +100,17 @@ class OrderBookPanel extends StatelessWidget {
     final whaleThreshold = medianAvgSize * 4.0;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+      padding: EdgeInsets.fromLTRB(
+        res.spacing(12), 
+        res.spacing(12), 
+        res.spacing(12), 
+        res.spacing(16)
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _HeaderRow(sizeLabel: sizeLabel),
-          const SizedBox(height: 4),
+          _HeaderRow(sizeLabel: sizeLabel, res: res),
+          SizedBox(height: res.spacing(4)),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -100,39 +121,50 @@ class OrderBookPanel extends StatelessWidget {
                         maxCumulative: maxAskCum,
                         maxSize: maxAskSize,
                         whaleThreshold: whaleThreshold,
+                        res: res,
                       )),
-                  _SpreadRow(spread: book.spread, midPrice: (asks.last.price + bids.first.price) / 2),
+                  _SpreadRow(
+                    spread: book.spread, 
+                    midPrice: (asks.last.price + bids.first.price) / 2,
+                    res: res,
+                  ),
                   ...bids.map((l) => _BookRow(
                         level: l,
                         isAsk: false,
                         maxCumulative: maxBidCum,
                         maxSize: maxBidSize,
                         whaleThreshold: whaleThreshold,
+                        res: res,
                       )),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          const SizedBox(height: 8),
-          _DepthChartHeader(maxBidCum: maxBidCum, maxAskCum: maxAskCum),
-          const SizedBox(height: 8),
-          _DepthChart(snapshot: book, maxAskCum: maxAskCum, maxBidCum: maxBidCum),
+          SizedBox(height: res.spacing(16)),
+          _DepthChartHeader(maxBidCum: maxBidCum, maxAskCum: maxAskCum, res: res),
+          SizedBox(height: res.spacing(8)),
+          _DepthChart(snapshot: book, maxAskCum: maxAskCum, maxBidCum: maxBidCum, res: res),
         ],
       ),
     );
   }
 }
 
+
+
 class _HeaderRow extends StatelessWidget {
   final String sizeLabel;
-  const _HeaderRow({required this.sizeLabel});
+  final Responsive res;
+  const _HeaderRow({required this.sizeLabel, required this.res});
 
   @override
   Widget build(BuildContext context) {
-    final style = GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10);
+    final style = GoogleFonts.jetBrainsMono(
+      color: AppColors.textSecondary, 
+      fontSize: res.fontSize(10),
+    );
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: res.spacing(8), vertical: res.spacing(4)),
       child: Row(
         children: [
           Expanded(child: Text('Price', style: style)),
@@ -144,10 +176,12 @@ class _HeaderRow extends StatelessWidget {
   }
 }
 
+
 class _SpreadRow extends StatelessWidget {
   final OrderBookSpread spread;
   final double midPrice;
-  const _SpreadRow({required this.spread, required this.midPrice});
+  final Responsive res;
+  const _SpreadRow({required this.spread, required this.midPrice, required this.res});
 
   @override
   Widget build(BuildContext context) {
@@ -156,8 +190,8 @@ class _SpreadRow extends StatelessWidget {
         : '${(spread.percentage * 100).toStringAsFixed(4)}%';
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: EdgeInsets.symmetric(vertical: res.spacing(8)),
+      padding: EdgeInsets.symmetric(horizontal: res.spacing(12), vertical: res.spacing(10)),
       decoration: BoxDecoration(
         color: AppColors.surfaceBright.withValues(alpha: 0.15),
         border: Border.symmetric(
@@ -169,7 +203,11 @@ class _SpreadRow extends StatelessWidget {
           Expanded(
             child: Text(
               'Spread',
-              style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10, letterSpacing: 0.5),
+              style: GoogleFonts.jetBrainsMono(
+                color: AppColors.textSecondary, 
+                fontSize: res.fontSize(10), 
+                letterSpacing: 0.5
+              ),
             ),
           ),
           Column(
@@ -178,7 +216,7 @@ class _SpreadRow extends StatelessWidget {
                 _fmtNum(midPrice),
                 style: GoogleFonts.jetBrainsMono(
                   color: AppColors.textPrimary,
-                  fontSize: 14,
+                  fontSize: res.fontSize(14),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -187,7 +225,7 @@ class _SpreadRow extends StatelessWidget {
                 'MID PRICE',
                 style: GoogleFonts.jetBrainsMono(
                   color: AppColors.textSecondary.withValues(alpha: 0.6),
-                  fontSize: 8,
+                  fontSize: res.fontSize(8),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -199,7 +237,7 @@ class _SpreadRow extends StatelessWidget {
               textAlign: TextAlign.end,
               style: GoogleFonts.jetBrainsMono(
                 color: AppColors.textPrimary.withValues(alpha: 0.8),
-                fontSize: 10,
+                fontSize: res.fontSize(10),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -210,12 +248,14 @@ class _SpreadRow extends StatelessWidget {
   }
 }
 
+
 class _BookRow extends StatelessWidget {
   final OrderBookLevel level;
   final bool isAsk;
   final double maxCumulative;
   final double maxSize;
   final double whaleThreshold;
+  final Responsive res;
 
   const _BookRow({
     required this.level,
@@ -223,32 +263,33 @@ class _BookRow extends StatelessWidget {
     required this.maxCumulative,
     required this.maxSize,
     required this.whaleThreshold,
+    required this.res,
   });
 
   @override
   Widget build(BuildContext context) {
     final priceColor = isAsk ? AppColors.trendRed : AppColors.trendGreen;
     
-    // Size-based heat bar (liquidity walls)
     final heatFraction = maxSize > 0 ? (level.size / maxSize).clamp(0.0, 1.0) : 0.0;
-    // Cumulative bar (overall depth)
     final cumFraction = maxCumulative > 0 ? (level.cumulative / maxCumulative).clamp(0.0, 1.0) : 0.0;
     
-    final textStyle = GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w500);
+    final textStyle = GoogleFonts.jetBrainsMono(
+      fontSize: res.fontSize(11), 
+      fontWeight: FontWeight.w500
+    );
     final isWhale = level.orders > 0 && (level.size / level.orders) > whaleThreshold;
 
     return SizedBox(
-      height: 24,
+      height: res.spacing(24),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Background Bar (Cumulative) - Subtle background
           Align(
             alignment: isAsk ? Alignment.centerRight : Alignment.centerRight,
             child: FractionallySizedBox(
               widthFactor: cumFraction,
               child: Container(
-                height: 24,
+                height: res.spacing(24),
                 decoration: BoxDecoration(
                   color: priceColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(1),
@@ -256,13 +297,12 @@ class _BookRow extends StatelessWidget {
               ),
             ),
           ),
-          // Heat Bar (Size) - Darker/more prominent for walls
           Align(
             alignment: Alignment.centerRight,
             child: FractionallySizedBox(
               widthFactor: heatFraction,
               child: Container(
-                height: 20,
+                height: res.spacing(20),
                 decoration: BoxDecoration(
                   color: priceColor.withValues(alpha: 0.15),
                   border: Border(
@@ -273,7 +313,7 @@ class _BookRow extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: EdgeInsets.symmetric(horizontal: res.spacing(8)),
             child: Row(
               children: [
                 Expanded(
@@ -282,7 +322,7 @@ class _BookRow extends StatelessWidget {
                       Text(_fmtNum(level.price), style: textStyle.copyWith(color: priceColor)),
                       if (isWhale) ...[
                         const SizedBox(width: 4),
-                        const Text('🐳', style: TextStyle(fontSize: 10)),
+                        Text('🐳', style: TextStyle(fontSize: res.fontSize(10))),
                       ],
                     ],
                   ),
@@ -310,23 +350,25 @@ class _BookRow extends StatelessWidget {
   }
 }
 
+
 class _DepthChartHeader extends StatelessWidget {
   final double maxBidCum;
   final double maxAskCum;
+  final Responsive res;
 
-  const _DepthChartHeader({required this.maxBidCum, required this.maxAskCum});
+  const _DepthChartHeader({required this.maxBidCum, required this.maxAskCum, required this.res});
 
   @override
   Widget build(BuildContext context) {
     final style = GoogleFonts.jetBrainsMono(
       color: AppColors.textPrimary.withValues(alpha: 0.8),
-      fontSize: 9,
+      fontSize: res.fontSize(9),
       fontWeight: FontWeight.bold,
       letterSpacing: 0.5,
     );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: EdgeInsets.symmetric(horizontal: res.spacing(4)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -334,23 +376,23 @@ class _DepthChartHeader extends StatelessWidget {
             children: [
               Container(
                 width: 2,
-                height: 10,
+                height: res.spacing(10),
                 decoration: BoxDecoration(
                   color: AppColors.trendGreen.withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(1),
                 ),
               ),
-              const SizedBox(width: 6),
+              SizedBox(width: res.spacing(6)),
               Text('BID DEPTH', style: style),
             ],
           ),
           Row(
             children: [
               Text('ASK DEPTH', style: style),
-              const SizedBox(width: 6),
+              SizedBox(width: res.spacing(6)),
               Container(
                 width: 2,
-                height: 10,
+                height: res.spacing(10),
                 decoration: BoxDecoration(
                   color: AppColors.trendRed.withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(1),
@@ -364,23 +406,31 @@ class _DepthChartHeader extends StatelessWidget {
   }
 }
 
+
 /// A smooth cumulative volume depth chart.
 class _DepthChart extends StatelessWidget {
   final OrderBookSnapshot snapshot;
   final double maxAskCum;
   final double maxBidCum;
+  final Responsive res;
 
   const _DepthChart({
     required this.snapshot,
     required this.maxAskCum,
     required this.maxBidCum,
+    required this.res,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 80,
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      height: res.value(mobile: 80.0, tablet: 120.0, desktop: 150.0),
+      padding: EdgeInsets.fromLTRB(
+        res.spacing(10), 
+        res.spacing(8), 
+        res.spacing(10), 
+        res.spacing(8)
+      ),
       decoration: BoxDecoration(
         color: AppColors.surfaceBright.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(10),
@@ -398,7 +448,6 @@ class _DepthChart extends StatelessWidget {
               maxBidCum: maxBidCum,
             ),
           ),
-          // Total Bid Volume
           Positioned(
             left: 0,
             bottom: 0,
@@ -406,12 +455,11 @@ class _DepthChart extends StatelessWidget {
               'Sum: ${_fmtVol(maxBidCum)}',
               style: GoogleFonts.jetBrainsMono(
                 color: AppColors.textSecondary.withValues(alpha: 0.6),
-                fontSize: 8,
+                fontSize: res.fontSize(8),
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
-          // Total Ask Volume
           Positioned(
             right: 0,
             bottom: 0,
@@ -419,7 +467,7 @@ class _DepthChart extends StatelessWidget {
               'Sum: ${_fmtVol(maxAskCum)}',
               style: GoogleFonts.jetBrainsMono(
                 color: AppColors.textSecondary.withValues(alpha: 0.6),
-                fontSize: 8,
+                fontSize: res.fontSize(8),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -429,6 +477,7 @@ class _DepthChart extends StatelessWidget {
     );
   }
 }
+
 
 class _DepthChartPainter extends CustomPainter {
   final List<OrderBookLevel> bids;

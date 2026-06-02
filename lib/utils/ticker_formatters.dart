@@ -1,4 +1,3 @@
-/// Sentiment meter from 8h funding rate.
 ({double longPct, double shortPct}) fundingSentiment(double funding8hPct) {
   const scalePerPercent = 50.0;
   final longPct = (50 + funding8hPct * scalePerPercent).clamp(0.0, 100.0);

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../utils/app_colors.dart';
 import '../utils/common_widgets.dart';
 import '../viewmodels/home_viewmodel.dart';
+import '../viewmodels/subscription_viewmodel.dart';
 import '../models/ticker_model.dart';
 import '../widgets/coming_soon_dialog.dart';
 import '../widgets/error_state_widget.dart';
@@ -55,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 0,
           leading: const Icon(Icons.menu, color: AppColors.brandAccent),
           title: Text(
-            'HYPERLIQUID',
+            'HYPERVIEW',
             style: GoogleFonts.jetBrainsMono(
               color: AppColors.brandAccent,
               fontSize: res.fontSize(18),
@@ -64,6 +65,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           actions: [
+            Consumer<SubscriptionViewModel>(
+              builder: (context, sub, _) => IconButton(
+                icon: Icon(
+                  sub.isPro ? Icons.verified : Icons.workspace_premium, 
+                  color: sub.isPro ? AppColors.trendGreen : AppColors.brandAccent
+                ),
+                onPressed: () => sub.togglePro(),
+                tooltip: sub.isPro ? 'Pro Active' : 'Go Pro',
+              ),
+            ),
             const Icon(Icons.sensors, color: AppColors.brandAccent),
             const SizedBox(width: 8),
             GestureDetector(
@@ -113,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       
                       // Search Bar
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        padding: EdgeInsets.symmetric(horizontal: res.spacing(12)),
                         decoration: BoxDecoration(
                           color: AppColors.background,
                           border: Border.all(color: AppColors.surfaceBright),
@@ -122,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Row(
                           children: [
                             Icon(Icons.search, color: AppColors.textSecondary, size: res.fontSize(20)),
-                            const SizedBox(width: 8),
+                            SizedBox(width: res.spacing(8)),
                             Expanded(
                               child: TextField(
                                 onChanged: viewModel.setSearchQuery,
@@ -132,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   hintStyle: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(14)),
                                   border: InputBorder.none,
                                   isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                                  contentPadding: EdgeInsets.symmetric(vertical: res.spacing(12)),
                                 ),
                               ),
                             ),
@@ -238,11 +249,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             const Spacer(),
                             Text('USDC', style: TextStyle(color: AppColors.textSecondary, fontSize: res.fontSize(12))),
-                            const SizedBox(width: 12),
+                            SizedBox(width: res.spacing(12)),
                             GestureDetector(
                               onTap: () => showDialog(context: context, builder: (context) => const ComingSoonDialog(featureName: 'TOTAL Filter')),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: EdgeInsets.symmetric(horizontal: res.spacing(12), vertical: res.spacing(6)),
                                 decoration: BoxDecoration(
                                   border: Border.all(color: AppColors.brandAccent),
                                   borderRadius: BorderRadius.circular(4),

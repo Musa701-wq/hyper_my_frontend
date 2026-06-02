@@ -8,8 +8,10 @@ import '../models/orderbook_model.dart';
 import '../models/ticker_model.dart';
 import '../services/orderbook_service.dart';
 import '../utils/app_colors.dart';
+import '../utils/responsive.dart';
 import 'orderbook_panel.dart';
 import 'ticker_info_tab.dart';
+import '../screens/recent_trades_screen.dart';
 
 class TickerDetailDialog extends StatefulWidget {
   final TickerModel ticker;
@@ -101,16 +103,25 @@ class _TickerDetailDialogState extends State<TickerDetailDialog> with SingleTick
 
   @override
   Widget build(BuildContext context) {
+    final res = Responsive(context);
+
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: res.spacing(16), 
+        vertical: res.spacing(24)
+      ),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 420, maxHeight: 640),
+        constraints: BoxConstraints(
+          maxWidth: res.value(mobile: 420.0, tablet: 600.0, desktop: 800.0), 
+          maxHeight: res.value(mobile: 640.0, tablet: 800.0, desktop: 900.0)
+        ),
         decoration: BoxDecoration(
           color: const Color(0xFF161A22),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.6)),
         ),
+
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -121,14 +132,20 @@ class _TickerDetailDialogState extends State<TickerDetailDialog> with SingleTick
               indicatorSize: TabBarIndicatorSize.tab,
               labelColor: AppColors.brandAccent,
               unselectedLabelColor: AppColors.textSecondary,
-              labelStyle: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold),
-              unselectedLabelStyle: GoogleFonts.jetBrainsMono(fontSize: 12),
+              labelStyle: GoogleFonts.jetBrainsMono(
+                fontSize: res.fontSize(12), 
+                fontWeight: FontWeight.bold
+              ),
+              unselectedLabelStyle: GoogleFonts.jetBrainsMono(
+                fontSize: res.fontSize(12)
+              ),
               dividerColor: AppColors.surfaceBright.withValues(alpha: 0.4),
               tabs: const [
                 Tab(text: 'Info'),
                 Tab(text: 'Order Book'),
               ],
             ),
+
             const SizedBox(height: 12), // Added margin to prevent content from touching tabs
             Flexible(
               child: TabBarView(
@@ -164,16 +181,22 @@ class _DialogHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final res = Responsive(context);
     final title = ticker.displayName.isNotEmpty ? ticker.displayName : ticker.symbol;
     final typeLabel = ticker.marketType.toUpperCase();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 10, 8),
+      padding: EdgeInsets.fromLTRB(
+        res.spacing(16), 
+        res.spacing(16), 
+        res.spacing(10), 
+        res.spacing(8)
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _TickerIcon(ticker: ticker, size: 40),
-          const SizedBox(width: 12),
+          _TickerIcon(ticker: ticker, size: res.fontSize(40)),
+          SizedBox(width: res.spacing(12)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,16 +207,17 @@ class _DialogHeader extends StatelessWidget {
                       title,
                       style: GoogleFonts.jetBrainsMono(
                         color: AppColors.textPrimary,
-                        fontSize: 15,
+                        fontSize: res.fontSize(15),
                         fontWeight: FontWeight.bold,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   if (typeLabel.isNotEmpty) ...[
-                    const SizedBox(width: 8),
+                    SizedBox(width: res.spacing(8)),
                     _BadgeChip(
                       label: typeLabel,
+                      res: res,
                       color: typeLabel == 'SPOT'
                           ? const Color(0xFF7C83FD)
                           : typeLabel == 'PERP'
@@ -201,14 +225,61 @@ class _DialogHeader extends StatelessWidget {
                               : AppColors.textSecondary,
                     ),
                   ],
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RecentTradesScreen(
+                            symbol: ticker.symbol,
+                            iconUrl: ticker.iconUrl,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: res.spacing(8),
+                        vertical: res.spacing(4),
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.brandAccent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppColors.brandAccent.withValues(alpha: 0.5)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.history,
+                            color: AppColors.brandAccent,
+                            size: res.fontSize(10),
+                          ),
+                          SizedBox(width: res.spacing(4)),
+                          Text(
+                            'TRADES',
+                            style: GoogleFonts.jetBrainsMono(
+                              color: AppColors.brandAccent,
+                              fontSize: res.fontSize(9),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ]),
                 const SizedBox(height: 2),
                 Row(children: [
                   Text(_subtitle,
-                      style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 12)),
+                      style: GoogleFonts.jetBrainsMono(
+                        color: AppColors.textSecondary, 
+                        fontSize: res.fontSize(12)
+                      )),
                   if (ticker.isDelisted) ...[
-                    const SizedBox(width: 6),
-                    _BadgeChip(label: 'DELISTED', color: AppColors.trendRed),
+                    SizedBox(width: res.spacing(6)),
+                    _BadgeChip(label: 'DELISTED', color: AppColors.trendRed, res: res),
                   ],
                 ]),
               ],
@@ -216,15 +287,19 @@ class _DialogHeader extends StatelessWidget {
           ),
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+            icon: Icon(Icons.close, color: AppColors.textSecondary, size: res.fontSize(20)),
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            constraints: BoxConstraints(
+              minWidth: res.spacing(32), 
+              minHeight: res.spacing(32)
+            ),
           ),
         ],
       ),
     );
   }
 }
+
 
 class _TickerIcon extends StatelessWidget {
   final TickerModel ticker;
@@ -268,13 +343,17 @@ class _TickerIcon extends StatelessWidget {
 class _BadgeChip extends StatelessWidget {
   final String label;
   final Color color;
+  final Responsive res;
 
-  const _BadgeChip({required this.label, required this.color});
+  const _BadgeChip({required this.label, required this.color, required this.res});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: res.spacing(5), 
+        vertical: res.spacing(2)
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(4),
@@ -282,8 +361,13 @@ class _BadgeChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: GoogleFonts.jetBrainsMono(color: color, fontSize: 8, letterSpacing: 0.5),
+        style: GoogleFonts.jetBrainsMono(
+          color: color, 
+          fontSize: res.fontSize(8), 
+          letterSpacing: 0.5
+        ),
       ),
     );
   }
 }
+
