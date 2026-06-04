@@ -112,12 +112,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     ),
                     const SizedBox(height: 32),
                     Text(
-                      'HYPER',
+                      'HYPERSCREENER',
                       style: GoogleFonts.jetBrainsMono(
                         color: Colors.white,
-                        fontSize: 40,
+                        fontSize: 28,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: 10,
+                        letterSpacing: 4,
                         shadows: [
                           Shadow(
                             color: Colors.white.withValues(alpha: 0.1),

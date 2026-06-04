@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 0,
           leading: const Icon(Icons.menu, color: AppColors.brandAccent),
           title: Text(
-            'HYPERVIEW',
+            'HYPERSCREENER',
             style: GoogleFonts.jetBrainsMono(
               color: AppColors.brandAccent,
               fontSize: res.fontSize(18),

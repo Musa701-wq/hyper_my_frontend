@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class Trade {
   final String symbol;
   final int time;
@@ -22,28 +24,35 @@ class Trade {
   });
 
   factory Trade.fromJson(Map<String, dynamic> j) {
-    final int timeMs = (j['time'] as num?)?.toInt() ?? 0;
-    String formatted = j['timeFormatted'] ?? '';
+    try {
+      final int timeMs = _toDouble(j['time'] ?? j['t'] ?? j['timestamp']).toInt();
+      String formatted = (j['timeFormatted'] ?? '').toString();
 
-    if (formatted.isEmpty && timeMs != 0) {
-      final dt = DateTime.fromMillisecondsSinceEpoch(timeMs);
-      final hour = dt.hour.toString().padLeft(2, '0');
-      final minute = dt.minute.toString().padLeft(2, '0');
-      final second = dt.second.toString().padLeft(2, '0');
-      formatted = '$hour:$minute:$second';
+      if (formatted.isEmpty && timeMs != 0) {
+        final dt = DateTime.fromMillisecondsSinceEpoch(timeMs);
+        final hour = dt.hour.toString().padLeft(2, '0');
+        final minute = dt.minute.toString().padLeft(2, '0');
+        final second = dt.second.toString().padLeft(2, '0');
+        formatted = '$hour:$minute:$second';
+      }
+
+      final String side = (j['side'] ?? j['direction'] ?? 'BUY').toString().toUpperCase();
+
+      return Trade(
+        symbol: (j['symbol'] ?? j['s'] ?? '').toString(),
+        time: timeMs,
+        timeFormatted: formatted,
+        direction: side,
+        directionRaw: (j['directionRaw'] ?? (side == 'SELL' || side == 'ASK' ? 'A' : 'B')).toString(),
+        price: _toDouble(j['price'] ?? j['px'] ?? j['p']),
+        size: _toDouble(j['size'] ?? j['sz'] ?? j['q']),
+        value: _toDouble(j['value'] ?? j['v'] ?? j['w']),
+        hash: (j['hash'] ?? j['h'])?.toString(),
+      );
+    } catch (e) {
+      debugPrint('IAP DEBUG: Error parsing Trade from JSON: $j');
+      rethrow;
     }
-
-    return Trade(
-      symbol: j['symbol'] ?? '',
-      time: timeMs,
-      timeFormatted: formatted,
-      direction: j['direction'] ?? 'BUY',
-      directionRaw: j['directionRaw'] ?? (j['direction'] == 'SELL' ? 'A' : 'B'),
-      price: _toDouble(j['price']),
-      size: _toDouble(j['size']),
-      value: _toDouble(j['value']),
-      hash: j['hash'],
-    );
   }
 
   static double _toDouble(dynamic v) {

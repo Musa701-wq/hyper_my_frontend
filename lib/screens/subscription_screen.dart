@@ -193,7 +193,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
         ),
         const SizedBox(height: 32),
         Text(
-          'HYPERVIEW PRO',
+          'HYPERSCREENER PRO',
           style: GoogleFonts.jetBrainsMono(
             color: Colors.white,
             fontSize: res.fontSize(32),

@@ -12,7 +12,10 @@ class SubscriptionViewModel extends ChangeNotifier {
   List<ProductDetails> _products = [];
   String? _errorMessage;
 
-  bool get isPro => _isPro;
+  // Set this to true for testing Premium features without a real purchase
+  bool _debugForcePro = true; 
+
+  bool get isPro => _debugForcePro || _isPro;
   bool get isProcessing => _isProcessing;
   List<ProductDetails> get products => _products;
   String? get errorMessage => _errorMessage;

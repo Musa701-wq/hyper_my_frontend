@@ -45,7 +45,11 @@ class TradesService {
         : null;
 
     final query = effectiveDex != null ? '?dex=${Uri.encodeComponent(effectiveDex)}' : '';
-    final wsUrl = '$_wsBase/trades/${Uri.encodeComponent(symbol.toUpperCase())}$query';
+    final String normalizedBase = _wsBase.endsWith('/') 
+        ? _wsBase.substring(0, _wsBase.length - 1) 
+        : _wsBase;
+    
+    final wsUrl = '$normalizedBase/trades/${Uri.encodeComponent(symbol.toUpperCase())}$query';
 
     try {
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
@@ -55,31 +59,48 @@ class TradesService {
         (message) {
           if (_disposed) return;
           try {
-            final decoded = json.decode(message as String);
-            if (decoded is! Map<String, dynamic>) return;
-
-            final type = decoded['type'];
-            final List? data = decoded['data'];
+            final messageStr = message as String;
+            debugPrint('IAP DEBUG: WS Message Received: ${messageStr.length > 200 ? messageStr.substring(0, 200) + "..." : messageStr}');
             
+            final decoded = json.decode(messageStr);
+            if (decoded is! Map<String, dynamic>) {
+               debugPrint('IAP DEBUG: WS Message is not a Map: $decoded');
+               return;
+            }
+
+            final type = decoded['type'] ?? decoded['channel'];
+            final dynamic rawData = decoded['data'];
+            
+            debugPrint('IAP DEBUG: WS Message Type: $type, Data Raw Type: ${rawData.runtimeType}');
+
             if (type == 'trades_error') {
               onError?.call(decoded['error'] ?? 'Unknown WebSocket Error');
               return;
             }
 
-            if (data == null) return;
+            if (rawData == null) return;
 
-            final trades = data
-                .whereType<Map>()
-                .map((j) => Trade.fromJson(Map<String, dynamic>.from(j)))
-                .toList();
-
-            if (type == 'trades_snapshot') {
-              onSnapshot(trades);
-            } else if (type == 'trades_update') {
-              onUpdates(trades);
+            final List<Trade> trades = [];
+            if (rawData is List) {
+              trades.addAll(rawData
+                  .whereType<Map>()
+                  .map((j) => Trade.fromJson(Map<String, dynamic>.from(j))));
+            } else if (rawData is Map) {
+              trades.add(Trade.fromJson(Map<String, dynamic>.from(rawData)));
             }
-          } catch (e) {
-            debugPrint('TradesService WS Parse Error: $e');
+
+            debugPrint('IAP DEBUG: Successfully parsed ${trades.length} trades for type: $type');
+
+            if (type == 'trades_snapshot' || type == 'tradesSnapshot') {
+              onSnapshot(trades);
+            } else if (type == 'trades_update' || type == 'tradesUpdate' || type == 'trades') {
+              onUpdates(trades);
+            } else {
+              debugPrint('IAP DEBUG: Message type "$type" is not a trade update, ignoring.');
+            }
+          } catch (e, stack) {
+            debugPrint('IAP DEBUG: TradesService WS Parse Error: $e');
+            debugPrint('IAP DEBUG: Stack Trace: $stack');
           }
         },
         onError: (e) {
