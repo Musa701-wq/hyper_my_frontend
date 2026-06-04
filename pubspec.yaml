@@ -1,5 +1,5 @@
-name: hyper
-description: "A new Flutter project."
+name: hyperscreener
+description: "HyperScreener - Institutional Screener Application"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -44,6 +44,9 @@ dependencies:
   shared_preferences: ^2.5.2
   shimmer: ^3.0.0
   url_launcher: ^6.3.1
+  firebase_core: ^3.10.1
+  firebase_analytics: ^11.4.1
+  app_tracking_transparency: ^2.0.4
 
 dev_dependencies:
   flutter_test:
@@ -55,6 +58,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -97,3 +101,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+#
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/LOGO.png"
+  min_sdk_android: 21 # android min sdk min:16, default:21

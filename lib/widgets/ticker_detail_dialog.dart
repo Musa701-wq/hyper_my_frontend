@@ -12,6 +12,7 @@ import '../utils/responsive.dart';
 import 'orderbook_panel.dart';
 import 'ticker_info_tab.dart';
 import '../screens/recent_trades_screen.dart';
+import '../analytics/analytics_service.dart';
 
 class TickerDetailDialog extends StatefulWidget {
   final TickerModel ticker;
@@ -49,8 +50,11 @@ class _TickerDetailDialogState extends State<TickerDetailDialog> with SingleTick
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
-    if (_tabController.index == 1 && !_orderBookStarted) {
-      _startOrderBook();
+    if (_tabController.index == 1) {
+      AnalyticsService.logOrderBookAccess(widget.ticker.symbol);
+      if (!_orderBookStarted) {
+        _startOrderBook();
+      }
     }
   }
 
@@ -84,11 +88,14 @@ class _TickerDetailDialogState extends State<TickerDetailDialog> with SingleTick
     if (_orderBook == null) {
       await Future<void>.delayed(const Duration(seconds: 6));
       if (!mounted || _orderBook != null) return;
+      final String displayName = widget.ticker.displayName.isNotEmpty 
+          ? widget.ticker.displayName.split(':').last.split('-').first 
+          : widget.ticker.symbol;
+          
       setState(() {
         _orderBookLoading = false;
-        _orderBookError = _orderBookDex != null
-            ? 'Order book unavailable for $_orderBookLabel (dex=$_orderBookDex).'
-            : 'Order book unavailable for $_orderBookLabel.';
+        _orderBookError =
+            'We can\'t load the order book for $displayName right now. It might be too new or there isn\'t much trading happening yet. Please check back later!';
       });
     }
   }
@@ -113,8 +120,9 @@ class _TickerDetailDialogState extends State<TickerDetailDialog> with SingleTick
       ),
       child: Container(
         constraints: BoxConstraints(
-          maxWidth: res.value(mobile: 420.0, tablet: 600.0, desktop: 800.0), 
-          maxHeight: res.value(mobile: 640.0, tablet: 800.0, desktop: 900.0)
+          maxWidth: res.value(mobile: res.width * 0.95, tablet: 650.0, desktop: 800.0), 
+          maxHeight: (res.isMobile ? 600.0 : (res.isTablet ? 650.0 : 800.0))
+              .clamp(0.0, res.height * 0.9)
         ),
         decoration: BoxDecoration(
           color: const Color(0xFF161A22),
@@ -228,6 +236,7 @@ class _DialogHeader extends StatelessWidget {
                   const Spacer(),
                   GestureDetector(
                     onTap: () {
+                      AnalyticsService.logRecentTradesAccess(ticker.symbol);
                       Navigator.push(
                         context,
                         MaterialPageRoute(

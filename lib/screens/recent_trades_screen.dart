@@ -287,9 +287,26 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
   Widget _buildTradesTable(TradesViewModel vm, Responsive res) {
     if (vm.trades.isEmpty && !vm.isLoading) {
       return Center(
-        child: Text(
-          'No recent trades found for ${widget.symbol}',
-          style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary),
+        child: Padding(
+          padding: EdgeInsets.all(res.spacing(24)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.query_stats_outlined, 
+                  color: AppColors.textSecondary.withValues(alpha: 0.3), 
+                  size: res.fontSize(48)),
+              const SizedBox(height: 16),
+              Text(
+                'No recent trading activity detected for ${widget.symbol}. We\'ll keep monitoring for new trades.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.jetBrainsMono(
+                  color: AppColors.textSecondary,
+                  fontSize: res.fontSize(12),
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }

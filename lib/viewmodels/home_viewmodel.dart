@@ -12,6 +12,11 @@ class HomeViewModel extends ChangeNotifier {
   String _errorMessage = '';
   WebSocketChannel? _channel;
 
+  // Per-tab cache to speed up switching
+  final Map<String, List<TickerModel>> _tabCache = {};
+  DateTime? _lastFetchTime;
+  static const _cacheDuration = Duration(minutes: 2);
+
   String _selectedTab = 'ALL';
   String _selectedDex = 'All';
   List<String> _availableDexes = ['All'];
@@ -92,9 +97,21 @@ class HomeViewModel extends ChangeNotifier {
     fetchTickers();
   }
 
-  Future<void> fetchTickers() async {
-    if (_isLoading) return; // Prevent multiple simultaneous fetches
-    
+  Future<void> fetchTickers({bool forceRefresh = false}) async {
+    if (_isLoading) return;
+
+    // Serve cache instantly if available and not expired
+    final cached = _tabCache[_selectedTab];
+    final isCacheValid = _lastFetchTime != null &&
+        DateTime.now().difference(_lastFetchTime!) < _cacheDuration;
+    if (cached != null && !forceRefresh && isCacheValid) {
+      _tickers = cached;
+      _extractDexes();
+      _extractCategories();
+      notifyListeners();
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = '';
     notifyListeners();
@@ -136,6 +153,11 @@ class HomeViewModel extends ChangeNotifier {
           debugPrint('DEBUG HIP-3 FIRST TICKER: ${jsonList[0]}');
         }
         _tickers = jsonList.map((json) => TickerModel.fromJson(json)).toList();
+        
+        // Update cache
+        _tabCache[_selectedTab] = _tickers;
+        _lastFetchTime = DateTime.now();
+        
         _extractDexes();
         _extractCategories();
       } else {
@@ -155,9 +177,11 @@ class HomeViewModel extends ChangeNotifier {
       // Close existing connection if any
       _channel?.sink.close();
 
-      final wsUrl = (_selectedTab == 'HIP-3') 
+      String wsUrl = (_selectedTab == 'HIP-3') 
           ? (dotenv.env['HIP_WS_URL'] ?? 'wss://api.hyperliquid.bubblenexus.com')
           : (dotenv.env['WS_URL'] ?? 'wss://coingecko.renderonnodes.com/ws/');
+      
+      if (!wsUrl.endsWith('/')) wsUrl += '/';
       
       debugPrint('Connecting to WebSocket: $wsUrl for tab $_selectedTab');
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));

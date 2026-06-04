@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -77,8 +78,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   children: [
                     // Premium Logo Treatment
                     Container(
-                      width: 110,
-                      height: 110,
+                      width: 140,
+                      height: 140,
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.3),
                         shape: BoxShape.circle,
@@ -96,23 +97,24 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ),
                       child: Center(
                         child: Container(
-                          width: 70,
-                          height: 70,
+                          width: 90,
+                          height: 90,
                           decoration: BoxDecoration(
                             color: AppColors.brandAccent.withValues(alpha: 0.05),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.auto_graph_rounded,
-                            color: AppColors.brandAccent,
-                            size: 40,
+                          child: Image.asset(
+                            'assets/LOGO.png',
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 32),
                     Text(
-                      'HYPERSCREENER',
+                      'HyperScreener',
                       style: GoogleFonts.jetBrainsMono(
                         color: Colors.white,
                         fontSize: 28,
@@ -145,7 +147,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 // Bottom Integrated GIF
                 Container(
                   width: double.infinity,
-                  height: MediaQuery.of(context).size.height * 0.25,
+                  height: MediaQuery.of(context).size.height * 0.35,
                   margin: const EdgeInsets.only(bottom: 20),
                   child: Stack(
                     alignment: Alignment.center,

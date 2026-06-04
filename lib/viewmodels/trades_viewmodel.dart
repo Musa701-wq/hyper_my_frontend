@@ -73,14 +73,31 @@ class TradesViewModel extends ChangeNotifier {
     notifyListeners();
 
     await _tradesService.start(
-      onSnapshot: _handleSnapshot,
-      onUpdates: _handleUpdates,
+      onSnapshot: (snapshot) {
+        _handleSnapshot(snapshot);
+        _isLoading = false;
+        notifyListeners();
+      },
+      onUpdates: (updates) {
+        _handleUpdates(updates);
+        _isLoading = false;
+        notifyListeners();
+      },
       onError: (e) {
         _error = e.toString();
         _isLoading = false;
         notifyListeners();
       },
     );
+
+    // Timeout if trades list is still empty after a while
+    Future.delayed(const Duration(seconds: 10), () {
+      if (_disposed) return;
+      if (_isLoading && _trades.isEmpty) {
+        _isLoading = false;
+        notifyListeners();
+      }
+    });
 
     _isLoading = false;
     notifyListeners();

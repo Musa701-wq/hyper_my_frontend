@@ -79,53 +79,79 @@ class OrderBookPanel extends StatelessWidget {
     final medianAvgSize = avgSizes.isEmpty ? 0.0 : avgSizes[avgSizes.length ~/ 2];
     final whaleThreshold = medianAvgSize * 4.0;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        res.spacing(12), 
-        res.spacing(12), 
-        res.spacing(12), 
-        res.spacing(16)
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _HeaderRow(sizeLabel: sizeLabel, res: res),
-          SizedBox(height: res.spacing(4)),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  ...asks.map((l) => _BookRow(
-                        level: l,
-                        isAsk: true,
-                        maxCumulative: maxAskCum,
-                        maxSize: maxAskSize,
-                        whaleThreshold: whaleThreshold,
-                        res: res,
-                      )),
-                  _SpreadRow(
-                    spread: book.spread, 
-                    midPrice: (asks.last.price + bids.first.price) / 2,
-                    res: res,
-                  ),
-                  ...bids.map((l) => _BookRow(
-                        level: l,
-                        isAsk: false,
-                        maxCumulative: maxBidCum,
-                        maxSize: maxBidSize,
-                        whaleThreshold: whaleThreshold,
-                        res: res,
-                      )),
-                ],
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double availableHeight = constraints.maxHeight;
+        // If height is very small (landscape), use a single scroll view instead of Expanded list
+        if (availableHeight < 300) {
+          return SingleChildScrollView(
+            padding: EdgeInsets.all(res.spacing(12)),
+            child: Column(
+              children: [
+                _HeaderRow(sizeLabel: sizeLabel, res: res),
+                ...asks.map((l) => _BookRow(level: l, isAsk: true, maxCumulative: maxAskCum, maxSize: maxAskSize, whaleThreshold: whaleThreshold, res: res)),
+                _SpreadRow(spread: book.spread, midPrice: (asks.last.price + bids.first.price) / 2, res: res),
+                ...bids.map((l) => _BookRow(level: l, isAsk: false, maxCumulative: maxBidCum, maxSize: maxBidSize, whaleThreshold: whaleThreshold, res: res)),
+                SizedBox(height: res.spacing(12)),
+                _DepthChartHeader(maxBidCum: maxBidCum, maxAskCum: maxAskCum, res: res),
+                SizedBox(height: res.spacing(8)),
+                _DepthChart(snapshot: book, maxAskCum: maxAskCum, maxBidCum: maxBidCum, res: res),
+              ],
             ),
+          );
+        }
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            res.spacing(12), 
+            res.spacing(12), 
+            res.spacing(12), 
+            res.spacing(10) // Reduced bottom padding
           ),
-          SizedBox(height: res.spacing(16)),
-          _DepthChartHeader(maxBidCum: maxBidCum, maxAskCum: maxAskCum, res: res),
-          SizedBox(height: res.spacing(8)),
-          _DepthChart(snapshot: book, maxAskCum: maxAskCum, maxBidCum: maxBidCum, res: res),
-        ],
-      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _HeaderRow(sizeLabel: sizeLabel, res: res),
+              SizedBox(height: res.spacing(4)),
+              Expanded(
+                child: ListView( // Changed from SingleChildScrollView+Column to ListView
+                  padding: EdgeInsets.zero,
+                  children: [
+                    ...asks.map((l) => _BookRow(
+                          level: l,
+                          isAsk: true,
+                          maxCumulative: maxAskCum,
+                          maxSize: maxAskSize,
+                          whaleThreshold: whaleThreshold,
+                          res: res,
+                        )),
+                    _SpreadRow(
+                      spread: book.spread, 
+                      midPrice: (asks.last.price + bids.first.price) / 2,
+                      res: res,
+                    ),
+                    ...bids.map((l) => _BookRow(
+                          level: l,
+                          isAsk: false,
+                          maxCumulative: maxBidCum,
+                          maxSize: maxBidSize,
+                          whaleThreshold: whaleThreshold,
+                          res: res,
+                        )),
+                  ],
+                ),
+              ),
+              // Conditional Chart: Hide or shrink if height is too small
+              if (availableHeight > 200) ...[
+                SizedBox(height: res.spacing(8)),
+                _DepthChartHeader(maxBidCum: maxBidCum, maxAskCum: maxAskCum, res: res),
+                SizedBox(height: res.spacing(4)),
+                _DepthChart(snapshot: book, maxAskCum: maxAskCum, maxBidCum: maxBidCum, res: res),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 

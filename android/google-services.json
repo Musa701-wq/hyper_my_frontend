@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "381298031136",
+    "project_id": "hyperscreener-4bfaa",
+    "storage_bucket": "hyperscreener-4bfaa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:381298031136:android:8696b53582eccd33aa5a45",
+        "android_client_info": {
+          "package_name": "com.example.hyper"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtXJHwI3A57K-OwR_cIS1aieZ3XXnFF24"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -17,8 +17,7 @@ class TradesService {
 
   TradesService({required this.symbol, this.dex});
 
-  static String get _baseUrl => dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com';
-  static String get _wsBase => dotenv.env['WS_URL'] ?? 'wss://coingecko.renderonnodes.com/ws/';
+  String get _wsBase => dotenv.env['WS_URL'] ?? 'wss://coingecko.renderonnodes.com/ws/';
 
   /// Starts the trade stream (Pure WebSocket Flow).
   /// The backend pushes 'trades_snapshot' immediately on connection.
@@ -45,11 +44,12 @@ class TradesService {
         : null;
 
     final query = effectiveDex != null ? '?dex=${Uri.encodeComponent(effectiveDex)}' : '';
-    final String normalizedBase = _wsBase.endsWith('/') 
-        ? _wsBase.substring(0, _wsBase.length - 1) 
-        : _wsBase;
+    final String cleanBase = _wsBase.trim().replaceAll(RegExp(r'/+$'), '');
     
-    final wsUrl = '$normalizedBase/trades/${Uri.encodeComponent(symbol.toUpperCase())}$query';
+    // For symbols like "xyz:XYZ100", the backend usually wants just "XYZ100"
+    final bareSymbol = symbol.contains(':') ? symbol.split(':').last : symbol;
+    
+    final wsUrl = '$cleanBase/trades/${Uri.encodeComponent(bareSymbol.toUpperCase())}$query';
 
     try {
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));

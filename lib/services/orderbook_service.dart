@@ -25,8 +25,8 @@ class OrderBookService {
 
   OrderBookService({required this.symbol, this.dex});
 
-  static String get _baseUrl => dotenv.env['BASE_URL'] ?? 'http://localhost:4001';
-  static String get _wsBase => dotenv.env['WS_URL'] ?? 'ws://localhost:4001';
+  String get _baseUrl => dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com';
+  String get _wsBase => dotenv.env['WS_URL'] ?? 'wss://coingecko.renderonnodes.com/ws/';
 
   /// Starts live updates: REST poll + symbol-scoped WebSocket.
   Future<void> startLive({
@@ -60,7 +60,12 @@ class OrderBookService {
         : null;
 
     final query = effectiveDex != null ? '?dex=${Uri.encodeComponent(effectiveDex)}' : '';
-    final wsUrl = '$_wsBase/orderbook/${Uri.encodeComponent(symbol.toUpperCase())}$query';
+    final String cleanBase = _wsBase.trim().replaceAll(RegExp(r'/+$'), '');
+    
+    // For symbols like "xyz:XYZ100", the backend usually expects "XYZ100"
+    final bareSymbol = symbol.contains(':') ? symbol.split(':').last : symbol;
+    
+    final wsUrl = '$cleanBase/orderbook/${Uri.encodeComponent(bareSymbol.toUpperCase())}$query';
 
     try {
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
@@ -86,14 +91,11 @@ class OrderBookService {
     final query = <String, String>{'levels': levels.toString()};
     if (dex != null && dex.isNotEmpty) query['dex'] = dex;
 
-    final baseUri = Uri.parse(_baseUrl);
-    final uri = Uri(
-      scheme: baseUri.scheme,
-      host: baseUri.host,
-      port: baseUri.port,
-      path: '/api/orderbook/$symbol',
-      queryParameters: query,
-    );
+    final String baseUrl = dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com';
+    final String cleanBase = baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+    final bareSymbol = symbol.contains(':') ? symbol.split(':').last : symbol;
+
+    final uri = Uri.parse('$cleanBase/api/orderbook/$bareSymbol').replace(queryParameters: query);
 
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       try {
