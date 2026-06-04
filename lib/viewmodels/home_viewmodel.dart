@@ -93,13 +93,15 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> fetchTickers() async {
+    if (_isLoading) return; // Prevent multiple simultaneous fetches
+    
     _isLoading = true;
     _errorMessage = '';
     notifyListeners();
 
     try {
-      final baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:4001';
-      final hipBaseUrl = dotenv.env['HIP_BASE_URL'] ?? 'http://localhost:4000';
+      final baseUrl = dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com';
+      final hipBaseUrl = dotenv.env['HIP_BASE_URL'] ?? 'https://api.hyperliquid.bubblenexus.com';
       
       final url = _selectedTab == 'ALL'
           ? '$baseUrl/all'
@@ -154,8 +156,8 @@ class HomeViewModel extends ChangeNotifier {
       _channel?.sink.close();
 
       final wsUrl = (_selectedTab == 'HIP-3') 
-          ? (dotenv.env['HIP_WS_URL'] ?? 'ws://localhost:4000')
-          : (dotenv.env['WS_URL'] ?? 'ws://localhost:4001');
+          ? (dotenv.env['HIP_WS_URL'] ?? 'wss://api.hyperliquid.bubblenexus.com')
+          : (dotenv.env['WS_URL'] ?? 'wss://coingecko.renderonnodes.com/ws/');
       
       debugPrint('Connecting to WebSocket: $wsUrl for tab $_selectedTab');
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
@@ -167,8 +169,19 @@ class HomeViewModel extends ChangeNotifier {
             bool updated = false;
             
             if (decoded is Map<String, dynamic>) {
+              // Handle Hyperliquid allMids format
+              if (decoded['channel'] == 'allMids' && decoded['data'] != null && decoded['data']['mids'] != null) {
+                final Map<String, dynamic> mids = decoded['data']['mids'];
+                mids.forEach((symbol, price) {
+                  final idx = _tickers.indexWhere((t) => t.symbol == symbol);
+                  if (idx != -1) {
+                    _tickers[idx] = _tickers[idx].copyWithPartial({'lastPrice': double.tryParse(price.toString()) ?? 0.0});
+                    updated = true;
+                  }
+                });
+              }
               // Handle standard markets_update format
-              if (decoded['type'] == 'markets_update' && decoded['data'] is List) {
+              else if (decoded['type'] == 'markets_update' && decoded['data'] is List) {
                  final List dataList = decoded['data'];
                  for (var update in dataList) {
                     if (update is Map<String, dynamic>) {
@@ -176,7 +189,7 @@ class HomeViewModel extends ChangeNotifier {
                     }
                  }
               } 
-              // Handle flat map format or other types
+              // Handle flat map format
               else {
                  if (_handleWsUpdate(decoded)) updated = true;
               }
@@ -200,6 +213,16 @@ class HomeViewModel extends ChangeNotifier {
           debugPrint('WebSocket connection CLOSED ($wsUrl).');
         },
       );
+
+      // Send subscription message for HIP-3
+      if (_selectedTab == 'HIP-3') {
+        final subMessage = json.encode({
+          "method": "subscribe",
+          "subscription": {"type": "allMids"}
+        });
+        debugPrint('Sending subscription message: $subMessage');
+        _channel?.sink.add(subMessage);
+      }
     } catch (e) {
       debugPrint('Failed to connect to WebSocket: $e');
     }

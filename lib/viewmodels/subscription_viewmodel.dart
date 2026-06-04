@@ -17,11 +17,12 @@ class SubscriptionViewModel extends ChangeNotifier {
   List<ProductDetails> get products => _products;
   String? get errorMessage => _errorMessage;
 
-  static const String _isProKey = 'is_pro_user';
-  static const Set<String> _kIds = {'hyper_weekly_pro', 'hyper_monthly_pro'};
+  static const Set<String> _kIds = {
+    'com.vectorlabs.hyperscreener.premiumweekly',
+    'com.vectorlabs.hyperscreener.premiummonthly'
+  };
 
   SubscriptionViewModel() {
-    _loadProStatus();
     final purchaseUpdated = _iap.purchaseStream;
     _subscription = purchaseUpdated.listen(
       (purchaseList) => _listenToPurchaseUpdated(purchaseList),
@@ -29,17 +30,8 @@ class SubscriptionViewModel extends ChangeNotifier {
       onError: (error) => debugPrint("IAP Error: $error"),
     );
     loadProducts();
-  }
-
-  Future<void> _loadProStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    _isPro = prefs.getBool(_isProKey) ?? false;
-    notifyListeners();
-  }
-
-  Future<void> _saveProStatus(bool status) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_isProKey, status);
+    // Initial restoration check happens via the stream if the platform handles it, 
+    // but explicit restore call can be made if needed by the user tapping Restore.
   }
 
   Future<void> loadProducts() async {
@@ -48,7 +40,10 @@ class SubscriptionViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      debugPrint("IAP DEBUG: Checking availability...");
       final bool available = await _iap.isAvailable();
+      debugPrint("IAP DEBUG: Store available: $available");
+      
       if (!available) {
         _errorMessage = "Store not available";
         _isProcessing = false;
@@ -56,9 +51,20 @@ class SubscriptionViewModel extends ChangeNotifier {
         return;
       }
 
+      debugPrint("IAP DEBUG: Querying products for IDs: $_kIds");
       final ProductDetailsResponse response = await _iap.queryProductDetails(_kIds);
+      
+      if (response.error != null) {
+        debugPrint("IAP DEBUG: Query error: ${response.error!.code} - ${response.error!.message}");
+      }
+      
       if (response.notFoundIDs.isNotEmpty) {
-        debugPrint("Products not found: ${response.notFoundIDs}");
+        debugPrint("IAP DEBUG: Products NOT FOUND: ${response.notFoundIDs}");
+      }
+
+      debugPrint("IAP DEBUG: Products FOUND: ${response.productDetails.length}");
+      for (var p in response.productDetails) {
+        debugPrint("IAP DEBUG: Found product: ${p.id} - ${p.title} - ${p.price}");
       }
 
       _products = response.productDetails;
@@ -66,6 +72,7 @@ class SubscriptionViewModel extends ChangeNotifier {
       _products.sort((a, b) => a.id.contains('weekly') ? -1 : 1);
       
     } catch (e) {
+      debugPrint("IAP DEBUG: Exception in loadProducts: $e");
       _errorMessage = "Failed to load products: $e";
     } finally {
       _isProcessing = false;
@@ -75,9 +82,6 @@ class SubscriptionViewModel extends ChangeNotifier {
 
   Future<void> subscribe(ProductDetails product) async {
     final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
-    
-    // In a real app, you might want to use buyNonConsumable for subscriptions 
-    // but the IAP package handles both via appropriate methods.
     try {
       await _iap.buyNonConsumable(purchaseParam: purchaseParam);
     } catch (e) {
@@ -96,10 +100,14 @@ class SubscriptionViewModel extends ChangeNotifier {
         } else if (purchase.status == PurchaseStatus.purchased || 
                    purchase.status == PurchaseStatus.restored) {
           
-          _isPro = true;
-          _saveProStatus(true);
+          // Verify that the purchase is for one of our products
+          if (_kIds.contains(purchase.productID)) {
+             _isPro = true;
+          }
           _isProcessing = false;
           _errorMessage = null;
+        } else if (purchase.status == PurchaseStatus.canceled) {
+           _isProcessing = false;
         }
 
         if (purchase.pendingCompletePurchase) {
@@ -116,19 +124,16 @@ class SubscriptionViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      debugPrint("IAP DEBUG: Starting restorePurchases...");
       await _iap.restorePurchases();
+      debugPrint("IAP DEBUG: restorePurchases call completed. (Listen to stream for updates)");
     } catch (e) {
+      debugPrint("IAP DEBUG: restorePurchases exception: $e");
       _errorMessage = "Failed to restore purchases: $e";
     } finally {
       _isProcessing = false;
       notifyListeners();
     }
-  }
-
-  void togglePro() {
-    _isPro = !_isPro;
-    _saveProStatus(_isPro);
-    notifyListeners();
   }
 
   @override

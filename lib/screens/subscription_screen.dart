@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/gestures.dart';
 import '../utils/app_colors.dart';
 import '../viewmodels/subscription_viewmodel.dart';
 import '../utils/responsive.dart';
@@ -30,6 +32,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _launchExternalLink(String urlString) async {
+    try {
+      final Uri url = Uri.parse(urlString);
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        debugPrint('Could not launch $urlString');
+      }
+    } catch (e) {
+      debugPrint('Error launching URL: $e');
+    }
   }
 
   @override
@@ -67,7 +80,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           _buildHeader(res),
-                          const SizedBox(height: 48),
+                          const SizedBox(height: 24),
                           
                           if (viewModel.errorMessage != null)
                             _buildErrorState(viewModel, res),
@@ -77,12 +90,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
 
                           ...viewModel.products.map((product) => _buildPlanCard(context, viewModel, product, res)),
                           
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 16),
                           _buildFeatureSection(res),
                           
-                          const SizedBox(height: 48),
+                          const SizedBox(height: 32),
+                          _buildFAQSection(res),
+                          
+                          const SizedBox(height: 16),
                           _buildFooter(viewModel, res),
-                          const SizedBox(height: 60),
+                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
@@ -168,10 +184,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
               ),
             ],
           ),
-          child: const Icon(
-            Icons.workspace_premium_rounded, 
-            color: AppColors.brandAccent, 
-            size: 40,
+          child: ClipOval(
+            child: Image.asset(
+              'assets/buy.gif',
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         const SizedBox(height: 32),
@@ -213,7 +230,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
   }
 
   Widget _buildPlanCard(BuildContext context, SubscriptionViewModel viewModel, ProductDetails product, Responsive res) {
-    final bool isMonthly = product.id.contains('monthly');
+    final bool isMonthly = product.id.contains('premiummonthly');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -351,13 +368,132 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
     );
   }
 
+  Widget _buildFAQSection(Responsive res) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 8.0, bottom: 20),
+          child: Text(
+            'FREQUENTLY ASKED QUESTIONS',
+            style: GoogleFonts.jetBrainsMono(
+              color: AppColors.textPrimary,
+              fontSize: res.fontSize(14),
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+            ),
+          ),
+        ),
+        _buildFAQItem(
+          res,
+          question: 'What is HyperView Pro?',
+          answer: 'HyperView Pro provides institutional-grade trading tools, including giga-depth orderbook visuals, real-time whale inflow alerts, and advanced CVD analytics.',
+        ),
+        _buildFAQItem(
+          res,
+          question: 'How accurate is the data?',
+          answer: 'Our data is synchronized directly with exchange nodes, ensuring sub-millisecond precision for leaderboard rankings and live trade matching.',
+        ),
+        _buildFAQItem(
+          res,
+          question: 'Can I cancel my subscription?',
+          answer: 'Yes, subscriptions are managed through your official App Store or Play Store account and can be terminated at any time.',
+        ),
+        _buildFAQItem(
+          res,
+          question: 'Are future features included?',
+          answer: 'Absolutely. Your Pro subscription includes all upcoming releases, including HIP-3 asset support and priority node access.',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFAQItem(Responsive res, {required String question, required String answer}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161A22),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF2E323D)),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+          childrenPadding: EdgeInsets.zero,
+          iconColor: AppColors.brandAccent,
+          collapsedIconColor: AppColors.textSecondary,
+          title: Text(
+            question,
+            style: GoogleFonts.jetBrainsMono(
+              color: Colors.white,
+              fontSize: res.fontSize(12),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Text(
+                answer,
+                style: GoogleFonts.jetBrainsMono(
+                  color: AppColors.textSecondary,
+                  fontSize: res.fontSize(11),
+                  height: 1.6,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildFooter(SubscriptionViewModel viewModel, Responsive res) {
     return Column(
       children: [
         _buildRestoreButton(viewModel, res),
-        const SizedBox(height: 32),
+        const SizedBox(height: 20),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: GoogleFonts.jetBrainsMono(
+                color: AppColors.textSecondary.withValues(alpha: 0.5),
+                fontSize: 10,
+                height: 1.5,
+              ),
+              children: [
+                const TextSpan(text: "By continuing, you agree to our "),
+                TextSpan(
+                  text: "Terms of Use",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.brandAccent,
+                    decoration: TextDecoration.underline,
+                  ),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () => _launchExternalLink('https://vectorlabzlimited.com/terms-of-use/'),
+                ),
+                const TextSpan(text: " and "),
+                TextSpan(
+                  text: "Privacy Policy",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.brandAccent,
+                    decoration: TextDecoration.underline,
+                  ),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () => _launchExternalLink('https://vectorlabzlimited.com/privacy-policy/'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
         Text(
-          'Protected by HyperView Protocol. All transactions are encrypted. Subscriptions auto-renew unless terminated 24h prior to expiration.',
+          'Protected by Hyper Protocol. All transactions are encrypted. Subscriptions auto-renew unless terminated 24h prior to expiration.',
           textAlign: TextAlign.center,
           style: GoogleFonts.jetBrainsMono(
             color: AppColors.textSecondary.withValues(alpha: 0.3),
@@ -366,6 +502,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildFooterLink(String text, {required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Text(
+        text,
+        style: GoogleFonts.jetBrainsMono(
+          color: AppColors.textSecondary.withValues(alpha: 0.6),
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          decoration: TextDecoration.underline,
+        ),
+      ),
     );
   }
 

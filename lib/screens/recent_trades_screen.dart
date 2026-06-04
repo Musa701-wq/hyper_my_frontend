@@ -7,6 +7,9 @@ import '../viewmodels/trades_viewmodel.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
 import '../models/trade_model.dart';
+import '../viewmodels/subscription_viewmodel.dart';
+import '../widgets/paywall_widget.dart';
+import 'subscription_screen.dart';
 
 class RecentTradesScreen extends StatefulWidget {
   final String symbol;
@@ -85,8 +88,18 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
             child: Divider(height: 1, color: AppColors.surfaceBright.withValues(alpha: 0.5)),
           ),
         ),
-        body: Consumer<TradesViewModel>(
-          builder: (context, vm, child) {
+        body: Consumer2<TradesViewModel, SubscriptionViewModel>(
+          builder: (context, vm, sub, child) {
+            if (!sub.isPro) {
+              return PaywallWidget(
+                title: 'Live Trade Stream',
+                description: 'Unlock real-time trade history, liquidity analysis, and millisecond-precision trade matching.',
+                onUpgrade: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+                ),
+              );
+            }
+
             return AnimatedSwitcher(
               duration: const Duration(milliseconds: 600),
               switchInCurve: Curves.easeIn,

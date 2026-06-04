@@ -100,10 +100,12 @@ class PaywallWidget extends StatelessWidget {
           ),
         ],
       ),
-      child: const Icon(
-        Icons.lock_person_rounded,
-        color: AppColors.brandAccent,
-        size: 36,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Image.asset(
+          'assets/shield.png',
+          fit: BoxFit.contain,
+        ),
       ),
     );
   }

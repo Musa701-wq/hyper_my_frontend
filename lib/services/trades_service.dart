@@ -17,8 +17,8 @@ class TradesService {
 
   TradesService({required this.symbol, this.dex});
 
-  static String get _baseUrl => dotenv.env['BASE_URL'] ?? 'http://localhost:4001';
-  static String get _wsBase => dotenv.env['WS_URL'] ?? 'ws://localhost:4001';
+  static String get _baseUrl => dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com';
+  static String get _wsBase => dotenv.env['WS_URL'] ?? 'wss://coingecko.renderonnodes.com/ws/';
 
   /// Starts the trade stream (Pure WebSocket Flow).
   /// The backend pushes 'trades_snapshot' immediately on connection.

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hyper/screens/subscription_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
 import '../utils/app_colors.dart';
 import '../utils/common_widgets.dart';
 import '../viewmodels/home_viewmodel.dart';
@@ -71,7 +73,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   sub.isPro ? Icons.verified : Icons.workspace_premium, 
                   color: sub.isPro ? AppColors.trendGreen : AppColors.brandAccent
                 ),
-                onPressed: () => sub.togglePro(),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const SubscriptionScreen())
+                ),
                 tooltip: sub.isPro ? 'Pro Active' : 'Go Pro',
               ),
             ),
@@ -181,10 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       SizedBox(height: res.spacing(12)),
 
                       if (viewModel.isLoading)
-                        Padding(
-                          padding: EdgeInsets.only(top: res.spacing(60)),
-                          child: const Center(child: CircularProgressIndicator(color: AppColors.brandAccent)),
-                        )
+                        _buildShimmerSkeleton(res)
                       else if (viewModel.errorMessage.isNotEmpty)
                         Padding(
                           padding: EdgeInsets.only(top: res.spacing(40)),
@@ -589,6 +590,54 @@ class _HomeScreenState extends State<HomeScreen> {
             ? Text(text, style: GoogleFonts.jetBrainsMono(color: isActive ? Colors.black : AppColors.textPrimary, fontSize: res.fontSize(12), fontWeight: isActive ? FontWeight.bold : FontWeight.normal))
             : Icon(icon, size: res.fontSize(16), color: isEnabled ? AppColors.textPrimary : AppColors.textSecondary),
         ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerSkeleton(Responsive res) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: res.spacing(8)),
+        child: Shimmer.fromColors(
+          baseColor: const Color(0xFF1E222D),
+          highlightColor: const Color(0xFF3A3F4E),
+          period: const Duration(milliseconds: 1500),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(10, (index) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  _skeletonPill(res.columnWidth(150), 12), // Column 1 (Icon + Name)
+                  const SizedBox(width: 24),
+                  _skeletonPill(res.columnWidth(110), 12), // Price
+                  const SizedBox(width: 8),
+                  _skeletonPill(res.columnWidth(110), 12), // Change
+                  const SizedBox(width: 8),
+                  _skeletonPill(res.columnWidth(100), 12), // Funding
+                  const SizedBox(width: 8),
+                  _skeletonPill(res.columnWidth(100), 12), // Volume
+                  const SizedBox(width: 8),
+                  _skeletonPill(res.columnWidth(120), 12), // OI
+                  const SizedBox(width: 8),
+                  _skeletonPill(res.columnWidth(60), 12),  // Trend
+                ],
+              ),
+            )),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _skeletonPill(double width, double height) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(height / 2),
       ),
     );
   }
