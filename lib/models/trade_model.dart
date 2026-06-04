@@ -22,10 +22,21 @@ class Trade {
   });
 
   factory Trade.fromJson(Map<String, dynamic> j) {
+    final int timeMs = (j['time'] as num?)?.toInt() ?? 0;
+    String formatted = j['timeFormatted'] ?? '';
+
+    if (formatted.isEmpty && timeMs != 0) {
+      final dt = DateTime.fromMillisecondsSinceEpoch(timeMs);
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
+      final second = dt.second.toString().padLeft(2, '0');
+      formatted = '$hour:$minute:$second';
+    }
+
     return Trade(
       symbol: j['symbol'] ?? '',
-      time: (j['time'] as num?)?.toInt() ?? 0,
-      timeFormatted: j['timeFormatted'] ?? '',
+      time: timeMs,
+      timeFormatted: formatted,
       direction: j['direction'] ?? 'BUY',
       directionRaw: j['directionRaw'] ?? (j['direction'] == 'SELL' ? 'A' : 'B'),
       price: _toDouble(j['price']),
