@@ -114,7 +114,12 @@ class _HomeScreenState extends State<HomeScreen> {
             GestureDetector(
               onTap: () {
                 AnalyticsService.logFeatureClick('Wallet Connection');
-                setState(() => _selectedIndex = 4);
+                // TODO: Connect to wallet — coming soon
+                // setState(() => _selectedIndex = 4);
+                showDialog(
+                  context: context,
+                  builder: (context) => const ComingSoonDialog(featureName: 'Wallet Connection'),
+                );
               },
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: res.spacing(12), vertical: 6),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
-import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -18,7 +17,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _navigateToHome();
   }
 
-  _navigateToHome() async {
+  Future<void> _navigateToHome() async {
     await Future.delayed(const Duration(milliseconds: 5500));
     if (mounted) {
       Navigator.pushReplacement(
@@ -99,8 +98,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         child: Container(
                           width: 90,
                           height: 90,
-                          decoration: BoxDecoration(
-                            color: AppColors.brandAccent.withValues(alpha: 0.05),
+                          decoration: const BoxDecoration(
+                            color: Colors.black,
                             shape: BoxShape.circle,
                           ),
                           child: Image.asset(
@@ -147,7 +146,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 // Bottom Integrated GIF
                 Container(
                   width: double.infinity,
-                  height: MediaQuery.of(context).size.height * 0.35,
+                  height: MediaQuery.of(context).size.height * 0.22,
                   margin: const EdgeInsets.only(bottom: 20),
                   child: Stack(
                     alignment: Alignment.center,

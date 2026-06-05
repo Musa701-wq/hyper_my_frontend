@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -6,7 +5,6 @@ import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'utils/app_colors.dart';
-import 'screens/home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'viewmodels/home_viewmodel.dart';
 import 'viewmodels/subscription_viewmodel.dart';
@@ -18,27 +16,23 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Catch all unhandled async errors (e.g. WebSocket DNS failures)
-  // so they don't crash the app — just log them.
+  // Catch Flutter framework errors
   FlutterError.onError = (FlutterErrorDetails details) {
     debugPrint('FlutterError: ${details.exceptionAsString()}');
   };
 
-  runZonedGuarded(() async {
-
-  // 📱 ATT: Ensure the dialog appears before any network operations.
+  // ✅ ATT + Firebase + dotenv — all in the SAME zone (no runZonedGuarded wrapping these)
   if (Platform.isIOS) {
     debugPrint("📱 ATT: Requesting tracking authorization...");
-    await Future.delayed(const Duration(milliseconds: 1000));
+    await Future.delayed(const Duration(milliseconds: 200));
     await AppTrackingTransparency.requestTrackingAuthorization();
   }
 
-  // 🚀 Start other services AFTER ATT is handled
   await Future.wait([
     Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
     dotenv.load(fileName: ".env"),
   ]);
-  
+
   runApp(
     MultiProvider(
       providers: [
@@ -49,10 +43,6 @@ Future<void> main() async {
       child: const MyApp(),
     ),
   );
-  }, (error, stack) {
-    // Catch unhandled zone errors (WebSocket SocketException, etc.)
-    debugPrint('Unhandled zone error: $error');
-  });
 }
 
 class MyApp extends StatelessWidget {
@@ -71,7 +61,10 @@ class MyApp extends StatelessWidget {
           surface: AppColors.surfaceBright,
         ),
         textTheme: GoogleFonts.jetBrainsMonoTextTheme(
-          Theme.of(context).textTheme.apply(bodyColor: Colors.white, displayColor: Colors.white),
+          Theme.of(context).textTheme.apply(
+                bodyColor: Colors.white,
+                displayColor: Colors.white,
+              ),
         ),
       ),
       navigatorObservers: [
