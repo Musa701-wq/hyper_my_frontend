@@ -13,6 +13,7 @@ import '../widgets/error_state_widget.dart';
 import '../widgets/sparkline_widget.dart';
 import '../widgets/ticker_detail_dialog.dart';
 import '../widgets/funding_legend_dialog.dart';
+import 'profile_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/responsive.dart';
 import '../analytics/analytics_service.dart';
@@ -113,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
             GestureDetector(
               onTap: () {
                 AnalyticsService.logFeatureClick('Wallet Connection');
-                showDialog(context: context, builder: (context) => const ComingSoonDialog(featureName: 'Wallet Connection'));
+                setState(() => _selectedIndex = 4);
               },
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: res.spacing(12), vertical: 6),
@@ -141,7 +142,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        body: Consumer<HomeViewModel>(
+        body: _selectedIndex == 3 || _selectedIndex == 4
+          ? const ProfileScreen()
+          : Consumer<HomeViewModel>(
           builder: (context, viewModel, child) {
             return RefreshIndicator(
               onRefresh: viewModel.fetchTickers,
@@ -553,8 +556,8 @@ class _HomeScreenState extends State<HomeScreen> {
           selectedItemColor: AppColors.brandAccent,
           unselectedItemColor: AppColors.textSecondary,
           onTap: (index) {
-            if (index == 0) {
-              setState(() => _selectedIndex = 0);
+            if (index == 0 || index == 3 || index == 4) {
+              setState(() => _selectedIndex = index);
             } else {
               final names = ['Home', 'Markets', 'Trade', 'Portfolio', 'Profile'];
               showDialog(
