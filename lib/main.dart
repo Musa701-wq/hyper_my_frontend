@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -17,10 +18,17 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Catch all unhandled async errors (e.g. WebSocket DNS failures)
+  // so they don't crash the app — just log them.
+  FlutterError.onError = (FlutterErrorDetails details) {
+    debugPrint('FlutterError: ${details.exceptionAsString()}');
+  };
+
+  runZonedGuarded(() async {
+
   // 📱 ATT: Ensure the dialog appears before any network operations.
   if (Platform.isIOS) {
     debugPrint("📱 ATT: Requesting tracking authorization...");
-    // A small delay is still recommended by the package to ensure the app is in the foreground
     await Future.delayed(const Duration(milliseconds: 1000));
     await AppTrackingTransparency.requestTrackingAuthorization();
   }
@@ -34,13 +42,17 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => HomeViewModel()), // Remove ..fetchTickers()
+        ChangeNotifierProvider(create: (_) => HomeViewModel()),
         ChangeNotifierProvider(create: (_) => SubscriptionViewModel()),
         ChangeNotifierProvider(create: (_) => PortfolioViewModel()),
       ],
       child: const MyApp(),
     ),
   );
+  }, (error, stack) {
+    // Catch unhandled zone errors (WebSocket SocketException, etc.)
+    debugPrint('Unhandled zone error: $error');
+  });
 }
 
 class MyApp extends StatelessWidget {

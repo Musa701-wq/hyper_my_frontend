@@ -22,8 +22,12 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _hideValue = false;
-  int _selectedChartTabIndex = 0; // 0: Combined, 1: Perp, 2: Account Value
-  int _selectedDetailedTabIndex = 0; // 0: Assets, 1: Orders, 2: Fills, 3: Spot
+  int _selectedChartTabIndex = 0;
+  int _selectedDetailedTabIndex = 0;
+  int _positionsPage = 1;
+  int _recentPage = 1;
+  static const int _positionsPerPage = 5;
+  static const int _recentPerPage = 10;
   
   @override
   void initState() {
@@ -93,7 +97,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 32),
                 _buildChartsSection(res, s, vm),
                 const SizedBox(height: 24),
+                _buildStatsCards(res, s, vm),
+                const SizedBox(height: 24),
                 _buildPortfolioTabsSection(res, s, vm),
+                const SizedBox(height: 24),
+                _buildRecentlyTradedSection(res, vm),
                 const SizedBox(height: 60),
               ],
             ),
@@ -171,17 +179,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Welcome back,', style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 13)),
-                Text('Trader $shortId', style: GoogleFonts.inter(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(shortId, style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
               ],
             ),
           ],
         ),
-        Row(
-          children: [
-            _headerIconButton(_hideValue ? Icons.visibility_off_outlined : Icons.visibility_outlined, onTap: () => setState(() => _hideValue = !_hideValue)),
-            const SizedBox(width: 12),
-            _headerIconButton(Icons.notifications_none, hasDot: true),
-          ],
+        // Only hide/show toggle — no notification icon
+        _headerIconButton(
+          _hideValue ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+          onTap: () => setState(() => _hideValue = !_hideValue),
         ),
       ],
     );
@@ -224,8 +230,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       physics: const NeverScrollableScrollPhysics(),
       childAspectRatio: 1.5,
       children: [
-        _buildDesignCard('ACCOUNT VALUE', s.totalBalance, '', Icons.account_balance_wallet, Colors.tealAccent),
-        _buildDesignCard('WITHDRAWABLE', s.withdrawable, '', Icons.account_balance, Colors.blueAccent),
+        _buildDesignCard('ACCOUNT VALUE', s.totalBalance, '', Icons.account_balance_wallet, AppColors.brandAccent),
+        _buildDesignCard('WITHDRAWABLE', s.withdrawable, '', Icons.account_balance, AppColors.brandAccent),
         _buildDesignCard('UNREALIZED PNL', s.unrealizedPnl, '${s.unrealizedPnlPct.toStringAsFixed(2)}%', Icons.show_chart, AppColors.trendRed),
         _buildDesignCard('WALLET', s.walletAddress, 'Live', Icons.qr_code_scanner, Colors.purpleAccent, isWallet: true),
       ],
@@ -281,31 +287,268 @@ class _ProfileScreenState extends State<ProfileScreen> {
      );
   }
 
+  // ─── STATS CARDS (Performance / Leverage / Margin / Liq Risk) ───────────────
+
+  Widget _buildStatsCards(Responsive res, dynamic s, PortfolioViewModel vm) {
+    // ── Performance Summary ──
+    final fills = vm.historyFills;
+    // Group by hash to get unique trades
+    final Map<String, double> tradesPnl = {};
+    for (final f in fills) {
+      final key = f.hash.isNotEmpty ? f.hash : '${f.time}-${f.coin}';
+      tradesPnl[key] = (tradesPnl[key] ?? 0) + f.closedPnl;
+    }
+    final totalTrades = tradesPnl.length;
+    final totalPnl = tradesPnl.values.fold<double>(0, (a, b) => a + b);
+    final profitable = tradesPnl.values.where((p) => p > 0).length;
+    final winRate = totalTrades > 0 ? (profitable / totalTrades * 100) : 0.0;
+
+    // ── Leverage ──
+    final positions = s.positions as List;
+    final double totalNotional = positions.fold(
+      0.0, (sum, pos) => sum + (pos.size as double) * (pos.markPx as double));
+    final double totalBalance = (s.totalBalance as double);
+    final double accountLeverage = totalBalance > 0 ? totalNotional / totalBalance : 0;
+
+    // ── Margin Usage ──
+    final double marginUsed = s.marginUsed as double;
+    final double marginUsedPct = totalBalance > 0 ? (marginUsed / totalBalance * 100) : 0;
+    final double freeMargin = s.withdrawable as double;
+    final double freeMarginPct = 100 - marginUsedPct;
+
+    // ── Liq Risk — find worst risk level across positions ──
+    String liqRiskLabel = 'Safe';
+    Color liqRiskColor = AppColors.trendGreen;
+    String liqRiskSub = 'No critical positions';
+    for (final pos in positions) {
+      final risk = pos.liqRisk as String;
+      if (risk == 'danger') {
+        liqRiskLabel = 'High Risk';
+        liqRiskColor = AppColors.trendRed;
+        liqRiskSub = 'Liq. distance < 5%';
+        break;
+      } else if (risk == 'warn' && liqRiskLabel != 'High Risk') {
+        liqRiskLabel = 'Caution';
+        liqRiskColor = const Color(0xFFF59E0B);
+        liqRiskSub = 'Liq. distance < 10%';
+      }
+    }
+    if (positions.isEmpty) {
+      liqRiskLabel = 'Neutral';
+      liqRiskSub = 'No open positions';
+    }
+
+    return LayoutBuilder(builder: (context, constraints) {
+      final isWide = constraints.maxWidth > 600;
+
+      // Build the 4 card widgets
+      final cards = [
+        // ── 1. Performance Summary ──
+        _statsCard(
+          label: 'PERFORMANCE SUMMARY',
+          mainWidget: Text(
+            '${totalPnl >= 0 ? '+' : ''}\$${totalPnl.toStringAsFixed(2)}',
+            style: GoogleFonts.jetBrainsMono(
+              color: totalPnl >= 0 ? AppColors.trendGreen : AppColors.trendRed,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          subWidget: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Win Rate: ${winRate.toStringAsFixed(1)}%',
+                style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 9),
+              ),
+              Text(
+                'Trades: $totalTrades',
+                style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 9),
+              ),
+            ],
+          ),
+        ),
+
+        // ── 2. Leverage ──
+        _statsCard(
+          label: 'LEVERAGE',
+          mainWidget: Text(
+            '${accountLeverage.toStringAsFixed(6)}X',
+            style: GoogleFonts.jetBrainsMono(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          subWidget: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  value: (accountLeverage / 10).clamp(0.0, 1.0),
+                  backgroundColor: Colors.white.withOpacity(0.08),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    accountLeverage > 5 ? AppColors.trendRed : AppColors.brandAccent,
+                  ),
+                  minHeight: 3,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                '\$${_fmtNum(totalNotional)} Notional',
+                style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 8),
+              ),
+              Text(
+                '\$${_fmtNum(totalBalance)} Equity',
+                style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 8),
+              ),
+            ],
+          ),
+        ),
+
+        // ── 3. Margin Usage ──
+        _statsCard(
+          label: 'MARGIN USAGE',
+          mainWidget: Text(
+            '${marginUsedPct.toStringAsFixed(2)}%',
+            style: GoogleFonts.jetBrainsMono(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          subWidget: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  value: (marginUsedPct / 100).clamp(0.0, 1.0),
+                  backgroundColor: Colors.white.withOpacity(0.08),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    marginUsedPct > 80 ? AppColors.trendRed : AppColors.trendGreen,
+                  ),
+                  minHeight: 3,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                '\$${_fmtNum(freeMargin)} Free',
+                style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 8),
+              ),
+              Text(
+                '${freeMarginPct.toStringAsFixed(1)}% free to margin',
+                style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 8),
+              ),
+            ],
+          ),
+        ),
+
+        // ── 4. Liq Risk ──
+        _statsCard(
+          label: 'LIQUIDATION RISK',
+          mainWidget: Text(
+            liqRiskLabel,
+            style: GoogleFonts.jetBrainsMono(
+              color: liqRiskColor,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          subWidget: Text(
+            liqRiskSub,
+            style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 9),
+          ),
+        ),
+      ];
+
+      if (isWide) {
+        // 4 in one row
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: cards[0]),
+              const SizedBox(width: 12),
+              Expanded(child: cards[1]),
+              const SizedBox(width: 12),
+              Expanded(child: cards[2]),
+              const SizedBox(width: 12),
+              Expanded(child: cards[3]),
+            ],
+          ),
+        );
+      } else {
+        // 2×2 grid
+        return Column(
+          children: [
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: cards[0]),
+                  const SizedBox(width: 12),
+                  Expanded(child: cards[1]),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: cards[2]),
+                  const SizedBox(width: 12),
+                  Expanded(child: cards[3]),
+                ],
+              ),
+            ),
+          ],
+        );
+      }
+    });
+  }
+
+  Widget _statsCard({
+    required String label,
+    required Widget mainWidget,
+    required Widget subWidget,
+  }) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBright.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              color: AppColors.textSecondary,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
+          ),
+          mainWidget,
+          subWidget,
+        ],
+      ),
+    );
+  }
+
   Widget _buildChartsSection(Responsive res, dynamic s, PortfolioViewModel vm) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: IntrinsicWidth(
-            child: Row(
-              children: [
-                 _chartTab('Combined PnL', active: _selectedChartTabIndex == 0, onTap: () => setState(() => _selectedChartTabIndex = 0)),
-                 _chartTab('Perp PnL', active: _selectedChartTabIndex == 1, onTap: () => setState(() => _selectedChartTabIndex = 1)),
-                 _chartTab('Account Value', active: _selectedChartTabIndex == 2, onTap: () => setState(() => _selectedChartTabIndex = 2)),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
         _buildFullPnLChart(res, s, vm),
         const SizedBox(height: 24),
-        // Treemap now takes full width
-        _buildChartContainer('Asset Composition', '', '', _buildAssetTreemap(s, vm), hasDropdown: true, detailLabel: '(${vm.assetComposition.length} Assets total)'),
+        _buildAssetTreemap(vm),
       ],
     );
   }
@@ -347,11 +590,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: tabs.asMap().entries.map((entry) {
           final isSelected = _selectedDetailedTabIndex == entry.key;
           return GestureDetector(
-            onTap: () => setState(() => _selectedDetailedTabIndex = entry.key),
+            onTap: () => setState(() {
+              _selectedDetailedTabIndex = entry.key;
+              _positionsPage = 1; // reset on tab switch
+            }),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: isSelected ? Colors.blueAccent : Colors.transparent, width: 2)),
+                border: Border(bottom: BorderSide(color: isSelected ? AppColors.brandAccent : Colors.transparent, width: 2)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -398,39 +644,171 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildFullPnLChart(Responsive res, dynamic s, PortfolioViewModel vm) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+    final series     = _getSelectedSeries(vm);
+    final timestamps = vm.historyTimestamps;
+    final bool isAccountValue = _selectedChartTabIndex == 2;
+    final bool isPos  = series.isNotEmpty && series.last >= series.first;
+    final Color themeColor = isAccountValue
+        ? AppColors.brandAccent
+        : (isPos ? AppColors.trendGreen : AppColors.trendRed);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Card: header + bottom stats ──
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceBright.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: tabs + dropdown
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 10, 12, 0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.surfaceBright),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.all(4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _chartTabHome('Combined PnL', 0),
+                              _chartTabHome('Perp PnL',     1),
+                              _chartTabHome('Acct Value',   2),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    _buildRangeDropdown(vm),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // ── Chart — full width, no horizontal padding ──
+              SizedBox(
+                height: 240,
+                child: series.length < 2
+                    ? Center(
+                        child: Text(
+                          'No data for this range',
+                          style: GoogleFonts.jetBrainsMono(
+                              color: Colors.white24, fontSize: 12),
+                        ),
+                      )
+                    : _buildMainLineChart(series, timestamps, themeColor),
+              ),
+
+              // Bottom stats
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+                child: Column(children: [
+                  const Divider(color: Colors.white10),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _chartMetric('CURRENT VALUE',
+                          '\$${_fmtNum(s.totalBalance as double)}'),
+                      _chartMetric('TRADE VOLUME',
+                          '\$${_fmtNum(vm.currentVolume)}'),
+                      _chartMetric(
+                        'ALL CHANGE',
+                        '${vm.allChange >= 0 ? '+' : ''}\$${_fmtNum(vm.allChange)}',
+                        color: vm.allChange >= 0
+                            ? AppColors.trendGreen
+                            : AppColors.trendRed,
+                      ),
+                    ],
+                  ),
+                ]),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Tab pill — same visual as home screen _buildTab
+  Widget _chartTabHome(String label, int index) {
+    final isActive = _selectedChartTabIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedChartTabIndex = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.surfaceBright : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.jetBrainsMono(
+            color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
+            fontSize: 11,
+            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _buildTimeRangeDropdown(vm),
-            ],
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            height: 250,
-            child: _buildMainLineChart(_getSelectedSeries(vm), vm.historyTimestamps),
-          ),
-          const SizedBox(height: 32),
-          const Divider(color: Colors.white10),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _chartMetric('CURRENT VALUE', '\$${s.totalBalance.toStringAsFixed(2)}'),
-              _chartMetric('TRADE VOLUME', '\$${vm.currentVolume >= 1000000 ? (vm.currentVolume / 1000000).toStringAsFixed(1) + 'M' : (vm.currentVolume / 1000).toStringAsFixed(1) + 'K'}'),
-              _chartMetric('ALL CHANGE', '${vm.allChange >= 0 ? '+' : ''}\$${vm.allChange.toStringAsFixed(2)}', color: vm.allChange >= 0 ? AppColors.trendGreen : AppColors.trendRed),
-            ],
-          ),
-        ],
+    );
+  }
+
+  /// Range dropdown — D / W / M / Y / ALL
+  Widget _buildRangeDropdown(PortfolioViewModel vm) {
+    const labels = {
+      PortfolioTimeRange.day:   'D',
+      PortfolioTimeRange.week:  'W',
+      PortfolioTimeRange.month: 'M',
+      PortfolioTimeRange.year:  'Y',
+      PortfolioTimeRange.all:   'ALL',
+    };
+
+    return Container(
+      height: 38,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.surfaceBright),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<PortfolioTimeRange>(
+          value: vm.selectedRange,
+          dropdownColor: AppColors.background,
+          icon: const Icon(Icons.keyboard_arrow_down,
+              color: AppColors.brandAccent, size: 14),
+          style: GoogleFonts.jetBrainsMono(
+              color: AppColors.brandAccent,
+              fontSize: 11,
+              fontWeight: FontWeight.bold),
+          borderRadius: BorderRadius.circular(8),
+          elevation: 4,
+          onChanged: (r) { if (r != null) vm.setTimeRange(r); },
+          items: labels.entries
+              .map((e) => DropdownMenuItem(
+                    value: e.key,
+                    child: Text(e.value),
+                  ))
+              .toList(),
+        ),
       ),
     );
   }
@@ -444,42 +822,171 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Widget _buildTimeRangeDropdown(PortfolioViewModel vm) {
-    return Container(
-      height: 32, // Controlled height
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<PortfolioTimeRange>(
-          value: vm.selectedRange,
-          dropdownColor: AppColors.surfaceBright,
-          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.blueAccent, size: 14),
-          style: GoogleFonts.inter(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-          onChanged: (range) {
-            if (range != null) vm.setTimeRange(range);
-          },
-          items: [
-            _timeDropdownItem(PortfolioTimeRange.hour, 'H'),
-            _timeDropdownItem(PortfolioTimeRange.day, 'D'),
-            _timeDropdownItem(PortfolioTimeRange.week, 'W'),
-            _timeDropdownItem(PortfolioTimeRange.month, 'M'),
-            _timeDropdownItem(PortfolioTimeRange.year, 'Y'),
-            _timeDropdownItem(PortfolioTimeRange.all, 'ALL'),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildMainLineChart(List<double> pnlData, List<int> timestamps, Color themeColor) {
+    // ── Y range ──
+    double minVal = pnlData.reduce((a, b) => a < b ? a : b);
+    double maxVal = pnlData.reduce((a, b) => a > b ? a : b);
+    double range  = maxVal - minVal;
+    double pad    = (range * 0.18).abs();
+    if (pad < 1) pad = 1;
+    final yMin      = minVal - pad;
+    final yMax      = maxVal + pad;
+    final yInterval = ((yMax - yMin) / 4).abs().clamp(1.0, double.maxFinite);
 
-  DropdownMenuItem<PortfolioTimeRange> _timeDropdownItem(PortfolioTimeRange range, String label) {
-    return DropdownMenuItem(
-      value: range,
-      child: Text(label),
-    );
+    // ── Date format based on span ──
+    String Function(int ts) fmtDate;
+    if (timestamps.length >= 2) {
+      final spanDays = DateTime.fromMillisecondsSinceEpoch(timestamps.last)
+          .difference(DateTime.fromMillisecondsSinceEpoch(timestamps.first))
+          .inDays.abs();
+      if (spanDays > 1) {
+        fmtDate = (ts) {
+          final d = DateTime.fromMillisecondsSinceEpoch(ts);
+          return '${d.day} ${_getMonthName(d.month)}';
+        };
+      } else {
+        fmtDate = (ts) {
+          final d = DateTime.fromMillisecondsSinceEpoch(ts);
+          return '${d.hour.toString().padLeft(2, "0")}:${d.minute.toString().padLeft(2, "0")}';
+        };
+      }
+    } else {
+      fmtDate = (_) => '';
+    }
+
+    final int n         = pnlData.length;
+    const double yAxisW = 52.0;
+    // ~4px per point so the line spreads — min = container width
+    final double minChartW = n * 4.0;
+
+    final spots = List<FlSpot>.generate(n, (i) => FlSpot(i.toDouble(), pnlData[i]));
+    // Show ~8 evenly-spaced x labels
+    final int labelEvery = (n / 8).ceil().clamp(1, n);
+
+    return LayoutBuilder(builder: (ctx, box) {
+      final double chartW = minChartW.clamp(box.maxWidth - yAxisW, double.infinity);
+
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Fixed Y-axis labels (left, outside scroll) ──
+          SizedBox(
+            width: yAxisW,
+            child: CustomPaint(
+              painter: _YAxisPainter(
+                yMin: yMin,
+                yMax: yMax,
+                interval: yInterval,
+              ),
+            ),
+          ),
+          // ── Scrollable chart ──
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: SizedBox(
+                width: chartW,
+                child: LineChart(
+                  key: ValueKey('chart_${_selectedChartTabIndex}_${n}_${themeColor.value}_${timestamps.isNotEmpty ? timestamps.first : 0}'),
+                  LineChartData(
+                    minY: yMin,
+                    maxY: yMax,
+                    minX: 0,
+                    maxX: (n - 1).toDouble(),
+                    clipData: const FlClipData.all(),
+                    gridData: FlGridData(
+                      show: true,
+                      drawVerticalLine: false,
+                      horizontalInterval: yInterval,
+                      getDrawingHorizontalLine: (_) => FlLine(
+                          color: Colors.white.withOpacity(0.04), strokeWidth: 1),
+                    ),
+                    borderData: FlBorderData(show: false),
+                    titlesData: FlTitlesData(
+                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 26,
+                          getTitlesWidget: (value, meta) {
+                            final idx = value.toInt();
+                            if (idx < 0 || idx >= timestamps.length) return const SizedBox();
+                            if (idx % labelEvery != 0) return const SizedBox();
+                            if (value == meta.min || value == meta.max) return const SizedBox();
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(
+                                fmtDate(timestamps[idx]),
+                                style: GoogleFonts.jetBrainsMono(
+                                    color: Colors.white38, fontSize: 8),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    lineTouchData: LineTouchData(
+                      touchTooltipData: LineTouchTooltipData(
+                        getTooltipColor: (_) => AppColors.surfaceBright,
+                        getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
+                          final abs = s.y.abs();
+                          final String yLabel;
+                          if (abs >= 1000000) {
+                            yLabel = '\$${(s.y / 1000000).toStringAsFixed(2)}M';
+                          } else if (abs >= 1000) {
+                            yLabel = '\$${(s.y / 1000).toStringAsFixed(1)}K';
+                          } else {
+                            yLabel = '\$${s.y.toStringAsFixed(2)}';
+                          }
+                          final idx = s.x.toInt();
+                          final dateLabel = (idx >= 0 && idx < timestamps.length)
+                              ? fmtDate(timestamps[idx])
+                              : '';
+                          return LineTooltipItem(
+                            '$yLabel  $dateLabel',
+                            GoogleFonts.jetBrainsMono(
+                                color: themeColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: spots,
+                        isCurved: true,
+                        curveSmoothness: 0.3,
+                        color: themeColor,
+                        barWidth: 2,
+                        isStrokeCapRound: true,
+                        dotData: const FlDotData(show: false),
+                        belowBarData: BarAreaData(
+                          show: true,
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              themeColor.withOpacity(0.18),
+                              themeColor.withOpacity(0.0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    });
   }
 
   Widget _chartTab(String label, {bool active = false, VoidCallback? onTap}) {
@@ -487,160 +994,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: active ? AppColors.surfaceBright : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
-          label, 
+          label,
           style: GoogleFonts.jetBrainsMono(
-            color: active ? AppColors.brandAccent : AppColors.textSecondary, 
-            fontSize: 11, 
-            fontWeight: active ? FontWeight.bold : FontWeight.normal
-          )
+            color: active ? AppColors.brandAccent : AppColors.textSecondary,
+            fontSize: 11,
+            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+          ),
         ),
       ),
     );
   }
-
-  // _timeFilter is no longer used, but I'll remove it or keep it if it's used elsewhere. 
-  // It seems it was only used in _buildFullPnLChart.
 
   Widget _chartMetric(String label, String value, {Color? color}) {
     return Column(
       children: [
-        Text(label, style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-        const SizedBox(height: 8),
-        Text(value, style: GoogleFonts.jetBrainsMono(color: color ?? Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(label,
+            style: GoogleFonts.inter(
+                color: AppColors.textSecondary,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5)),
+        const SizedBox(height: 6),
+        Text(value,
+            style: GoogleFonts.jetBrainsMono(
+                color: color ?? Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.bold)),
       ],
-    );
-  }
-
-  Widget _buildMainLineChart(List<double> pnlData, List<int> timestamps) {
-    if (pnlData.isEmpty || timestamps.isEmpty) return const Center(child: Text('No data', style: TextStyle(color: Colors.white24)));
-    
-    // Convert data to spots
-    List<FlSpot> spots = [];
-    for (int i = 0; i < pnlData.length; i++) {
-        spots.add(FlSpot(i.toDouble(), pnlData[i]));
-    }
-
-    final bool isAccountValue = _selectedChartTabIndex == 2;
-    final bool isPos = pnlData.isNotEmpty && pnlData.last >= (pnlData.first);
-    final themeColor = isAccountValue ? Colors.blueAccent : (isPos ? AppColors.trendGreen : AppColors.trendRed);
-
-    double minVal = pnlData.reduce((a, b) => a < b ? a : b);
-    double maxVal = pnlData.reduce((a, b) => a > b ? a : b);
-    double range = maxVal - minVal;
-    
-    // Ensure some padding in range for smooth display
-    double padding = range * 0.15;
-    if (padding == 0) padding = 1000;
-    
-    double adjustedMin = minVal - padding;
-    double adjustedMax = maxVal + padding;
-    double interval = (adjustedMax - adjustedMin) / 4;
-    if (interval <= 0) interval = 1000;
-
-    return LineChart(
-      LineChartData(
-        minY: adjustedMin,
-        maxY: adjustedMax,
-        gridData: FlGridData(
-           show: true,
-           drawVerticalLine: false,
-           horizontalInterval: interval,
-           getDrawingHorizontalLine: (value) {
-             return FlLine(color: Colors.white.withOpacity(0.03), strokeWidth: 1);
-           },
-        ),
-        titlesData: FlTitlesData(
-          show: true,
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 22,
-              interval: (pnlData.length / 4).clamp(1, double.maxFinite),
-              getTitlesWidget: (value, _) {
-                int index = value.toInt();
-                if (index < 0 || index >= timestamps.length) return const SizedBox();
-                
-                final dt = DateTime.fromMillisecondsSinceEpoch(timestamps[index]);
-                String label;
-                
-                // Format based on range
-                if (pnlData.length <= 1) return const SizedBox();
-                
-                final duration = DateTime.fromMillisecondsSinceEpoch(timestamps.last).difference(DateTime.fromMillisecondsSinceEpoch(timestamps.first));
-                
-                if (duration.inDays > 30) {
-                   label = '${dt.day} ${_getMonthName(dt.month)}';
-                } else if (duration.inDays > 1) {
-                   label = '${dt.day} ${_getMonthName(dt.month)}';
-                } else {
-                   label = '${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
-                }
-                
-                return _axisLabel(label);
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 50,
-              interval: interval,
-              getTitlesWidget: (value, _) {
-                 String label;
-                double absVal = value.abs();
-                if (absVal >= 1000000) {
-                  label = '\$${(value/1000000).toStringAsFixed(1)}M';
-                } else if (absVal >= 1000) {
-                  label = '\$${(value/1000).toStringAsFixed(0)}k';
-                } else {
-                  label = '\$${value.toStringAsFixed(0)}';
-                }
-                return Text(label, style: TextStyle(color: AppColors.textSecondary.withOpacity(0.4), fontSize: 9));
-              },
-            ),
-          ),
-        ),
-        borderData: FlBorderData(show: false),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            color: themeColor,
-            barWidth: 2,
-            isStrokeCapRound: true,
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [themeColor.withOpacity(0.12), themeColor.withOpacity(0)],
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
   String _getMonthName(int month) {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return months[month - 1];
-  }
-
-  Widget _axisLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8.0),
-      child: Text(text, style: TextStyle(color: AppColors.textSecondary.withOpacity(0.3), fontSize: 9)),
-    );
   }
 
   Widget _buildChartContainer(String title, String value, String sub, Widget chart, {bool hasDropdown = false, String? detailLabel}) {
@@ -689,190 +1081,795 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildAssetTreemap(dynamic s, PortfolioViewModel vm) {
+  // ─── ASSET COMPOSITION ────────────────────────────────────────────────────────
+
+  Widget _buildAssetTreemap(PortfolioViewModel vm) {
     final items = vm.assetComposition;
-    if (items.isEmpty) return const Center(child: Text('No data', style: TextStyle(color: Colors.white24)));
 
-    const List<Color> greenShades = [
-      Color(0xFF184E3D),
-      Color(0xFF1B5845),
-      Color(0xFF1F6650),
-      Color(0xFF23755B),
-      Color(0xFF288567),
-      Color(0xFF2D9573),
-      Color(0xFF32A680),
-      Color(0xFF38B78D),
-      Color(0xFF42C59B),
-    ];
+    if (items.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceBright.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: Text('No asset data', style: TextStyle(color: Colors.white24)),
+          ),
+        ),
+      );
+    }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final totalWidth = constraints.maxWidth;
-        return Wrap(
-          spacing: 4,
-          runSpacing: 4,
-          children: items.asMap().entries.map((entry) {
-            final index = entry.key;
-            final item = entry.value;
-            final isOthers = item.coin == 'Others';
-            
-            // Simulation of CSS flex-basis and grid appearance
-            double widthFactor;
-            if (isOthers) {
-              widthFactor = 1.0;
-            } else if (item.percentage > 5) {
-              widthFactor = 0.24; // 4 per row
-            } else if (item.percentage > 2) {
-              widthFactor = 0.15; // 6 per row
-            } else {
-              widthFactor = 0.115; // 8 per row
-            }
-            
-            double itemWidth = (totalWidth - 40) * widthFactor; 
-            if (isOthers) itemWidth = totalWidth;
+    // Total value for center label
+    final double totalValue = items.fold(0, (sum, i) => sum + i.usdValue);
 
-            return Container(
-              width: itemWidth,
-              height: isOthers ? 120 : 80,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: greenShades[index % greenShades.length],
-                borderRadius: BorderRadius.circular(4),
+    String fmtTotal(double v) {
+      if (v >= 1000000) return '\$${(v / 1000000).toStringAsFixed(1)}M';
+      if (v >= 1000) return '\$${(v / 1000).toStringAsFixed(1)}K';
+      return '\$${v.toStringAsFixed(0)}';
+    }
+
+    // Build PieChartSectionData from items
+    final sections = items.map((item) {
+      return PieChartSectionData(
+        value: item.usdValue,
+        color: item.color,
+        radius: 26,
+        showTitle: false,
+      );
+    }).toList();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBright.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Text(
+            'Asset Composition',
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Donut + List row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // ── Donut chart ──
+              SizedBox(
+                width: 130,
+                height: 130,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    PieChart(
+                      PieChartData(
+                        sections: sections,
+                        centerSpaceRadius: 42,
+                        sectionsSpace: 2,
+                        startDegreeOffset: -90,
+                      ),
+                    ),
+                    // Center label
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'TOTAL',
+                          style: GoogleFonts.inter(
+                            color: Colors.white38,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          fmtTotal(totalValue),
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+
+              const SizedBox(width: 20),
+
+              // ── Symbols list ──
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TOP SYMBOLS',
+                      style: GoogleFonts.inter(
+                        color: Colors.white30,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...items.map((item) => _assetSymbolRow(item)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _assetSymbolRow(AssetCompositionItem item) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          // Color dot
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: item.color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 8),
+          // Coin name
+          Expanded(
+            child: Text(
+              item.coin,
+              style: GoogleFonts.jetBrainsMono(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          // USD value
+          Text(
+            '\$${_fmtNum(item.usdValue)}',
+            style: GoogleFonts.jetBrainsMono(
+              color: Colors.white54,
+              fontSize: 11,
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Percentage
+          SizedBox(
+            width: 38,
+            child: Text(
+              '${item.percentage.toStringAsFixed(1)}%',
+              textAlign: TextAlign.right,
+              style: GoogleFonts.jetBrainsMono(
+                color: Colors.white38,
+                fontSize: 11,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── RECENTLY TRADED SYMBOLS ─────────────────────────────────────────────────
+
+  Widget _buildRecentlyTradedSection(Responsive res, PortfolioViewModel vm) {
+    final all = vm.symbolSummaries; // already sorted by volume desc
+
+    if (all.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceBright.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text('No trade history', style: TextStyle(color: Colors.white24)),
+          ),
+        ),
+      );
+    }
+
+    final int totalPages = (all.length / _recentPerPage).ceil();
+    final int start = (_recentPage - 1) * _recentPerPage;
+    final int end = (start + _recentPerPage).clamp(0, all.length);
+    final items = all.sublist(start, end);
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBright.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recently Traded Symbols',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  '${all.length} symbols',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: Colors.white30,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // ── Table — fixed left + horizontal scroll right ──
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Fixed: Rank + Symbol
+              SizedBox(
+                width: 130,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    _rtHeader('Symbol', width: 130, leftPad: 20),
+                    // Rows
+                    ...items.asMap().entries.map((e) {
+                      final rank = start + e.key + 1;
+                      return _rtAssetCell(e.value.symbol, rank);
+                    }),
+                  ],
+                ),
+              ),
+
+              // Scrollable: Trades, Volume, PnL, Win Rate, Best/Worst, Fees
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header row
+                      SizedBox(
+                        height: 40,
+                        child: Row(children: [
+                          _rtHeader('Trades',    width: 70),
+                          _rtHeader('Volume',    width: 110),
+                          _rtHeader('PnL',       width: 110),
+                          _rtHeader('Win Rate',  width: 120),
+                          _rtHeader('Best / Worst', width: 140),
+                          _rtHeader('Fees',      width: 80),
+                        ]),
+                      ),
+                      // Data rows
+                      ...items.map((sym) {
+                        final pnlPos  = sym.pnl >= 0;
+                        final pnlClr  = pnlPos ? AppColors.trendGreen : AppColors.trendRed;
+                        final winFrac = (sym.winRate / 100).clamp(0.0, 1.0);
+                        final hasBest  = sym.best  > -999999998;
+                        final hasWorst = sym.worst <  999999998;
+
+                        return Container(
+                          height: 52,
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              // Trades
+                              SizedBox(
+                                width: 70,
+                                child: Text(
+                                  '${sym.trades}',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.jetBrainsMono(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                              // Volume
+                              SizedBox(
+                                width: 110,
+                                child: Text(
+                                  '\$${_fmtExact(sym.volume)}',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.jetBrainsMono(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                              // PnL
+                              SizedBox(
+                                width: 110,
+                                child: Text(
+                                  '${pnlPos ? '+' : ''}\$${_fmtExact(sym.pnl)}',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.jetBrainsMono(
+                                    color: pnlClr,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              // Win Rate — bar + %
+                              SizedBox(
+                                width: 120,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(2),
+                                          child: LinearProgressIndicator(
+                                            value: winFrac,
+                                            backgroundColor: Colors.white.withOpacity(0.07),
+                                            valueColor: AlwaysStoppedAnimation<Color>(
+                                              sym.winRate >= 60
+                                                  ? AppColors.trendGreen
+                                                  : sym.winRate >= 40
+                                                      ? const Color(0xFFF59E0B)
+                                                      : AppColors.trendRed,
+                                            ),
+                                            minHeight: 4,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '${sym.winRate.toStringAsFixed(0)}%',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // Best / Worst
+                              SizedBox(
+                                width: 140,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      hasBest
+                                          ? '+\$${_fmtExact(sym.best)}'
+                                          : '—',
+                                      style: GoogleFonts.jetBrainsMono(
+                                        color: AppColors.trendGreen,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    Text(
+                                      '  /  ',
+                                      style: GoogleFonts.jetBrainsMono(
+                                        color: Colors.white24,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    Text(
+                                      hasWorst
+                                          ? '\$${_fmtExact(sym.worst)}'
+                                          : '—',
+                                      style: GoogleFonts.jetBrainsMono(
+                                        color: AppColors.trendRed,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Fees
+                              SizedBox(
+                                width: 80,
+                                child: Text(
+                                  '\$${sym.fees.toStringAsFixed(2)}',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.jetBrainsMono(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // ── Pagination ──
+          if (totalPages > 1) ...[
+            const Divider(color: AppColors.surfaceBright, height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(item.coin.toUpperCase(), style: GoogleFonts.inter(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                  Text('${item.percentage.toStringAsFixed(1)}%', style: GoogleFonts.inter(color: Colors.white.withOpacity(0.5), fontSize: 9)),
+                  Text(
+                    'Showing ${start + 1}–$end of ${all.length}',
+                    style: GoogleFonts.jetBrainsMono(
+                      color: AppColors.textSecondary,
+                      fontSize: 10,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      _posPageBtn(
+                        icon: Icons.chevron_left,
+                        isEnabled: _recentPage > 1,
+                        isActive: false,
+                        onTap: () => setState(() => _recentPage--),
+                      ),
+                      const SizedBox(width: 6),
+                      ...() {
+                        int pStart = (_recentPage - 1).clamp(1, totalPages);
+                        int pEnd = (pStart + 2).clamp(1, totalPages);
+                        if (pEnd == totalPages && totalPages > 3) pStart = pEnd - 2;
+                        List<Widget> btns = [];
+                        for (int i = pStart; i <= pEnd; i++) {
+                          btns.add(Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 3),
+                            child: _posPageBtn(
+                              text: '$i',
+                              isActive: i == _recentPage,
+                              isEnabled: true,
+                              onTap: () => setState(() => _recentPage = i),
+                            ),
+                          ));
+                        }
+                        return btns;
+                      }(),
+                      const SizedBox(width: 6),
+                      _posPageBtn(
+                        icon: Icons.chevron_right,
+                        isEnabled: _recentPage < totalPages,
+                        isActive: false,
+                        onTap: () => setState(() => _recentPage++),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-            );
-          }).toList(),
-        );
-      }
+            ),
+          ] else
+            const SizedBox(height: 8),
+        ],
+      ),
     );
+  }
+
+  // Fixed-left header cell for recently traded table
+  Widget _rtHeader(String label, {required double width, double leftPad = 0}) {
+    return Container(
+      width: width,
+      height: 40,
+      padding: EdgeInsets.only(left: leftPad),
+      alignment: leftPad > 0 ? Alignment.centerLeft : Alignment.center,
+      child: Text(
+        label,
+        textAlign: leftPad > 0 ? TextAlign.left : TextAlign.center,
+        style: GoogleFonts.jetBrainsMono(
+          color: AppColors.textSecondary,
+          fontSize: 10,
+        ),
+      ),
+    );
+  }
+
+  // Fixed-left asset cell with rank
+  Widget _rtAssetCell(String symbol, int rank) {
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 22,
+            child: Text(
+              '$rank',
+              style: GoogleFonts.jetBrainsMono(
+                color: Colors.white30,
+                fontSize: 10,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              symbol,
+              style: GoogleFonts.jetBrainsMono(
+                color: AppColors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Format number with 4 decimal places for trade data
+  String _fmtExact(double val) {
+    final abs = val.abs();
+    if (abs >= 1000000) return '${(val / 1000000).toStringAsFixed(2)}M';
+    if (abs >= 1000)    return '${(val / 1000).toStringAsFixed(2)}K';
+    if (abs >= 100)     return val.toStringAsFixed(2);
+    if (abs >= 10)      return val.toStringAsFixed(4);
+    return val.toStringAsFixed(4);
   }
 
   // ─── PORTFOLIO TABLES (Home-screen style) ───────────────────────────────────
 
   Widget _buildDetailedPositions(Responsive res, dynamic s) {
-    final positions = s.positions as List;
-    if (positions.isEmpty) {
+    final allPositions = s.positions as List;
+    if (allPositions.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(40),
         child: Center(child: Text('No Open Positions', style: TextStyle(color: Colors.white24))),
       );
     }
 
-    return Row(
+    final int totalPages = (allPositions.length / _positionsPerPage).ceil();
+    final int start = (_positionsPage - 1) * _positionsPerPage;
+    final int end = (start + _positionsPerPage).clamp(0, allPositions.length);
+    final positions = allPositions.sublist(start, end);
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Fixed left: Asset column
-        SizedBox(
-          width: 120,
-          child: Column(
-            children: [
-              _posTableHeaderCell('Asset', width: 120, align: Alignment.centerLeft, leftPad: 16),
-              ...positions.map((pos) => _posAssetCell(pos)),
-            ],
-          ),
-        ),
-        // Scrollable right columns
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header row
-                Container(
-                  height: 48,
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                  child: Row(children: [
-                    _posTableHeaderCell('Size', width: 100),
-                    _posTableHeaderCell('Entry Px', width: 100),
-                    _posTableHeaderCell('Mark Px', width: 100),
-                    _posTableHeaderCell('Liq. Px', width: 100),
-                    _posTableHeaderCell('Unreal. PnL', width: 110),
-                    _posTableHeaderCell('Margin', width: 90),
-                  ]),
-                ),
-                // Data rows
-                ...positions.map((pos) {
-                  final isLong = pos.side.toLowerCase() == 'long';
-                  final pnlPos = pos.unrealizedPnl >= 0;
-                  final pnlColor = pnlPos ? AppColors.trendGreen : AppColors.trendRed;
-                  return Container(
-                    height: 56,
-                    decoration: const BoxDecoration(
-                      border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+        // ── Table ──
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Fixed left: Asset column
+            SizedBox(
+              width: 120,
+              child: Column(
+                children: [
+                  _posTableHeaderCell('Asset', width: 120, align: Alignment.centerLeft, leftPad: 16),
+                  ...positions.map((pos) => _posAssetCell(pos)),
+                ],
+              ),
+            ),
+            // Scrollable right columns
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Row(children: [
+                        _posTableHeaderCell('Size', width: 100),
+                        _posTableHeaderCell('Entry Px', width: 100),
+                        _posTableHeaderCell('Mark Px', width: 100),
+                        _posTableHeaderCell('Liq. Px', width: 100),
+                        _posTableHeaderCell('Unreal. PnL', width: 110),
+                        _posTableHeaderCell('Margin', width: 90),
+                      ]),
                     ),
-                    child: Row(children: [
-                      // Size
-                      SizedBox(
-                        width: 100,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(pos.size.toStringAsFixed(3),
-                              style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
-                            Text('\$${_fmtNum(pos.size * pos.markPx)}',
-                              style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 9),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                    ...positions.map((pos) {
+                      final pnlPos = pos.unrealizedPnl >= 0;
+                      final pnlColor = pnlPos ? AppColors.trendGreen : AppColors.trendRed;
+                      return Container(
+                        height: 56,
+                        decoration: const BoxDecoration(
+                          border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
                         ),
-                      ),
-                      // Entry Px
-                      SizedBox(width: 100, child: Text('\$${_fmtNum(pos.entryPx)}',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11),
-                      )),
-                      // Mark Px
-                      SizedBox(width: 100, child: Text('\$${_fmtNum(pos.markPx)}',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11),
-                      )),
-                      // Liq. Px
-                      SizedBox(width: 100, child: Text(
-                        pos.liqPx <= 0 ? '—' : '\$${_fmtNum(pos.liqPx)}',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.jetBrainsMono(color: pos.liqPx > 0 ? AppColors.trendRed.withValues(alpha: 0.8) : AppColors.textSecondary, fontSize: 11),
-                      )),
-                      // Unrealized PnL
-                      SizedBox(
-                        width: 110,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('${pnlPos ? '+' : ''}\$${pos.unrealizedPnl.toStringAsFixed(2)}',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.jetBrainsMono(color: pnlColor, fontSize: 11, fontWeight: FontWeight.bold),
+                        child: Row(children: [
+                          SizedBox(
+                            width: 100,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(pos.size.toStringAsFixed(3),
+                                  style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                                Text('\$${_fmtNum(pos.size * pos.markPx)}',
+                                  style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 9),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
                             ),
-                            Text('${pnlPos ? '+' : ''}${pos.unrealizedPnlPct.toStringAsFixed(2)}%',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.jetBrainsMono(color: pnlColor.withValues(alpha: 0.7), fontSize: 9),
+                          ),
+                          SizedBox(width: 100, child: Text('\$${_fmtNum(pos.entryPx)}',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11),
+                          )),
+                          SizedBox(width: 100, child: Text('\$${_fmtNum(pos.markPx)}',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11),
+                          )),
+                          SizedBox(width: 100, child: Text(
+                            pos.liqPx <= 0 ? '—' : '\$${_fmtNum(pos.liqPx)}',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.jetBrainsMono(
+                              color: pos.liqPx > 0 ? AppColors.trendRed.withValues(alpha: 0.8) : AppColors.textSecondary,
+                              fontSize: 11,
                             ),
-                          ],
-                        ),
-                      ),
-                      // Margin
-                      SizedBox(width: 90, child: Text('\$${pos.marginUsed.toStringAsFixed(2)}',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 11),
-                      )),
-                    ]),
-                  );
-                }),
-                const SizedBox(height: 8),
+                          )),
+                          SizedBox(
+                            width: 110,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text('${pnlPos ? '+' : ''}\$${pos.unrealizedPnl.toStringAsFixed(2)}',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.jetBrainsMono(color: pnlColor, fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                                Text('${pnlPos ? '+' : ''}${pos.unrealizedPnlPct.toStringAsFixed(2)}%',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.jetBrainsMono(color: pnlColor.withValues(alpha: 0.7), fontSize: 9),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: 90, child: Text('\$${pos.marginUsed.toStringAsFixed(2)}',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 11),
+                          )),
+                        ]),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        // ── Pagination ──
+        if (totalPages > 1) ...[
+          const SizedBox(height: 4),
+          const Divider(color: AppColors.surfaceBright, height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // "Showing X–Y of Z"
+                Text(
+                  'Showing ${start + 1}–$end of ${allPositions.length}',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: AppColors.textSecondary,
+                    fontSize: 10,
+                  ),
+                ),
+                // Page buttons
+                Row(
+                  children: [
+                    // Prev
+                    _posPageBtn(
+                      icon: Icons.chevron_left,
+                      isEnabled: _positionsPage > 1,
+                      isActive: false,
+                      onTap: () => setState(() => _positionsPage--),
+                    ),
+                    const SizedBox(width: 6),
+                    // Numbered pages (show up to 3 around current)
+                    ...() {
+                      int pStart = (_positionsPage - 1).clamp(1, totalPages);
+                      int pEnd = (pStart + 2).clamp(1, totalPages);
+                      if (pEnd == totalPages && totalPages > 3) pStart = pEnd - 2;
+                      List<Widget> btns = [];
+                      for (int i = pStart; i <= pEnd; i++) {
+                        btns.add(Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: _posPageBtn(
+                            text: '$i',
+                            isActive: i == _positionsPage,
+                            isEnabled: true,
+                            onTap: () => setState(() => _positionsPage = i),
+                          ),
+                        ));
+                      }
+                      return btns;
+                    }(),
+                    const SizedBox(width: 6),
+                    // Next
+                    _posPageBtn(
+                      icon: Icons.chevron_right,
+                      isEnabled: _positionsPage < totalPages,
+                      isActive: false,
+                      onTap: () => setState(() => _positionsPage++),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-        ),
+        ] else
+          const SizedBox(height: 8),
       ],
+    );
+  }
+
+  Widget _posPageBtn({
+    String? text,
+    IconData? icon,
+    required bool isActive,
+    required bool isEnabled,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: isEnabled ? onTap : null,
+      child: Opacity(
+        opacity: isEnabled ? 1.0 : 0.35,
+        child: Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.brandAccent : AppColors.background,
+            border: Border.all(
+              color: isActive ? AppColors.brandAccent : AppColors.surfaceBright,
+            ),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: text != null
+              ? Text(
+                  text,
+                  style: GoogleFonts.jetBrainsMono(
+                    color: isActive ? Colors.black : AppColors.textPrimary,
+                    fontSize: 11,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  ),
+                )
+              : Icon(
+                  icon,
+                  size: 14,
+                  color: AppColors.textPrimary,
+                ),
+        ),
+      ),
     );
   }
 
@@ -902,8 +1899,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(width: 3),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(color: Colors.blueAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(2)),
-                child: Text('${pos.leverage.toInt()}x', style: GoogleFonts.jetBrainsMono(color: Colors.blueAccent, fontSize: 7, fontWeight: FontWeight.bold)),
+                decoration: BoxDecoration(color: AppColors.brandAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(2)),
+                child: Text('${pos.leverage.toInt()}x', style: GoogleFonts.jetBrainsMono(color: AppColors.brandAccent, fontSize: 7, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -1207,4 +2204,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (val >= 10) return val.toStringAsFixed(3);
     return val.toStringAsFixed(4);
   }
+}
+
+/// Draws Y-axis labels on a fixed-width column that stays outside the
+/// horizontally-scrollable chart area.
+class _YAxisPainter extends CustomPainter {
+  final double yMin;
+  final double yMax;
+  final double interval;
+
+  _YAxisPainter({
+    required this.yMin,
+    required this.yMax,
+    required this.interval,
+  });
+
+  static String _fmt(double v) {
+    final abs = v.abs();
+    if (abs >= 1000000) return '\$${(v / 1000000).toStringAsFixed(1)}M';
+    if (abs >= 1000) return '\$${(v / 1000).toStringAsFixed(0)}K';
+    return '\$${v.toStringAsFixed(0)}';
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final tp = TextPainter(textDirection: TextDirection.ltr);
+    final range = yMax - yMin;
+    if (range <= 0 || interval <= 0) return;
+
+    // Draw 5 labels from yMax down to yMin
+    final steps = (range / interval).round().clamp(1, 8);
+    for (int i = 0; i <= steps; i++) {
+      final value = yMax - i * interval;
+      if (value < yMin - interval * 0.1) break;
+
+      final frac = (yMax - value) / range;
+      // Reserve 26px at bottom for x-axis labels
+      const bottomReserve = 26.0;
+      final y = frac * (size.height - bottomReserve);
+
+      tp.text = TextSpan(
+        text: _fmt(value),
+        style: const TextStyle(
+          color: Color(0x66FFFFFF),
+          fontSize: 8,
+          fontFamily: 'JetBrainsMono',
+        ),
+      );
+      tp.layout(maxWidth: 50);
+      tp.paint(canvas, Offset(0, y - tp.height / 2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_YAxisPainter old) =>
+      old.yMin != yMin || old.yMax != yMax || old.interval != interval;
 }

@@ -242,37 +242,48 @@ class PortfolioViewModel extends ChangeNotifier {
     final Map<String, double> assetMap = {};
 
     for (var spot in _summary!.spotBalances) {
-      assetMap[spot.coin] = (assetMap[spot.coin] ?? 0) + spot.usdValue;
+      if (spot.usdValue > 0) {
+        assetMap[spot.coin] = (assetMap[spot.coin] ?? 0) + spot.usdValue;
+      }
     }
 
     for (var pos in _summary!.positions) {
-      assetMap[pos.coin] = (assetMap[pos.coin] ?? 0) + (pos.size * pos.markPx);
+      final notional = pos.size * pos.markPx;
+      if (notional > 0) {
+        assetMap[pos.coin] = (assetMap[pos.coin] ?? 0) + notional;
+      }
     }
 
     final totalValue = assetMap.values.fold<double>(0, (p, c) => p + c);
-    if (totalValue == 0) return;
+    if (totalValue == 0) {
+      _assetComposition = [];
+      return;
+    }
 
-    final sortedAssets = assetMap.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    // Sort by value descending
+    final sortedAssets = assetMap.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
 
-    final List<AssetCompositionItem> items = [];
-    const colors = [
-      Color(0xFF10B981),
-      Color(0xFF3B82F6),
-      Color(0xFF6366F1),
-      Color(0xFF8B5CF6),
-      Color(0xFFEC4899),
-      Color(0xFFF97316),
+    // Multi-color palette matching the web app donut
+    const List<Color> palette = [
+      Color(0xFF0FB78E), // teal
+      Color(0xFF3B82F6), // blue
+      Color(0xFF6366F1), // indigo
+      Color(0xFF8B5CF6), // violet
+      Color(0xFFEC4899), // pink
+      Color(0xFFF97316), // orange
     ];
 
+    final List<AssetCompositionItem> items = [];
     double othersValue = 0;
 
     for (int i = 0; i < sortedAssets.length; i++) {
-      if (i < 6) {
+      if (i < palette.length) {
         items.add(AssetCompositionItem(
           coin: sortedAssets[i].key,
           usdValue: sortedAssets[i].value,
           percentage: (sortedAssets[i].value / totalValue) * 100,
-          color: colors[i % colors.length],
+          color: palette[i],
         ));
       } else {
         othersValue += sortedAssets[i].value;
@@ -284,7 +295,7 @@ class PortfolioViewModel extends ChangeNotifier {
         coin: 'Others',
         usdValue: othersValue,
         percentage: (othersValue / totalValue) * 100,
-        color: const Color(0xFFFBBF24),
+        color: const Color(0xFFEAB308), // yellow
       ));
     }
 

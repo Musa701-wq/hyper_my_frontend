@@ -116,74 +116,104 @@ class HomeViewModel extends ChangeNotifier {
     _errorMessage = '';
     notifyListeners();
 
-    try {
-      final baseUrl = dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com';
-      final hipBaseUrl = dotenv.env['HIP_BASE_URL'] ?? 'https://api.hyperliquid.bubblenexus.com';
-      
-      final url = _selectedTab == 'ALL'
-          ? '$baseUrl/all'
-          : _selectedTab == 'HIP-3' 
-              ? '$hipBaseUrl/hip3/all' 
-              : _selectedTab == 'PERPS'
-                  ? '$baseUrl/perps'
-                  : _selectedTab == 'CRYPTO'
-                      ? '$baseUrl/crypto'
-                      : _selectedTab == 'TRADFI'
-                          ? '$baseUrl/tradfi'
-                          : '$baseUrl/spot';
+    const maxAttempts = 3;
+    const retryDelays = [Duration(seconds: 2), Duration(seconds: 4)];
 
-      final response = await http.get(Uri.parse(url));
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        final baseUrl = dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com';
+        final hipBaseUrl = dotenv.env['HIP_BASE_URL'] ?? 'https://api.hyperliquid.bubblenexus.com';
 
-      if (response.statusCode == 200) {
-        final dynamic decoded = json.decode(response.body);
-        List<dynamic> jsonList = [];
-        
-        if (decoded is List) {
-          jsonList = decoded;
-        } else if (decoded is Map<String, dynamic>) {
-          if (decoded['success'] == true && decoded['data'] != null) {
-            jsonList = decoded['data'];
-          } else {
-            jsonList = decoded['data'] ?? [];
+        final url = _selectedTab == 'ALL'
+            ? '$baseUrl/all'
+            : _selectedTab == 'HIP-3'
+                ? '$hipBaseUrl/hip3/all'
+                : _selectedTab == 'PERPS'
+                    ? '$baseUrl/perps'
+                    : _selectedTab == 'CRYPTO'
+                        ? '$baseUrl/crypto'
+                        : _selectedTab == 'TRADFI'
+                            ? '$baseUrl/tradfi'
+                            : '$baseUrl/spot';
+
+        final response = await http
+            .get(Uri.parse(url))
+            .timeout(const Duration(seconds: 15));
+
+        if (response.statusCode == 200) {
+          final dynamic decoded = json.decode(response.body);
+          List<dynamic> jsonList = [];
+
+          if (decoded is List) {
+            jsonList = decoded;
+          } else if (decoded is Map<String, dynamic>) {
+            if (decoded['success'] == true && decoded['data'] != null) {
+              jsonList = decoded['data'];
+            } else {
+              jsonList = decoded['data'] ?? [];
+            }
           }
-        }
 
-        debugPrint('Initial API data fetched successfully for $_selectedTab, count: ${jsonList.length}');
-        if (_selectedTab == 'HIP-3' && jsonList.isNotEmpty) {
-          debugPrint('DEBUG HIP-3 FIRST TICKER: ${jsonList[0]}');
+          debugPrint('API data fetched for $_selectedTab, count: ${jsonList.length}');
+          if (_selectedTab == 'HIP-3' && jsonList.isNotEmpty) {
+            debugPrint('DEBUG HIP-3 FIRST TICKER: ${jsonList[0]}');
+          }
+          _tickers = jsonList.map((json) => TickerModel.fromJson(json)).toList();
+          _tabCache[_selectedTab] = _tickers;
+          _lastFetchTime = DateTime.now();
+          _extractDexes();
+          _extractCategories();
+          _errorMessage = '';
+          break; // success — exit retry loop
+        } else {
+          _errorMessage = 'Server Error (${response.statusCode}): Please try again later.';
+          // Don't retry on 4xx/5xx — it's a server issue not a network issue
+          break;
         }
-        _tickers = jsonList.map((json) => TickerModel.fromJson(json)).toList();
-        
-        // Update cache
-        _tabCache[_selectedTab] = _tickers;
-        _lastFetchTime = DateTime.now();
-        
-        _extractDexes();
-        _extractCategories();
-      } else {
-        _errorMessage = 'Server Error (${response.statusCode}): Please try again later.';
+      } catch (e) {
+        debugPrint('fetchTickers attempt ${attempt + 1} failed: $e');
+        if (attempt < maxAttempts - 1) {
+          // Wait before retry — network might not be ready yet
+          await Future<void>.delayed(retryDelays[attempt]);
+          continue;
+        }
+        _errorMessage = AppException.fromError(e).message;
       }
-    } catch (e) {
-      _errorMessage = AppException.fromError(e).message;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-      _connectWebSocket();
     }
+
+    _isLoading = false;
+    notifyListeners();
+    _connectWebSocket();
   }
 
   void _connectWebSocket() {
-    try {
-      // Close existing connection if any
-      _channel?.sink.close();
+    _channel?.sink.close();
+    _scheduleWsConnect(attempt: 0);
+  }
 
-      String wsUrl = (_selectedTab == 'HIP-3') 
+  static const _wsMaxRetries = 6;
+  // Backoff: 2s, 4s, 8s, 16s, 30s, 30s
+  static const _wsBackoff = [2, 4, 8, 16, 30, 30];
+
+  void _scheduleWsConnect({required int attempt}) {
+    final delay = attempt == 0
+        ? Duration.zero
+        : Duration(seconds: _wsBackoff[(attempt - 1).clamp(0, _wsBackoff.length - 1)]);
+
+    Future.delayed(delay, () => _doWsConnect(attempt: attempt));
+  }
+
+  void _doWsConnect({required int attempt}) {
+    // Guard against stale retry after tab switch or dispose
+    if (_isLoading) return;
+
+    try {
+      String wsUrl = (_selectedTab == 'HIP-3')
           ? (dotenv.env['HIP_WS_URL'] ?? 'wss://api.hyperliquid.bubblenexus.com')
           : (dotenv.env['WS_URL'] ?? 'wss://coingecko.renderonnodes.com/ws/');
-      
       if (!wsUrl.endsWith('/')) wsUrl += '/';
-      
-      debugPrint('Connecting to WebSocket: $wsUrl for tab $_selectedTab');
+
+      debugPrint('Connecting to WebSocket: $wsUrl for tab $_selectedTab (attempt ${attempt + 1})');
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
 
       _channel?.stream.listen(
@@ -191,65 +221,78 @@ class HomeViewModel extends ChangeNotifier {
           try {
             final dynamic decoded = json.decode(message);
             bool updated = false;
-            
+
             if (decoded is Map<String, dynamic>) {
-              // Handle Hyperliquid allMids format
-              if (decoded['channel'] == 'allMids' && decoded['data'] != null && decoded['data']['mids'] != null) {
+              if (decoded['channel'] == 'allMids' &&
+                  decoded['data'] != null &&
+                  decoded['data']['mids'] != null) {
                 final Map<String, dynamic> mids = decoded['data']['mids'];
                 mids.forEach((symbol, price) {
                   final idx = _tickers.indexWhere((t) => t.symbol == symbol);
                   if (idx != -1) {
-                    _tickers[idx] = _tickers[idx].copyWithPartial({'lastPrice': double.tryParse(price.toString()) ?? 0.0});
+                    _tickers[idx] = _tickers[idx].copyWithPartial(
+                        {'lastPrice': double.tryParse(price.toString()) ?? 0.0});
                     updated = true;
                   }
                 });
-              }
-              // Handle standard markets_update format
-              else if (decoded['type'] == 'markets_update' && decoded['data'] is List) {
-                 final List dataList = decoded['data'];
-                 for (var update in dataList) {
-                    if (update is Map<String, dynamic>) {
-                       if (_handleWsUpdate(update)) updated = true;
-                    }
-                 }
-              } 
-              // Handle flat map format
-              else {
-                 if (_handleWsUpdate(decoded)) updated = true;
+              } else if (decoded['type'] == 'markets_update' && decoded['data'] is List) {
+                final List dataList = decoded['data'];
+                for (var update in dataList) {
+                  if (update is Map<String, dynamic>) {
+                    if (_handleWsUpdate(update)) updated = true;
+                  }
+                }
+              } else {
+                if (_handleWsUpdate(decoded)) updated = true;
               }
             } else if (decoded is List) {
-               for (var update in decoded) {
-                  if (update is Map<String, dynamic>) {
-                     if (_handleWsUpdate(update)) updated = true;
-                  }
-               }
+              for (var update in decoded) {
+                if (update is Map<String, dynamic>) {
+                  if (_handleWsUpdate(update)) updated = true;
+                }
+              }
             }
 
             if (updated) notifyListeners();
           } catch (e) {
-            debugPrint("Data parsing error in WS: $e");
+            debugPrint('WS data parse error: $e');
           }
         },
         onError: (error) {
           debugPrint('WebSocket ERROR ($wsUrl): $error');
+          _retryWsIfNeeded(attempt: attempt);
         },
         onDone: () {
-          debugPrint('WebSocket connection CLOSED ($wsUrl).');
+          debugPrint('WebSocket CLOSED ($wsUrl).');
+          // Auto-reconnect on unexpected close (not a manual dispose)
+          _retryWsIfNeeded(attempt: attempt);
         },
+        cancelOnError: true,
       );
 
-      // Send subscription message for HIP-3
       if (_selectedTab == 'HIP-3') {
         final subMessage = json.encode({
           "method": "subscribe",
           "subscription": {"type": "allMids"}
         });
-        debugPrint('Sending subscription message: $subMessage');
         _channel?.sink.add(subMessage);
       }
     } catch (e) {
-      debugPrint('Failed to connect to WebSocket: $e');
+      // Catches synchronous errors from WebSocketChannel.connect() itself
+      // (e.g. SocketException / DNS failure on connect)
+      debugPrint('WebSocket connect threw synchronously: $e');
+      _retryWsIfNeeded(attempt: attempt);
     }
+  }
+
+  void _retryWsIfNeeded({required int attempt}) {
+    if (attempt >= _wsMaxRetries) {
+      debugPrint('WebSocket: max retries reached, giving up.');
+      return;
+    }
+    final nextDelay = _wsBackoff[attempt.clamp(0, _wsBackoff.length - 1)];
+    debugPrint('WebSocket: retrying in ${nextDelay}s (attempt ${attempt + 2})');
+    _scheduleWsConnect(attempt: attempt + 1);
   }
 
   bool _handleWsUpdate(Map<String, dynamic> updateData) {
