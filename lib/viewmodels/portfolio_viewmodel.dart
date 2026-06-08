@@ -43,6 +43,7 @@ class PortfolioViewModel extends ChangeNotifier {
   bool _isRefreshing = false;
   String? _error;
   Timer? _refreshTimer;
+  DateTime? _lastFetchTime;
 
   static const _refreshInterval = Duration(seconds: 30);
 
@@ -53,6 +54,7 @@ class PortfolioViewModel extends ChangeNotifier {
   bool get isRefreshing => _isRefreshing;
   bool get hasData => _summary != null;
   String? get error => _error;
+  DateTime? get lastFetchTime => _lastFetchTime;
 
   List<double> _combinedPnlSeries = [];
   List<double> _perpPnlSeries = [];
@@ -107,10 +109,19 @@ class PortfolioViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchPortfolio(String wallet, {bool silent = false, bool forceRefresh = false}) async {
+  Future<void> fetchPortfolio(String wallet, {bool silent = false, bool force = false}) async {
+    // If not forced, check if we fetched within the last 5 minutes
+    if (!force && _lastFetchTime != null && _summary != null) {
+      final difference = DateTime.now().difference(_lastFetchTime!);
+      if (difference.inMinutes < 5) {
+        debugPrint('Using cached portfolio data (${difference.inMinutes}m old)');
+        return;
+      }
+    }
+
     final hasData = _summary != null;
 
-    if (!hasData && !silent) {
+    if (!hasData) {
       _isLoading = true;
       _error = null;
       notifyListeners();
@@ -131,6 +142,7 @@ class PortfolioViewModel extends ChangeNotifier {
 
       await PortfolioCache.save(wallet: wallet, summary: _summary!, history: _history!);
       _processHistory();
+      _lastFetchTime = DateTime.now();
     } catch (e) {
       if (!hasData) {
         if (e.toString().contains('Connection refused') || e.toString().contains('errno = 61')) {
@@ -146,13 +158,28 @@ class PortfolioViewModel extends ChangeNotifier {
     }
   }
 
+  List<TradeFill>? _lastSortedFills;
+  PortfolioHistoryModel? _lastProcessedHistory;
+  PortfolioTimeRange? _lastProcessedRange;
+
   void _processHistory() {
     if (_history == null || _summary == null) return;
 
+    // Skip if nothing changed
+    if (_history == _lastProcessedHistory && _selectedRange == _lastProcessedRange) {
+      return;
+    }
+
     final Map<String, SymbolTradeSummary> summaryMap = {};
 
-    final allFills = List<TradeFill>.from(_history!.fills)..sort((a, b) => a.time.compareTo(b.time));
+    // Only sort if history object changed
+    if (_history != _lastProcessedHistory) {
+      _lastSortedFills = List<TradeFill>.from(_history!.fills)
+        ..sort((a, b) => a.time.compareTo(b.time));
+      _lastProcessedHistory = _history;
+    }
 
+    final allFills = _lastSortedFills ?? [];
     final now = DateTime.now().millisecondsSinceEpoch;
     final int rangeMs;
     switch (_selectedRange) {
@@ -188,7 +215,7 @@ class PortfolioViewModel extends ChangeNotifier {
     _combinedPnlSeries = [0];
     _perpPnlSeries = [0];
 
-    final int startTs = filteredFills.isNotEmpty ? filteredFills.first.time : now - rangeMs;
+    final int startTs = filteredFills.isNotEmpty ? filteredFills.first.time : now - (rangeMs > 1e12 ? 86400000 : rangeMs);
     _historyTimestamps = [startTs];
 
     for (var fill in filteredFills) {
@@ -217,22 +244,25 @@ class PortfolioViewModel extends ChangeNotifier {
       if (fill.closedPnl < s.worst) s.worst = fill.closedPnl;
     }
 
-    _accountValueSeries = List.filled(_combinedPnlSeries.length, 0);
+    // Account value series can be large, allocate once
+    final int seriesLen = _combinedPnlSeries.length;
+    _accountValueSeries = List.filled(seriesLen, 0);
     double currentVal = _summary!.totalBalance;
-    if (_accountValueSeries.isNotEmpty) {
-      _accountValueSeries[_combinedPnlSeries.length - 1] = currentVal;
-      for (int i = _combinedPnlSeries.length - 2; i >= 0; i--) {
+    if (seriesLen > 0) {
+      _accountValueSeries[seriesLen - 1] = currentVal;
+      for (int i = seriesLen - 2; i >= 0; i--) {
         final pnlChange = _combinedPnlSeries[i + 1] - _combinedPnlSeries[i];
         currentVal -= pnlChange;
         _accountValueSeries[i] = currentVal;
       }
     }
 
-    _allChange = _combinedPnlSeries.isNotEmpty ? (_combinedPnlSeries.last - _combinedPnlSeries.first) : 0;
+    _allChange = seriesLen > 1 ? (_combinedPnlSeries.last - _combinedPnlSeries.first) : 0;
 
     _symbolSummaries = summaryMap.values.toList();
     _symbolSummaries.sort((a, b) => b.volume.compareTo(a.volume));
 
+    _lastProcessedRange = _selectedRange;
     _calculateAssetComposition();
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hyperscreener/viewmodels/leaderboard_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'utils/app_colors.dart';
 import 'screens/splash_screen.dart';
@@ -30,7 +31,13 @@ Future<void> main() async {
 
   await Future.wait([
     Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
-    dotenv.load(fileName: ".env"),
+    dotenv.load(fileName: ".env").then((_) {
+      debugPrint('✅ ENV: .env loaded successfully');
+      debugPrint('📡 STATS_API_URL: ${dotenv.env['STATS_API_URL']}');
+    }).catchError((e) {
+      debugPrint('❌ ENV ERROR: $e');
+      return null;
+    }),
   ]);
 
   runApp(
@@ -39,6 +46,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => HomeViewModel()),
         ChangeNotifierProvider(create: (_) => SubscriptionViewModel()),
         ChangeNotifierProvider(create: (_) => PortfolioViewModel()),
+        ChangeNotifierProvider(create: (_) => LeaderboardViewModel()),
       ],
       child: const MyApp(),
     ),

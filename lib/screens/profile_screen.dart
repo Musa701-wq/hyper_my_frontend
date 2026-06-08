@@ -26,8 +26,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedDetailedTabIndex = 0;
   int _positionsPage = 1;
   int _recentPage = 1;
+  int _fillsPage = 1;
+  int _ordersPage = 1;
+  int _spotPage = 1;
   static const int _positionsPerPage = 5;
   static const int _recentPerPage = 10;
+  static const int _fillsPerPage = 10;
+  static const int _ordersPerPage = 10;
+  static const int _spotPerPage = 10;
   
   @override
   void initState() {
@@ -52,7 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (vm.error != null && !vm.hasData) {
             return ErrorStateWidget(
               errorMessage: vm.error!,
-              onRetry: () => vm.fetchPortfolio(widget.walletAddress),
+              onRetry: () => vm.fetchPortfolio(widget.walletAddress, force: true),
             );
           }
 
@@ -64,7 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           return RefreshIndicator(
             color: AppColors.brandAccent,
-            onRefresh: () => vm.fetchPortfolio(widget.walletAddress),
+            onRefresh: () => vm.fetchPortfolio(widget.walletAddress, force: true),
             child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(
@@ -1922,73 +1928,137 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ─── FILLS TABLE ────────────────────────────────────────────────────────────
 
   Widget _buildDetailedTradeHistory(PortfolioViewModel vm) {
-    final fills = vm.historyFills;
-    if (fills.isEmpty) {
+    final allFills = vm.historyFills;
+    if (allFills.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(40),
         child: Center(child: Text('No Recent Fills', style: TextStyle(color: Colors.white24))),
       );
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final int totalPages = (allFills.length / _fillsPerPage).ceil();
+    final int start = (_fillsPage - 1) * _fillsPerPage;
+    final int end = (start + _fillsPerPage).clamp(0, allFills.length);
+    final fills = allFills.sublist(start, end);
+
+    return Column(
       children: [
-        SizedBox(
-          width: 140,
-          child: Column(
-            children: [
-              _posTableHeaderCell('Time / Asset', width: 140, align: Alignment.centerLeft, leftPad: 16),
-              ...fills.take(50).map((f) => _fillAssetCell(f)),
-            ],
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 48,
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                  child: Row(children: [
-                    _posTableHeaderCell('Side', width: 80),
-                    _posTableHeaderCell('Price', width: 110),
-                    _posTableHeaderCell('Size', width: 100),
-                    _posTableHeaderCell('Closed PnL', width: 110),
-                    _posTableHeaderCell('Fee', width: 80),
-                  ]),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 140,
+              child: Column(
+                children: [
+                  _posTableHeaderCell('Time / Asset', width: 140, align: Alignment.centerLeft, leftPad: 16),
+                  ...fills.map((f) => _fillAssetCell(f)),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Row(children: [
+                        _posTableHeaderCell('Side', width: 80),
+                        _posTableHeaderCell('Price', width: 110),
+                        _posTableHeaderCell('Size', width: 100),
+                        _posTableHeaderCell('Closed PnL', width: 110),
+                        _posTableHeaderCell('Fee', width: 80),
+                      ]),
+                    ),
+                    ...fills.map((f) {
+                      final isPos = f.closedPnl > 0;
+                      final pnlColor = isPos ? AppColors.trendGreen : (f.closedPnl < 0 ? AppColors.trendRed : AppColors.textSecondary);
+                      final isBuy = f.dir.toLowerCase().contains('buy') || f.dir.toLowerCase().contains('long');
+                      final sideColor = isBuy ? AppColors.trendGreen : AppColors.trendRed;
+                      final sideLabel = isBuy ? 'BUY' : 'SELL';
+                      return Container(
+                        height: 56,
+                        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5))),
+                        child: Row(children: [
+                          SizedBox(width: 80, child: Center(child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: sideColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(2)),
+                            child: Text(sideLabel, style: GoogleFonts.jetBrainsMono(color: sideColor, fontSize: 9, fontWeight: FontWeight.bold)),
+                          ))),
+                          SizedBox(width: 110, child: Text('\$${_fmtNum(f.px)}', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11))),
+                          SizedBox(width: 100, child: Text(f.sz.toStringAsFixed(4), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11))),
+                          SizedBox(width: 110, child: Text('${isPos ? '+' : ''}\$${f.closedPnl.toStringAsFixed(2)}',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.jetBrainsMono(color: pnlColor, fontSize: 11, fontWeight: FontWeight.bold),
+                          )),
+                          SizedBox(width: 80, child: Text('\$${f.fee.toStringAsFixed(3)}', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 11))),
+                        ]),
+                      );
+                    }),
+                  ],
                 ),
-                ...fills.take(50).map((f) {
-                  final isPos = f.closedPnl > 0;
-                  final pnlColor = isPos ? AppColors.trendGreen : (f.closedPnl < 0 ? AppColors.trendRed : AppColors.textSecondary);
-                  final isBuy = f.dir.toLowerCase().contains('buy') || f.dir.toLowerCase().contains('long');
-                  final sideColor = isBuy ? AppColors.trendGreen : AppColors.trendRed;
-                  final sideLabel = isBuy ? 'BUY' : 'SELL';
-                  return Container(
-                    height: 56,
-                    decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5))),
-                    child: Row(children: [
-                      SizedBox(width: 80, child: Center(child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: sideColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(2)),
-                        child: Text(sideLabel, style: GoogleFonts.jetBrainsMono(color: sideColor, fontSize: 9, fontWeight: FontWeight.bold)),
-                      ))),
-                      SizedBox(width: 110, child: Text('\$${_fmtNum(f.px)}', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11))),
-                      SizedBox(width: 100, child: Text(f.sz.toStringAsFixed(4), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11))),
-                      SizedBox(width: 110, child: Text('${isPos ? '+' : ''}\$${f.closedPnl.toStringAsFixed(2)}',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.jetBrainsMono(color: pnlColor, fontSize: 11, fontWeight: FontWeight.bold),
-                      )),
-                      SizedBox(width: 80, child: Text('\$${f.fee.toStringAsFixed(3)}', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 11))),
-                    ]),
-                  );
-                }),
-                const SizedBox(height: 8),
+              ),
+            ),
+          ],
+        ),
+        if (totalPages > 1) ...[
+          const SizedBox(height: 4),
+          const Divider(color: AppColors.surfaceBright, height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Showing ${start + 1}–$end of ${allFills.length}',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: AppColors.textSecondary,
+                    fontSize: 10,
+                  ),
+                ),
+                Row(
+                  children: [
+                    _posPageBtn(
+                      icon: Icons.chevron_left,
+                      isEnabled: _fillsPage > 1,
+                      isActive: false,
+                      onTap: () => setState(() => _fillsPage--),
+                    ),
+                    const SizedBox(width: 6),
+                    ...() {
+                      int pStart = (_fillsPage - 1).clamp(1, totalPages);
+                      int pEnd = (pStart + 2).clamp(1, totalPages);
+                      if (pEnd == totalPages && totalPages > 3) pStart = pEnd - 2;
+                      List<Widget> btns = [];
+                      for (int i = pStart; i <= pEnd; i++) {
+                        btns.add(Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: _posPageBtn(
+                            text: '$i',
+                            isActive: i == _fillsPage,
+                            isEnabled: true,
+                            onTap: () => setState(() => _fillsPage = i),
+                          ),
+                        ));
+                      }
+                      return btns;
+                    }(),
+                    const SizedBox(width: 6),
+                    _posPageBtn(
+                      icon: Icons.chevron_right,
+                      isEnabled: _fillsPage < totalPages,
+                      isActive: false,
+                      onTap: () => setState(() => _fillsPage++),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-        ),
+        ] else
+          const SizedBox(height: 8),
       ],
     );
   }
@@ -2016,77 +2086,141 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ─── ORDERS TABLE ───────────────────────────────────────────────────────────
 
   Widget _buildDetailedOrders(dynamic s) {
-    final orders = s.openOrders as List;
-    if (orders.isEmpty) {
+    final allOrders = s.openOrders as List;
+    if (allOrders.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(40),
         child: Center(child: Text('No Open Orders', style: TextStyle(color: Colors.white24))),
       );
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final int totalPages = (allOrders.length / _ordersPerPage).ceil();
+    final int start = (_ordersPage - 1) * _ordersPerPage;
+    final int end = (start + _ordersPerPage).clamp(0, allOrders.length);
+    final orders = allOrders.sublist(start, end);
+
+    return Column(
       children: [
-        SizedBox(
-          width: 120,
-          child: Column(
-            children: [
-              _posTableHeaderCell('Asset', width: 120, align: Alignment.centerLeft, leftPad: 16),
-              ...orders.map((o) {
-                final isBuy = o.side.toLowerCase().contains('buy');
-                final sideColor = isBuy ? AppColors.trendGreen : AppColors.trendRed;
-                return Container(
-                  height: 56,
-                  width: 120,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5))),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(o.coin, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 3),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                        decoration: BoxDecoration(color: sideColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(2)),
-                        child: Text(o.side.toUpperCase(), style: GoogleFonts.jetBrainsMono(color: sideColor, fontSize: 7, fontWeight: FontWeight.bold)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 120,
+              child: Column(
+                children: [
+                  _posTableHeaderCell('Asset', width: 120, align: Alignment.centerLeft, leftPad: 16),
+                  ...orders.map((o) {
+                    final isBuy = o.side.toLowerCase().contains('buy');
+                    final sideColor = isBuy ? AppColors.trendGreen : AppColors.trendRed;
+                    return Container(
+                      height: 56,
+                      width: 120,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5))),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(o.coin, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 3),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(color: sideColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(2)),
+                            child: Text(o.side.toUpperCase(), style: GoogleFonts.jetBrainsMono(color: sideColor, fontSize: 7, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              }),
-            ],
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 48,
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                  child: Row(children: [
-                    _posTableHeaderCell('Type', width: 90),
-                    _posTableHeaderCell('Size', width: 100),
-                    _posTableHeaderCell('Limit Price', width: 110),
-                  ]),
+                    );
+                  }),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Row(children: [
+                        _posTableHeaderCell('Type', width: 90),
+                        _posTableHeaderCell('Size', width: 100),
+                        _posTableHeaderCell('Limit Price', width: 110),
+                      ]),
+                    ),
+                    ...orders.map((o) => Container(
+                      height: 56,
+                      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5))),
+                      child: Row(children: [
+                        SizedBox(width: 90, child: Text(o.orderType, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 11))),
+                        SizedBox(width: 100, child: Text(o.size.toStringAsFixed(4), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11))),
+                        SizedBox(width: 110, child: Text('\$${_fmtNum(o.limitPx)}', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.bold))),
+                      ]),
+                    )),
+                  ],
                 ),
-                ...orders.map((o) => Container(
-                  height: 56,
-                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5))),
-                  child: Row(children: [
-                    SizedBox(width: 90, child: Text(o.orderType, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 11))),
-                    SizedBox(width: 100, child: Text(o.size.toStringAsFixed(4), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11))),
-                    SizedBox(width: 110, child: Text('\$${_fmtNum(o.limitPx)}', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.bold))),
-                  ]),
-                )),
-                const SizedBox(height: 8),
+              ),
+            ),
+          ],
+        ),
+        if (totalPages > 1) ...[
+          const SizedBox(height: 4),
+          const Divider(color: AppColors.surfaceBright, height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Showing ${start + 1}–$end of ${allOrders.length}',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: AppColors.textSecondary,
+                    fontSize: 10,
+                  ),
+                ),
+                Row(
+                  children: [
+                    _posPageBtn(
+                      icon: Icons.chevron_left,
+                      isEnabled: _ordersPage > 1,
+                      isActive: false,
+                      onTap: () => setState(() => _ordersPage--),
+                    ),
+                    const SizedBox(width: 6),
+                    ...() {
+                      int pStart = (_ordersPage - 1).clamp(1, totalPages);
+                      int pEnd = (pStart + 2).clamp(1, totalPages);
+                      if (pEnd == totalPages && totalPages > 3) pStart = pEnd - 2;
+                      List<Widget> btns = [];
+                      for (int i = pStart; i <= pEnd; i++) {
+                        btns.add(Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: _posPageBtn(
+                            text: '$i',
+                            isActive: i == _ordersPage,
+                            isEnabled: true,
+                            onTap: () => setState(() => _ordersPage = i),
+                          ),
+                        ));
+                      }
+                      return btns;
+                    }(),
+                    const SizedBox(width: 6),
+                    _posPageBtn(
+                      icon: Icons.chevron_right,
+                      isEnabled: _ordersPage < totalPages,
+                      isActive: false,
+                      onTap: () => setState(() => _ordersPage++),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-        ),
+        ] else
+          const SizedBox(height: 8),
       ],
     );
   }
@@ -2094,91 +2228,155 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ─── SPOT BALANCES TABLE ─────────────────────────────────────────────────────
 
   Widget _buildDetailedSpotBalances(dynamic s) {
-    final balances = s.spotBalances as List;
-    if (balances.isEmpty) {
+    final allBalances = s.spotBalances as List;
+    if (allBalances.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(40),
         child: Center(child: Text('No Spot Balances', style: TextStyle(color: Colors.white24))),
       );
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final int totalPages = (allBalances.length / _spotPerPage).ceil();
+    final int start = (_spotPage - 1) * _spotPerPage;
+    final int end = (start + _spotPerPage).clamp(0, allBalances.length);
+    final balances = allBalances.sublist(start, end);
+
+    return Column(
       children: [
-        SizedBox(
-          width: 130,
-          child: Column(
-            children: [
-              _posTableHeaderCell('Asset', width: 130, align: Alignment.centerLeft, leftPad: 16),
-              ...balances.map((b) => Container(
-                height: 56,
-                width: 130,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5))),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(b.iconUrl, width: 20, height: 20, errorBuilder: (_, __, ___) => Container(width: 20, height: 20, decoration: BoxDecoration(color: AppColors.surfaceBright, shape: BoxShape.circle), child: Center(child: Text(b.coin[0], style: const TextStyle(color: Colors.white, fontSize: 9))))),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 130,
+              child: Column(
+                children: [
+                  _posTableHeaderCell('Asset', width: 130, align: Alignment.centerLeft, leftPad: 16),
+                  ...balances.map((b) => Container(
+                    height: 56,
+                    width: 130,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5))),
+                    child: Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(b.iconUrl, width: 20, height: 20, errorBuilder: (_, __, ___) => Container(width: 20, height: 20, decoration: BoxDecoration(color: AppColors.surfaceBright, shape: BoxShape.circle), child: Center(child: Text(b.coin[0], style: const TextStyle(color: Colors.white, fontSize: 9))))),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(b.coin, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(b.coin, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+                  )),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Row(children: [
+                        _posTableHeaderCell('Amount', width: 110),
+                        _posTableHeaderCell('USD Value', width: 110),
+                        _posTableHeaderCell('Allocation', width: 160),
+                      ]),
+                    ),
+                    ...balances.map((b) => Container(
+                      height: 56,
+                      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5))),
+                      child: Row(children: [
+                        SizedBox(width: 110, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Text(b.total.toStringAsFixed(4), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.bold)),
+                          if (b.hold > 0) Text('${b.hold.toStringAsFixed(3)} held', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 8)),
+                        ])),
+                        SizedBox(width: 110, child: Text('\$${b.usdValue.toStringAsFixed(2)}', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11))),
+                        SizedBox(
+                          width: 160,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(2),
+                                child: LinearProgressIndicator(
+                                  value: (b.allocationPct / 100).clamp(0.0, 1.0),
+                                  backgroundColor: AppColors.surfaceBright,
+                                  color: AppColors.trendGreen,
+                                  minHeight: 3,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text('${b.allocationPct.toStringAsFixed(1)}%', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 9)),
+                            ]),
+                          ),
+                        ),
+                      ]),
+                    )),
                   ],
                 ),
-              )),
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        if (totalPages > 1) ...[
+          const SizedBox(height: 4),
+          const Divider(color: AppColors.surfaceBright, height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  height: 48,
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                  child: Row(children: [
-                    _posTableHeaderCell('Amount', width: 110),
-                    _posTableHeaderCell('USD Value', width: 110),
-                    _posTableHeaderCell('Allocation', width: 160),
-                  ]),
+                Text(
+                  'Showing ${start + 1}–$end of ${allBalances.length}',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: AppColors.textSecondary,
+                    fontSize: 10,
+                  ),
                 ),
-                ...balances.map((b) => Container(
-                  height: 56,
-                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5))),
-                  child: Row(children: [
-                    SizedBox(width: 110, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Text(b.total.toStringAsFixed(4), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.bold)),
-                      if (b.hold > 0) Text('${b.hold.toStringAsFixed(3)} held', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 8)),
-                    ])),
-                    SizedBox(width: 110, child: Text('\$${b.usdValue.toStringAsFixed(2)}', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11))),
-                    SizedBox(
-                      width: 160,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(2),
-                            child: LinearProgressIndicator(
-                              value: (b.allocationPct / 100).clamp(0.0, 1.0),
-                              backgroundColor: AppColors.surfaceBright,
-                              color: AppColors.trendGreen,
-                              minHeight: 3,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text('${b.allocationPct.toStringAsFixed(1)}%', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 9)),
-                        ]),
-                      ),
+                Row(
+                  children: [
+                    _posPageBtn(
+                      icon: Icons.chevron_left,
+                      isEnabled: _spotPage > 1,
+                      isActive: false,
+                      onTap: () => setState(() => _spotPage--),
                     ),
-                  ]),
-                )),
-                const SizedBox(height: 8),
+                    const SizedBox(width: 6),
+                    ...() {
+                      int pStart = (_spotPage - 1).clamp(1, totalPages);
+                      int pEnd = (pStart + 2).clamp(1, totalPages);
+                      if (pEnd == totalPages && totalPages > 3) pStart = pEnd - 2;
+                      List<Widget> btns = [];
+                      for (int i = pStart; i <= pEnd; i++) {
+                        btns.add(Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: _posPageBtn(
+                            text: '$i',
+                            isActive: i == _spotPage,
+                            isEnabled: true,
+                            onTap: () => setState(() => _spotPage = i),
+                          ),
+                        ));
+                      }
+                      return btns;
+                    }(),
+                    const SizedBox(width: 6),
+                    _posPageBtn(
+                      icon: Icons.chevron_right,
+                      isEnabled: _spotPage < totalPages,
+                      isActive: false,
+                      onTap: () => setState(() => _spotPage++),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-        ),
+        ] else
+          const SizedBox(height: 8),
       ],
     );
   }

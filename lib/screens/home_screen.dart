@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hyperscreener/screens/subscription_screen.dart';
+
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import '../utils/app_colors.dart';
@@ -28,6 +29,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final ScrollController _tabScrollController = ScrollController();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -64,17 +66,15 @@ class _HomeScreenState extends State<HomeScreen> {
     
     return AppBackground(
       child: Scaffold(
+        key: _scaffoldKey,
         backgroundColor: Colors.transparent,
+        drawer: _buildDrawer(context, res),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: GestureDetector(
             onTap: () {
-              AnalyticsService.logFeatureClick('Navigation Menu');
-              showDialog(
-                context: context,
-                builder: (context) => const ComingSoonDialog(featureName: 'Navigation Menu'),
-              );
+              _scaffoldKey.currentState?.openDrawer();
             },
             child: const Icon(Icons.menu, color: AppColors.brandAccent),
           ),
@@ -91,11 +91,11 @@ class _HomeScreenState extends State<HomeScreen> {
             Consumer<SubscriptionViewModel>(
               builder: (context, sub, _) => IconButton(
                 icon: Icon(
-                  sub.isPro ? Icons.verified : Icons.workspace_premium, 
-                  color: sub.isPro ? AppColors.trendGreen : AppColors.brandAccent
+                  sub.isPro ? Icons.verified : Icons.workspace_premium,
+                  color: sub.isPro ? AppColors.trendGreen : AppColors.brandAccent,
                 ),
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const SubscriptionScreen())
+                  MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
                 ),
                 tooltip: sub.isPro ? 'Pro Active' : 'Go Pro',
               ),
@@ -114,19 +114,17 @@ class _HomeScreenState extends State<HomeScreen> {
             GestureDetector(
               onTap: () {
                 AnalyticsService.logFeatureClick('Wallet Connection');
-                // TODO: Connect to wallet — coming soon
-                // setState(() => _selectedIndex = 4);
                 showDialog(
                   context: context,
-                  builder: (context) => const ComingSoonDialog(featureName: 'Wallet Connection'),
+                  builder: (context) => const ComingSoonDialog(featureName: 'Wallet Connect'),
                 );
               },
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: res.spacing(12), vertical: 6),
                 margin: EdgeInsets.only(
-                  right: 16, 
-                  top: res.isMobile ? res.spacing(12) : 8.0, 
-                  bottom: res.isMobile ? res.spacing(12) : 8.0
+                  right: 16,
+                  top: res.isMobile ? res.spacing(12) : 8.0,
+                  bottom: res.isMobile ? res.spacing(12) : 8.0,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.brandAccent.withValues(alpha: 0.1),
@@ -561,8 +559,8 @@ class _HomeScreenState extends State<HomeScreen> {
           selectedItemColor: AppColors.brandAccent,
           unselectedItemColor: AppColors.textSecondary,
           onTap: (index) {
-            if (index == 0 || index == 3 || index == 4) {
-              setState(() => _selectedIndex = index);
+            if (index == 0) {
+              setState(() => _selectedIndex = 0);
             } else {
               final names = ['Home', 'Markets', 'Trade', 'Portfolio', 'Profile'];
               showDialog(
@@ -664,6 +662,166 @@ class _HomeScreenState extends State<HomeScreen> {
             : Icon(icon, size: res.fontSize(16), color: isEnabled ? AppColors.textPrimary : AppColors.textSecondary),
         ),
       ),
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context, Responsive res) {
+    return Drawer(
+      backgroundColor: AppColors.background,
+      child: Column(
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: AppColors.surfaceBright.withValues(alpha: 0.05),
+              border: Border(bottom: BorderSide(color: AppColors.brandAccent.withValues(alpha: 0.1))),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'HyperScreener',
+                    style: GoogleFonts.jetBrainsMono(
+                      color: AppColors.brandAccent,
+                      fontSize: res.fontSize(22),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.brandAccent),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'PRO VERSION',
+                      style: GoogleFonts.jetBrainsMono(color: AppColors.brandAccent, fontSize: 10),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          _drawerItem(
+            icon: Icons.home_outlined,
+            label: 'Home',
+            onTap: () {
+              Navigator.pop(context);
+              setState(() => _selectedIndex = 0);
+            },
+          ),
+          _drawerItem(
+            icon: Icons.query_stats,
+            label: 'Stats / Leaderboard',
+            onTap: () {
+              Navigator.pop(context);
+              showDialog(
+                context: context,
+                builder: (context) => const ComingSoonDialog(featureName: 'Stats / Leaderboard'),
+              );
+            },
+          ),
+          _drawerItem(
+            icon: Icons.account_balance_wallet_outlined,
+            label: 'Portfolio',
+            onTap: () {
+              Navigator.pop(context);
+              showDialog(
+                context: context,
+                builder: (context) => const ComingSoonDialog(featureName: 'Portfolio'),
+              );
+            },
+          ),
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              leading: const Icon(Icons.workspace_premium, color: AppColors.brandAccent, size: 22),
+              title: Text(
+                'Top Traders',
+                style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 14),
+              ),
+              iconColor: AppColors.brandAccent,
+              collapsedIconColor: AppColors.textSecondary,
+              children: [
+                _drawerSubItem(
+                  label: 'Acc Value',
+                  onTap: () {
+                    Navigator.pop(context);
+                    showDialog(
+                      context: context,
+                      builder: (context) => const ComingSoonDialog(featureName: 'Top Traders – Acc Value'),
+                    );
+                  },
+                ),
+                _drawerSubItem(
+                  label: 'PNL',
+                  onTap: () {
+                    Navigator.pop(context);
+                    showDialog(
+                      context: context,
+                      builder: (context) => const ComingSoonDialog(featureName: 'Top Traders – PNL'),
+                    );
+                  },
+                ),
+                _drawerSubItem(
+                  label: 'ROI',
+                  onTap: () {
+                    Navigator.pop(context);
+                    showDialog(
+                      context: context,
+                      builder: (context) => const ComingSoonDialog(featureName: 'Top Traders – ROI'),
+                    );
+                  },
+                ),
+                _drawerSubItem(
+                  label: 'Volume',
+                  onTap: () {
+                    Navigator.pop(context);
+                    showDialog(
+                      context: context,
+                      builder: (context) => const ComingSoonDialog(featureName: 'Top Traders – Volume'),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const Spacer(),
+          const Divider(color: Colors.white10),
+          _drawerItem(
+            icon: Icons.settings_outlined,
+            label: 'Settings',
+            onTap: () {
+              Navigator.pop(context);
+              showDialog(context: context, builder: (context) => const ComingSoonDialog(featureName: 'Settings'));
+            },
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _drawerItem({required IconData icon, required String label, required VoidCallback onTap}) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.brandAccent, size: 22),
+      title: Text(
+        label,
+        style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 14),
+      ),
+      onTap: onTap,
+    );
+  }
+
+  Widget _drawerSubItem({required String label, required VoidCallback onTap}) {
+    return ListTile(
+      contentPadding: const EdgeInsets.only(left: 72),
+      title: Text(
+        label,
+        style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 13),
+      ),
+      onTap: onTap,
     );
   }
 

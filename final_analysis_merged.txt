@@ -1,0 +1,60 @@
+Analyzing hyper...                                              
+
+warning • The declaration '_drawerSubItem' isn't referenced • lib/screens/home_screen.dart:762:10 • unused_element
+  error • The getter 'totalTraders' isn't defined for the type 'LeaderboardViewModel' • lib/screens/leaderboard_screen.dart:201:23 • undefined_getter
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:210:46 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:257:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:259:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:271:58 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:396:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:434:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:527:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:529:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:566:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:568:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:624:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:667:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:669:52 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion • lib/screens/profile_screen.dart:897:84 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:909:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:979:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:980:42 • deprecated_member_use
+warning • The declaration '_chartTab' isn't referenced • lib/screens/profile_screen.dart:998:10 • unused_element
+warning • The declaration '_buildChartContainer' isn't referenced • lib/screens/profile_screen.dart:1044:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1048:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1050:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1063:95 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1070:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1072:58 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1074:100 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1074:186 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1099:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1101:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1134:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1136:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1286:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1288:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1307:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1309:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:1446:75 • deprecated_member_use
+   info • Unnecessary use of multiple underscores • lib/screens/profile_screen.dart:2263:100 • unnecessary_underscores
+   info • Unnecessary use of multiple underscores • lib/screens/profile_screen.dart:2263:104 • unnecessary_underscores
+warning • The declaration '_badge' isn't referenced • lib/screens/profile_screen.dart:2386:10 • unused_element
+warning • The declaration '_buildFooterLink' isn't referenced • lib/screens/subscription_screen.dart:508:10 • unused_element
+   info • Don't invoke 'print' in production code • lib/services/leaderboard_service.dart:26:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/leaderboard_service.dart:45:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/leaderboard_service.dart:47:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/leaderboard_service.dart:52:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/leaderboard_service.dart:56:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/leaderboard_service.dart:64:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/leaderboard_service.dart:66:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/leaderboard_service.dart:72:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/leaderboard_service.dart:76:7 • avoid_print
+warning • The declaration '_baseUrl' isn't referenced • lib/services/orderbook_service.dart:28:14 • unused_element
+warning • Unused import: 'package:http/http.dart' • lib/services/trades_service.dart:5:8 • unused_import
+   info • Use interpolation to compose strings and values • lib/services/trades_service.dart:63:85 • prefer_interpolation_to_compose_strings
+   info • Use 'isNotEmpty' instead of 'length' to test whether the collection is empty • lib/viewmodels/home_viewmodel.dart:363:17 • prefer_is_empty
+warning • Unused import: 'package:shared_preferences/shared_preferences.dart' • lib/viewmodels/subscription_viewmodel.dart:4:8 • unused_import
+warning • Unused import: 'coming_soon_dialog.dart' • lib/widgets/orderbook_panel.dart:11:8 • unused_import
+
+56 issues found. (ran in 3.8s)
