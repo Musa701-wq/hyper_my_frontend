@@ -7,7 +7,7 @@ import '../utils/app_colors.dart';
 import '../viewmodels/home_viewmodel.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Live Markets drawer item — navigates to LiveMarketsScreen
+// Drawer nav item → navigates to LiveMarketsScreen
 // ─────────────────────────────────────────────────────────────────────────────
 class LiveMarketsDrawerItem extends StatelessWidget {
   final VoidCallback onTap;
@@ -29,17 +29,8 @@ class LiveMarketsDrawerItem extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 3,
-              height: 60,
-              decoration: const BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(8),
-                  bottomLeft: Radius.circular(8),
-                ),
-              ),
-            ),
+            // accent bar placeholder
+            Container(width: 3, height: 60, color: Colors.transparent),
             const SizedBox(width: 12),
             Container(
               width: 34,
@@ -56,24 +47,17 @@ class LiveMarketsDrawerItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Live Markets',
-                    style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textPrimary,
-                      fontSize: 13,
-                    ),
-                  ),
-                  Text(
-                    'Gainers • Losers • Active',
-                    style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textSecondary.withValues(alpha: 0.55),
-                      fontSize: 9.5,
-                    ),
-                  ),
+                  Text('Live Markets',
+                      style: GoogleFonts.jetBrainsMono(
+                          color: AppColors.textPrimary, fontSize: 13)),
+                  Text('Gainers • Losers • Active',
+                      style: GoogleFonts.jetBrainsMono(
+                          color: AppColors.textSecondary.withValues(alpha: 0.55),
+                          fontSize: 9.5)),
                 ],
               ),
             ),
-            _MiniPulseDot(color: AppColors.trendGreen),
+            _PulseDot(color: AppColors.trendGreen),
             const SizedBox(width: 8),
             Icon(Icons.chevron_right_rounded,
                 size: 16, color: AppColors.surfaceBright),
@@ -87,6 +71,9 @@ class LiveMarketsDrawerItem extends StatelessWidget {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Live Markets full screen
+// Layout:
+//   Row 1 → [Top Gainers (Expanded)] [Top Losers (Expanded)]
+//   Row 2 → Most Active (full width)
 // ─────────────────────────────────────────────────────────────────────────────
 class LiveMarketsScreen extends StatelessWidget {
   const LiveMarketsScreen({super.key});
@@ -99,9 +86,9 @@ class LiveMarketsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Top bar ──────────────────────────────────────────────────
+            // ── AppBar ───────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 8, 12, 0),
+              padding: const EdgeInsets.fromLTRB(4, 8, 16, 0),
               child: Row(
                 children: [
                   IconButton(
@@ -109,106 +96,74 @@ class LiveMarketsScreen extends StatelessWidget {
                         color: AppColors.textPrimary, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
                     padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
-                  Text(
-                    'Live Markets',
-                    style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  const SizedBox(width: 4),
+                  Text('Live Markets',
+                      style: GoogleFonts.jetBrainsMono(
+                        color: AppColors.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      )),
                   const SizedBox(width: 8),
-                  _MiniPulseDot(color: AppColors.trendGreen),
+                  _PulseDot(color: AppColors.trendGreen),
                   const Spacer(),
-                  Text(
-                    'Real-time',
-                    style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textSecondary,
-                      fontSize: 10,
-                    ),
-                  ),
+                  Text('Real-time',
+                      style: GoogleFonts.jetBrainsMono(
+                          color: AppColors.textSecondary, fontSize: 10)),
                 ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            // thin accent line
+            Container(
+              height: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [
+                  AppColors.brandAccent.withValues(alpha: 0.0),
+                  AppColors.brandAccent.withValues(alpha: 0.5),
+                  AppColors.brandAccent.withValues(alpha: 0.0),
+                ]),
               ),
             ),
             const SizedBox(height: 12),
 
-            // ── Content ──────────────────────────────────────────────────
+            // ── Body ─────────────────────────────────────────────────────
             Expanded(
               child: Consumer<HomeViewModel>(
                 builder: (context, vm, _) {
-                  final tickers = vm.tickers
-                      .where((t) => !t.isDelisted)
-                      .toList();
+                  final all = vm.tickers.where((t) => !t.isDelisted).toList();
 
-                  if (vm.isLoading && tickers.isEmpty) {
+                  if (vm.isLoading && all.isEmpty) {
                     return const Center(
                       child: CircularProgressIndicator(
-                        color: AppColors.brandAccent,
-                        strokeWidth: 2,
-                      ),
+                          strokeWidth: 2, color: AppColors.brandAccent),
                     );
                   }
-
-                  if (tickers.isEmpty) {
+                  if (all.isEmpty) {
                     return Center(
-                      child: Text(
-                        'No market data',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: AppColors.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
+                      child: Text('No market data',
+                          style: GoogleFonts.jetBrainsMono(
+                              color: AppColors.textSecondary, fontSize: 13)),
                     );
                   }
 
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 28),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Top Gainers + Top Losers side by side
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _SectionCard(
-                                icon: Icons.trending_up_rounded,
-                                label: 'Top Gainers',
-                                tag: '24h',
-                                iconColor: AppColors.trendGreen,
-                                iconBg: AppColors.trendGreen
-                                    .withValues(alpha: 0.12),
-                                child: _GainersLosersRows(
-                                  tickers: tickers,
-                                  isGainer: true,
-                                  compact: false,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _SectionCard(
-                                icon: Icons.trending_down_rounded,
-                                label: 'Top Losers',
-                                tag: '24h',
-                                iconColor: AppColors.trendRed,
-                                iconBg: AppColors.trendRed
-                                    .withValues(alpha: 0.12),
-                                child: _GainersLosersRows(
-                                  tickers: tickers,
-                                  isGainer: false,
-                                  compact: false,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        // ── Top Gainers ───────────────────────────────
+                        _GainersCard(tickers: all),
                         const SizedBox(height: 12),
 
-                        // Most Active full width
-                        _MostActiveCard(
-                            tickers: tickers, compact: false),
+                        // ── Top Losers ────────────────────────────────
+                        _LosersCard(tickers: all),
+                        const SizedBox(height: 12),
+
+                        // ── Most Active ───────────────────────────────
+                        _MostActiveCard(tickers: all),
                       ],
                     ),
                   );
@@ -223,71 +178,123 @@ class LiveMarketsScreen extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Reusable card wrapper
+// Top Gainers card
 // ─────────────────────────────────────────────────────────────────────────────
-class _SectionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String tag;
-  final Color iconColor;
-  final Color iconBg;
+class _GainersCard extends StatelessWidget {
+  final List<TickerModel> tickers;
+  const _GainersCard({required this.tickers});
+
+  @override
+  Widget build(BuildContext context) {
+    final list = tickers.where((t) => t.change24hPct > 0).toList()
+      ..sort((a, b) => b.change24hPct.compareTo(a.change24hPct));
+    final top = list.take(3).toList();
+
+    return _MarketCard(
+      headerIcon: Icons.trending_up_rounded,
+      headerLabel: 'Top Gainers',
+      headerTag: '24h',
+      accentColor: AppColors.trendGreen,
+      child: _MarketRows(items: top, isGainer: true),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Top Losers card
+// ─────────────────────────────────────────────────────────────────────────────
+class _LosersCard extends StatelessWidget {
+  final List<TickerModel> tickers;
+  const _LosersCard({required this.tickers});
+
+  @override
+  Widget build(BuildContext context) {
+    final list = tickers.where((t) => t.change24hPct < 0).toList()
+      ..sort((a, b) => a.change24hPct.compareTo(b.change24hPct));
+    final top = list.take(3).toList();
+
+    return _MarketCard(
+      headerIcon: Icons.trending_down_rounded,
+      headerLabel: 'Top Losers',
+      headerTag: '24h',
+      accentColor: AppColors.trendRed,
+      child: _MarketRows(items: top, isGainer: false),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared card shell
+// ─────────────────────────────────────────────────────────────────────────────
+class _MarketCard extends StatelessWidget {
+  final IconData headerIcon;
+  final String headerLabel;
+  final String headerTag;
+  final Color accentColor;
   final Widget child;
 
-  const _SectionCard({
-    required this.icon,
-    required this.label,
-    required this.tag,
-    required this.iconColor,
-    required this.iconBg,
+  const _MarketCard({
+    required this.headerIcon,
+    required this.headerLabel,
+    required this.headerTag,
+    required this.accentColor,
     required this.child,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D1014),
-        borderRadius: BorderRadius.circular(10),
+        color: const Color(0xFF161A1F),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.surfaceBright.withValues(alpha: 0.5),
+          color: accentColor.withValues(alpha: 0.18),
           width: 0.8,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header
           Row(
             children: [
               Container(
-                width: 20,
-                height: 20,
+                width: 22,
+                height: 22,
                 decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(5),
+                  color: accentColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: Icon(icon, size: 11, color: iconColor),
+                child: Icon(headerIcon, size: 12, color: accentColor),
               ),
               const SizedBox(width: 6),
-              Text(
-                label,
-                style: GoogleFonts.jetBrainsMono(
-                  color: AppColors.textPrimary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
+              Expanded(
+                child: Text(headerLabel,
+                    style: GoogleFonts.jetBrainsMono(
+                      color: AppColors.textPrimary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    )),
               ),
-              const Spacer(),
-              Text(
-                tag,
-                style: GoogleFonts.jetBrainsMono(
-                  color: AppColors.textSecondary,
-                  fontSize: 8,
-                ),
-              ),
+              Text(headerTag,
+                  style: GoogleFonts.jetBrainsMono(
+                      color: AppColors.textSecondary, fontSize: 9)),
             ],
           ),
-          const SizedBox(height: 7),
+          // divider
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            height: 0.5,
+            color: AppColors.surfaceBright.withValues(alpha: 0.4),
+          ),
           child,
         ],
       ),
@@ -296,96 +303,80 @@ class _SectionCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Gainers / Losers rows
+// 3 market rows inside gainers/losers card
 // ─────────────────────────────────────────────────────────────────────────────
-class _GainersLosersRows extends StatelessWidget {
-  final List<TickerModel> tickers;
+class _MarketRows extends StatelessWidget {
+  final List<TickerModel> items;
   final bool isGainer;
-  final bool compact;
-
-  const _GainersLosersRows({
-    required this.tickers,
-    required this.isGainer,
-    this.compact = true,
-  });
+  const _MarketRows({required this.items, required this.isGainer});
 
   @override
   Widget build(BuildContext context) {
-    final filtered = tickers
-        .where((t) => isGainer ? t.change24hPct > 0 : t.change24hPct < 0)
-        .toList();
-
-    if (isGainer) {
-      filtered.sort((a, b) => b.change24hPct.compareTo(a.change24hPct));
-    } else {
-      filtered.sort((a, b) => a.change24hPct.compareTo(b.change24hPct));
-    }
-
-    final top = filtered.take(3).toList();
-
-    if (top.isEmpty) {
+    if (items.isEmpty) {
       return Text('No data',
           style: GoogleFonts.jetBrainsMono(
               color: AppColors.textSecondary, fontSize: 9));
     }
-
-    final avatarSize = compact ? 16.0 : 20.0;
-    final symFontSize = compact ? 10.0 : 12.0;
-    final priceFontSize = compact ? 8.0 : 9.5;
-    final badgeFontSize = compact ? 9.0 : 10.5;
-    final rowSpacing = compact ? 5.0 : 8.0;
-
     final color = isGainer ? AppColors.trendGreen : AppColors.trendRed;
 
     return Column(
-      children: List.generate(top.length, (i) {
-        final t = top[i];
-        final changeTxt =
+      children: List.generate(items.length, (i) {
+        final t = items[i];
+        final pct =
             '${t.change24hPct >= 0 ? '+' : ''}${t.change24hPct.toStringAsFixed(2)}%';
 
         return Padding(
-          padding: EdgeInsets.only(bottom: i < top.length - 1 ? rowSpacing : 0),
+          padding: EdgeInsets.only(bottom: i < items.length - 1 ? 10 : 0),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Rank
               SizedBox(
                 width: 12,
                 child: Text('${i + 1}',
                     style: GoogleFonts.jetBrainsMono(
-                        color: AppColors.textSecondary, fontSize: 8)),
+                        color: AppColors.textSecondary
+                            .withValues(alpha: 0.5),
+                        fontSize: 9)),
               ),
-              const SizedBox(width: 3),
-              _CoinAvatar(ticker: t, size: avatarSize),
-              const SizedBox(width: 5),
+              const SizedBox(width: 6),
+              // Avatar
+              _Avatar(ticker: t, size: 28),
+              const SizedBox(width: 8),
+              // Symbol + price — takes remaining space
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(t.symbol,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.jetBrainsMono(
                           color: AppColors.textPrimary,
-                          fontSize: symFontSize,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis),
-                    Text(_fmtPrice(t.lastPrice),
+                        )),
+                    Text(_price(t.lastPrice),
                         style: GoogleFonts.jetBrainsMono(
                             color: AppColors.textSecondary,
-                            fontSize: priceFontSize)),
+                            fontSize: 9.5)),
                   ],
                 ),
               ),
+              const SizedBox(width: 4),
+              // Badge
               Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: compact ? 5 : 7,
-                    vertical: compact ? 2 : 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
+                  border:
+                      Border.all(color: color.withValues(alpha: 0.25), width: 0.5),
                 ),
-                child: Text(changeTxt,
+                child: Text(pct,
                     style: GoogleFonts.jetBrainsMono(
                       color: color,
-                      fontSize: badgeFontSize,
+                      fontSize: 10,
                       fontWeight: FontWeight.bold,
                     )),
               ),
@@ -396,140 +387,155 @@ class _GainersLosersRows extends StatelessWidget {
     );
   }
 
-  String _fmtPrice(double v) {
+  String _price(double v) {
     if (v == 0) return '\$0';
+    if (v < 0.000001) return '\$${v.toStringAsFixed(8)}';
     if (v < 0.0001) return '\$${v.toStringAsFixed(6)}';
-    if (v < 0.01) return '\$${v.toStringAsFixed(4)}';
+    if (v < 0.01) return '\$${v.toStringAsFixed(5)}';
     if (v < 1) return '\$${v.toStringAsFixed(4)}';
-    if (v < 1000) return '\$${v.toStringAsFixed(2)}';
+    if (v < 10000) return '\$${v.toStringAsFixed(2)}';
     return '\$${(v / 1000).toStringAsFixed(1)}K';
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Most Active card
+// Most Active card — full width, Vol/OI toggle
 // ─────────────────────────────────────────────────────────────────────────────
 class _MostActiveCard extends StatefulWidget {
   final List<TickerModel> tickers;
-  final bool compact;
-  const _MostActiveCard({required this.tickers, this.compact = true});
+  const _MostActiveCard({required this.tickers});
 
   @override
   State<_MostActiveCard> createState() => _MostActiveCardState();
 }
 
 class _MostActiveCardState extends State<_MostActiveCard> {
-  bool _byVolume = true;
+  bool _byVol = true;
 
   @override
   Widget build(BuildContext context) {
-    final sorted = widget.tickers.toList();
-    if (_byVolume) {
-      sorted.sort((a, b) => b.volume24hUSD.compareTo(a.volume24hUSD));
-    } else {
-      sorted.sort((a, b) => b.openInterestUSD.compareTo(a.openInterestUSD));
-    }
-    final count = widget.compact ? 5 : 5;
-    final top = sorted.take(count).toList();
-    final maxVal = top.isEmpty
+    const purple = Color(0xFF7C3AED);
+    const amber = Color(0xFFF59E0B);
+
+    final barColor = _byVol ? purple : amber;
+
+    final sorted = [...widget.tickers]
+      ..sort((a, b) => _byVol
+          ? b.volume24hUSD.compareTo(a.volume24hUSD)
+          : b.openInterestUSD.compareTo(a.openInterestUSD));
+    final top5 = sorted.take(5).toList();
+    final maxVal = top5.isEmpty
         ? 1.0
-        : top
-            .map((t) => _byVolume ? t.volume24hUSD : t.openInterestUSD)
+        : top5
+            .map((t) => _byVol ? t.volume24hUSD : t.openInterestUSD)
             .reduce((a, b) => a > b ? a : b)
             .clamp(1.0, double.infinity);
 
-    final avatarSize = widget.compact ? 16.0 : 20.0;
-    final symFontSize = widget.compact ? 10.0 : 11.0;
-    final valFontSize = widget.compact ? 8.0 : 9.5;
-    final rowSpacing = widget.compact ? 6.0 : 9.0;
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D1014),
-        borderRadius: BorderRadius.circular(10),
+        color: const Color(0xFF161A1F),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.surfaceBright.withValues(alpha: 0.5),
+          color: barColor.withValues(alpha: 0.18),
           width: 0.8,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: barColor.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header row
           Row(
             children: [
               Container(
-                width: 20,
-                height: 20,
+                width: 22,
+                height: 22,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF7C3AED).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(5),
+                  color: barColor.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Icon(Icons.bar_chart_rounded,
-                    size: 11, color: Color(0xFF7C3AED)),
+                child: Icon(Icons.bar_chart_rounded,
+                    size: 12, color: barColor),
               ),
               const SizedBox(width: 6),
               Text('Most Active',
                   style: GoogleFonts.jetBrainsMono(
                     color: AppColors.textPrimary,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                   )),
               const Spacer(),
-              // Vol / OI toggle
+              // Toggle
               Container(
-                height: 20,
+                height: 26,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceBright.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(5),
+                  color: AppColors.surfaceBright.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(
+                      color: AppColors.surfaceBright.withValues(alpha: 0.3),
+                      width: 0.5),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _ToggleBtn(
+                    _Toggle(
                         label: 'Vol',
-                        active: _byVolume,
-                        activeColor: const Color(0xFF7C3AED),
-                        onTap: () => setState(() => _byVolume = true)),
-                    _ToggleBtn(
+                        active: _byVol,
+                        color: purple,
+                        onTap: () => setState(() => _byVol = true)),
+                    _Toggle(
                         label: 'OI',
-                        active: !_byVolume,
-                        activeColor: const Color(0xFFF59E0B),
-                        onTap: () => setState(() => _byVolume = false)),
+                        active: !_byVol,
+                        color: amber,
+                        onTap: () => setState(() => _byVol = false)),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 7),
-          ...List.generate(top.length, (i) {
-            final t = top[i];
-            final val = _byVolume ? t.volume24hUSD : t.openInterestUSD;
-            final barPct = val / maxVal;
-            final barColor = _byVolume
-                ? const Color(0xFF7C3AED)
-                : const Color(0xFFF59E0B);
-            final changeColor = t.change24hPct >= 0
+          // divider
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            height: 0.5,
+            color: AppColors.surfaceBright.withValues(alpha: 0.4),
+          ),
+          // Rows
+          ...List.generate(top5.length, (i) {
+            final t = top5[i];
+            final val = _byVol ? t.volume24hUSD : t.openInterestUSD;
+            final pct = val / maxVal;
+            final chColor = t.change24hPct >= 0
                 ? AppColors.trendGreen
                 : AppColors.trendRed;
 
             return Padding(
               padding:
-                  EdgeInsets.only(bottom: i < top.length - 1 ? rowSpacing : 0),
+                  EdgeInsets.only(bottom: i < top5.length - 1 ? 12 : 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
+                      // rank
                       SizedBox(
-                        width: 12,
+                        width: 14,
                         child: Text('${i + 1}',
                             style: GoogleFonts.jetBrainsMono(
-                                color: AppColors.textSecondary, fontSize: 8)),
+                                color: AppColors.textSecondary
+                                    .withValues(alpha: 0.5),
+                                fontSize: 9)),
                       ),
-                      const SizedBox(width: 3),
-                      _CoinAvatar(ticker: t, size: avatarSize),
-                      const SizedBox(width: 5),
+                      const SizedBox(width: 6),
+                      _Avatar(ticker: t, size: 26),
+                      const SizedBox(width: 8),
+                      // symbol
                       Expanded(
                         child: Row(
                           children: [
@@ -538,38 +544,56 @@ class _MostActiveCardState extends State<_MostActiveCard> {
                                   overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.jetBrainsMono(
                                     color: AppColors.textPrimary,
-                                    fontSize: symFontSize,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                   )),
                             ),
-                            const SizedBox(width: 3),
+                            const SizedBox(width: 5),
                             Text(
                               '${t.change24hPct >= 0 ? '+' : ''}${t.change24hPct.toStringAsFixed(2)}%',
                               style: GoogleFonts.jetBrainsMono(
-                                  color: changeColor, fontSize: 8),
+                                  color: chColor, fontSize: 9.5),
                             ),
                           ],
                         ),
                       ),
-                      Text(_fmtCompact(val),
+                      // value
+                      Text(_compact(val),
                           style: GoogleFonts.jetBrainsMono(
-                              color: AppColors.textSecondary,
-                              fontSize: valFontSize)),
+                              color: AppColors.textSecondary, fontSize: 10)),
                     ],
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 5),
+                  // progress bar
                   Row(
                     children: [
-                      const SizedBox(width: 15),
+                      const SizedBox(width: 20),
                       Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(2),
-                          child: LinearProgressIndicator(
-                            value: barPct,
-                            minHeight: 2,
-                            backgroundColor: barColor.withValues(alpha: 0.1),
-                            valueColor: AlwaysStoppedAnimation<Color>(barColor),
-                          ),
+                        child: Stack(
+                          children: [
+                            // bg track
+                            Container(
+                              height: 3,
+                              decoration: BoxDecoration(
+                                color: barColor.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            // fill
+                            FractionallySizedBox(
+                              widthFactor: pct.clamp(0.0, 1.0),
+                              child: Container(
+                                height: 3,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(colors: [
+                                    barColor.withValues(alpha: 0.5),
+                                    barColor,
+                                  ]),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -583,7 +607,7 @@ class _MostActiveCardState extends State<_MostActiveCard> {
     );
   }
 
-  String _fmtCompact(double v) {
+  String _compact(double v) {
     if (v >= 1e12) return '\$${(v / 1e12).toStringAsFixed(1)}T';
     if (v >= 1e9) return '\$${(v / 1e9).toStringAsFixed(1)}B';
     if (v >= 1e6) return '\$${(v / 1e6).toStringAsFixed(0)}M';
@@ -595,15 +619,15 @@ class _MostActiveCardState extends State<_MostActiveCard> {
 // ─────────────────────────────────────────────────────────────────────────────
 // Toggle button
 // ─────────────────────────────────────────────────────────────────────────────
-class _ToggleBtn extends StatelessWidget {
+class _Toggle extends StatelessWidget {
   final String label;
   final bool active;
-  final Color activeColor;
+  final Color color;
   final VoidCallback onTap;
-  const _ToggleBtn(
+  const _Toggle(
       {required this.label,
       required this.active,
-      required this.activeColor,
+      required this.color,
       required this.onTap});
 
   @override
@@ -611,16 +635,17 @@ class _ToggleBtn extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: active ? activeColor.withValues(alpha: 0.18) : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
+          color:
+              active ? color.withValues(alpha: 0.18) : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Text(label,
             style: GoogleFonts.jetBrainsMono(
-              color: active ? activeColor : AppColors.textSecondary,
-              fontSize: 8,
+              color: active ? color : AppColors.textSecondary,
+              fontSize: 10,
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
             )),
       ),
@@ -629,107 +654,105 @@ class _ToggleBtn extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Coin avatar
+// Coin avatar with colored fallback
 // ─────────────────────────────────────────────────────────────────────────────
-class _CoinAvatar extends StatelessWidget {
+class _Avatar extends StatelessWidget {
   final TickerModel ticker;
   final double size;
-  const _CoinAvatar({required this.ticker, required this.size});
+  const _Avatar({required this.ticker, required this.size});
 
-  Color _hashColor(String s) {
-    final hue = (s.codeUnits.fold(0, (a, b) => a + b) % 360).toDouble();
-    return HSLColor.fromAHSL(1, hue, 0.65, 0.50).toColor();
+  Color _hue(String s) {
+    final h = (s.codeUnits.fold(0, (a, b) => a + b) % 360).toDouble();
+    return HSLColor.fromAHSL(1, h, 0.60, 0.48).toColor();
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = _hashColor(ticker.symbol);
+    final c = _hue(ticker.symbol);
     if (ticker.iconUrl.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(size / 2),
-        child: Image.network(
-          ticker.iconUrl,
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _fallback(color),
-        ),
+        child: Image.network(ticker.iconUrl,
+            width: size, height: size, fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _circle(c)),
       );
     }
-    return _fallback(color);
+    return _circle(c);
   }
 
-  Widget _fallback(Color color) {
+  Widget _circle(Color c) {
+    final initials = ticker.symbol.length >= 2
+        ? ticker.symbol.substring(0, 2)
+        : ticker.symbol;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
         shape: BoxShape.circle,
-        border: Border.all(color: color.withValues(alpha: 0.5), width: 0.8),
+        gradient: RadialGradient(colors: [
+          c.withValues(alpha: 0.35),
+          c.withValues(alpha: 0.12),
+        ]),
+        border: Border.all(color: c.withValues(alpha: 0.45), width: 0.8),
       ),
       child: Center(
-        child: Text(
-          ticker.symbol.length >= 2
-              ? ticker.symbol.substring(0, 2)
-              : ticker.symbol,
-          style: GoogleFonts.jetBrainsMono(
-            color: color,
-            fontSize: size * 0.32,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: Text(initials,
+            style: GoogleFonts.jetBrainsMono(
+              color: c,
+              fontSize: size * 0.30,
+              fontWeight: FontWeight.bold,
+            )),
       ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mini pulsing dot
+// Pulsing dot
 // ─────────────────────────────────────────────────────────────────────────────
-class _MiniPulseDot extends StatefulWidget {
+class _PulseDot extends StatefulWidget {
   final Color color;
-  const _MiniPulseDot({required this.color});
+  const _PulseDot({required this.color});
 
   @override
-  State<_MiniPulseDot> createState() => _MiniPulseDotState();
+  State<_PulseDot> createState() => _PulseDotState();
 }
 
-class _MiniPulseDotState extends State<_MiniPulseDot>
+class _PulseDotState extends State<_PulseDot>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _anim;
+  late final AnimationController _c;
+  late final Animation<double> _a;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
+    _c = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1200))
       ..repeat(reverse: true);
-    _anim = Tween<double>(begin: 0.3, end: 1.0)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+    _a = Tween<double>(begin: 0.3, end: 1.0)
+        .animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut));
   }
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _c.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _anim,
+      animation: _a,
       builder: (_, __) => Container(
         width: 6,
         height: 6,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: widget.color.withValues(alpha: _anim.value),
+          color: widget.color.withValues(alpha: _a.value),
           boxShadow: [
             BoxShadow(
-              color: widget.color.withValues(alpha: _anim.value * 0.4),
-              blurRadius: 4,
+              color: widget.color.withValues(alpha: _a.value * 0.5),
+              blurRadius: 5,
               spreadRadius: 1,
             ),
           ],
