@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hyperscreener/viewmodels/leaderboard_viewmodel.dart';
+import 'package:hyperscreener/viewmodels/wallet_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'utils/app_colors.dart';
 import 'screens/splash_screen.dart';
@@ -47,6 +48,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => SubscriptionViewModel()),
         ChangeNotifierProvider(create: (_) => PortfolioViewModel()),
         ChangeNotifierProvider(create: (_) => LeaderboardViewModel()),
+        ChangeNotifierProvider(create: (_) => WalletViewModel()),
       ],
       child: const MyApp(),
     ),
@@ -55,7 +57,6 @@ Future<void> main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -67,6 +68,12 @@ class MyApp extends StatelessWidget {
         colorScheme: const ColorScheme.dark(
           primary: AppColors.brandAccent,
           surface: AppColors.surfaceBright,
+        ),
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.iOS: _NoTransitionBuilder(),
+            TargetPlatform.android: _NoTransitionBuilder(),
+          },
         ),
         textTheme: GoogleFonts.jetBrainsMonoTextTheme(
           Theme.of(context).textTheme.apply(
@@ -80,5 +87,21 @@ class MyApp extends StatelessWidget {
       ],
       home: const SplashScreen(),
     );
+  }
+}
+
+// No animation page transition — instant switch for all routes
+class _NoTransitionBuilder extends PageTransitionsBuilder {
+  const _NoTransitionBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
   }
 }

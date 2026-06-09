@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hyperscreener/widgets/error_state_widget.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
+
 import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
 import '../utils/common_widgets.dart';
 import '../viewmodels/leaderboard_viewmodel.dart';
+import '../models/leaderboard_model.dart';
+import 'home_screen.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -17,33 +21,28 @@ class LeaderboardScreen extends StatefulWidget {
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
   final TextEditingController _searchController = TextEditingController();
 
-  /// Linked scroll controllers so both list-views scroll in sync vertically.
+  // Synced scroll controllers
   late final ScrollController _leftScroll;
   late final ScrollController _rightScroll;
-  bool _syncingLeft  = false;
+  bool _syncingLeft = false;
   bool _syncingRight = false;
 
   @override
   void initState() {
     super.initState();
-    _leftScroll  = ScrollController();
+    _leftScroll = ScrollController();
     _rightScroll = ScrollController();
 
     _leftScroll.addListener(() {
       if (_syncingRight) return;
       _syncingLeft = true;
-      if (_rightScroll.hasClients) {
-        _rightScroll.jumpTo(_leftScroll.offset);
-      }
+      if (_rightScroll.hasClients) _rightScroll.jumpTo(_leftScroll.offset);
       _syncingLeft = false;
     });
-
     _rightScroll.addListener(() {
       if (_syncingLeft) return;
       _syncingRight = true;
-      if (_leftScroll.hasClients) {
-        _leftScroll.jumpTo(_rightScroll.offset);
-      }
+      if (_leftScroll.hasClients) _leftScroll.jumpTo(_rightScroll.offset);
       _syncingRight = false;
     });
 
@@ -74,7 +73,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   @override
   Widget build(BuildContext context) {
     final res = Responsive(context);
-
     return AppBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -85,9 +83,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildTopBar(context, vm, res),
+                  const SizedBox(height: 6),
                   _buildSearchBar(vm, res),
-                  _buildFilters(vm, res),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
+                  _buildPeriodTabs(vm, res),
+                  const SizedBox(height: 8),
+                  _buildRowsPerPage(vm, res),
+                  const SizedBox(height: 6),
                   Expanded(child: _buildBody(res, vm)),
                   _buildPagination(vm, res),
                 ],
@@ -99,7 +101,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  // ── Top bar ──────────────────────────────────────────────────────────────────
+  // ── Top bar ────────────────────────────────────────────────────────────────
   Widget _buildTopBar(BuildContext context, LeaderboardViewModel vm, Responsive res) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 8, 12, 0),
@@ -107,42 +109,63 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary, size: 20),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context).pushReplacement(
+              PageRouteBuilder(
+                pageBuilder: (_, __, ___) => const HomeScreen(),
+                transitionDuration: Duration.zero,
+                reverseTransitionDuration: Duration.zero,
+                transitionsBuilder: (_, __, ___, child) => child,
+              ),
+            ),
             padding: EdgeInsets.zero,
           ),
           Text(
             'Top Traders',
             style: GoogleFonts.jetBrainsMono(
               color: AppColors.textPrimary,
-              fontSize: 18,
+              fontSize: res.fontSize(18),
               fontWeight: FontWeight.bold,
             ),
           ),
           if (vm.topTraders.isNotEmpty) ...[
             const SizedBox(width: 8),
-            Text(
-              '${vm.totalPages * vm.rowsPerPage} total',
-              style: GoogleFonts.jetBrainsMono(
-                color: AppColors.brandAccent,
-                fontSize: 11,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.brandAccent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: AppColors.brandAccent.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                '${vm.totalPages * vm.rowsPerPage} traders',
+                style: GoogleFonts.jetBrainsMono(
+                  color: AppColors.brandAccent,
+                  fontSize: res.fontSize(10),
+                ),
               ),
             ),
           ],
           const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.refresh, color: AppColors.textSecondary, size: 18),
-            onPressed: () => vm.fetchAllData(),
-            padding: EdgeInsets.zero,
-          ),
+          if (vm.isLoading)
+            const SizedBox(
+              width: 16, height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brandAccent),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh, color: AppColors.textSecondary, size: 18),
+              onPressed: () => vm.fetchAllData(),
+              padding: EdgeInsets.zero,
+            ),
         ],
       ),
     );
   }
 
-  // ── Search bar (matches home screen style) ────────────────────────────────
+  // ── Search bar ─────────────────────────────────────────────────────────────
   Widget _buildSearchBar(LeaderboardViewModel vm, Responsive res) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
@@ -157,20 +180,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             Expanded(
               child: TextField(
                 controller: _searchController,
-                onChanged: (v) {
-                  vm.setSearchQuery(v);
-                  setState(() {});
-                },
+                onChanged: (v) { vm.setSearchQuery(v); setState(() {}); },
                 style: GoogleFonts.jetBrainsMono(
-                  color: AppColors.textPrimary,
-                  fontSize: res.fontSize(14),
-                ),
+                  color: AppColors.textPrimary, fontSize: res.fontSize(14)),
                 decoration: InputDecoration(
                   hintText: 'Search address or name...',
                   hintStyle: GoogleFonts.jetBrainsMono(
-                    color: AppColors.textSecondary,
-                    fontSize: res.fontSize(14),
-                  ),
+                    color: AppColors.textSecondary, fontSize: res.fontSize(14)),
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(vertical: res.spacing(12)),
@@ -193,17 +209,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  // ── Period filter chips (matches home screen tab style) ───────────────────
-  Widget _buildFilters(LeaderboardViewModel vm, Responsive res) {
+  // ── Period tabs ────────────────────────────────────────────────────────────
+  Widget _buildPeriodTabs(LeaderboardViewModel vm, Responsive res) {
     const periods = [
       ('allTime', 'ALL'),
-      ('day', '24H'),
-      ('week', '7D'),
-      ('month', '30D'),
+      ('day',     '24H'),
+      ('week',    '7D'),
+      ('month',   '30D'),
     ];
-
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Container(
         height: 38,
         decoration: BoxDecoration(
@@ -219,24 +234,24 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: periods.map((p) {
-              final selected = vm.selectedPeriod == p.$1;
+              final sel = vm.selectedPeriod == p.$1;
               return GestureDetector(
                 onTap: () => vm.setPeriod(p.$1),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   margin: const EdgeInsets.only(right: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: selected ? AppColors.surfaceBright : Colors.transparent,
+                    color: sel ? AppColors.surfaceBright : Colors.transparent,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     p.$2,
                     style: GoogleFonts.jetBrainsMono(
-                      color: selected ? AppColors.brandAccent : AppColors.textSecondary,
+                      color: sel ? AppColors.brandAccent : AppColors.textSecondary,
                       fontSize: res.fontSize(12),
-                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: sel ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                 ),
@@ -248,13 +263,67 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
+  // ── Rows per page ──────────────────────────────────────────────────────────
+  Widget _buildRowsPerPage(LeaderboardViewModel vm, Responsive res) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text('Show:',
+              style: GoogleFonts.jetBrainsMono(
+                  color: AppColors.textSecondary,
+                  fontSize: res.fontSize(11))),
+          const SizedBox(width: 8),
+          Theme(
+            data: Theme.of(context).copyWith(canvasColor: AppColors.background),
+            child: Container(
+              height: 30,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                border: Border.all(color: AppColors.surfaceBright),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: vm.rowsPerPage,
+                  dropdownColor: AppColors.background,
+                  style: GoogleFonts.jetBrainsMono(
+                      color: AppColors.textPrimary,
+                      fontSize: res.fontSize(12)),
+                  icon: const Icon(Icons.keyboard_arrow_down,
+                      color: AppColors.textSecondary, size: 14),
+                  isDense: true,
+                  onChanged: (v) {
+                    if (v != null) vm.setRowsPerPage(v);
+                  },
+                  items: [10, 20, 30, 50]
+                      .map((v) => DropdownMenuItem(
+                            value: v,
+                            child: Text('$v rows',
+                                style: GoogleFonts.jetBrainsMono(
+                                    color: AppColors.textPrimary,
+                                    fontSize: res.fontSize(11))),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Body ───────────────────────────────────────────────────────────────────
   Widget _buildBody(Responsive res, LeaderboardViewModel vm) {
     if (vm.isLoading && vm.topTraders.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.brandAccent));
+      return _buildShimmer(res);
     }
     if (vm.error != null && vm.topTraders.isEmpty) {
-      return ErrorStateWidget(errorMessage: vm.error!, onRetry: () => vm.fetchAllData());
+      return ErrorStateWidget(
+          errorMessage: vm.error!, onRetry: () => vm.fetchAllData());
     }
     if (vm.topTraders.isEmpty) {
       return Center(
@@ -262,235 +331,326 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             style: GoogleFonts.jetBrainsMono(color: Colors.white24)),
       );
     }
-    return _buildTable(res, vm);
-  }
-
-  // ── Table: fixed left + scrollable right, both synchronized ──────────────
-  Widget _buildTable(Responsive res, LeaderboardViewModel vm) {
-    final double leftW  = res.isMobile ? 190.0 : 220.0;
-    const double wAccVal = 120.0;
-    const double wPnl    = 120.0;
-    const double wRoi    = 100.0;
-    const double wVol    = 110.0;
-    const double scrollW = wAccVal + wPnl + wRoi + wVol + 8;
-    const double rowH    = 56.0;
-    const double headerH = 48.0;
-
-    final traders = vm.topTraders;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
       children: [
-        // ── Fixed left section ───────────────────────────────────────────────
-        SizedBox(
-          width: leftW,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header row
-              Container(
-                height: headerH,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 30,
-                      child: Text('#',
-                          style: GoogleFonts.jetBrainsMono(
-                              color: AppColors.textSecondary,
-                              fontSize: res.fontSize(11))),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text('Trader',
-                          style: GoogleFonts.jetBrainsMono(
-                              color: AppColors.textSecondary,
-                              fontSize: res.fontSize(11))),
-                    ),
-                  ],
-                ),
-              ),
-              // Divider below header
-              Container(height: 0.5, color: AppColors.surfaceBright),
-              // Data rows
-              Expanded(
-                child: ListView.builder(
-                  controller: _leftScroll,
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: traders.length,
-                  itemBuilder: (context, i) {
-                    final rank = i + 1 + (vm.currentPage - 1) * vm.rowsPerPage;
-                    final t    = traders[i];
-                    final addr = t.ethAddress;
-                    final name = t.displayName.isNotEmpty
-                        ? t.displayName
-                        : '${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}';
-
-                    return Container(
-                      height: rowH,
-                      padding: const EdgeInsets.only(left: 8, right: 4, top: 10, bottom: 10),
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 30,
-                            child: Text(
-                              '$rank',
-                              style: GoogleFonts.jetBrainsMono(
-                                color: rank <= 3 ? AppColors.brandAccent : AppColors.textSecondary,
-                                fontSize: res.fontSize(10),
-                                fontWeight: rank <= 3 ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  name,
-                                  style: GoogleFonts.jetBrainsMono(
-                                    color: AppColors.textPrimary,
-                                    fontSize: res.fontSize(11),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  '${addr.substring(0, 8)}...',
-                                  style: GoogleFonts.jetBrainsMono(
-                                    color: AppColors.textSecondary,
-                                    fontSize: res.fontSize(8),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Vertical divider
-        Container(width: 0.5, color: AppColors.surfaceBright),
-
-        // ── Scrollable right section ─────────────────────────────────────────
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: SizedBox(
-              width: scrollW,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Container(
-                    height: headerH,
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                    child: Row(
-                      children: [
-                        _hCell('ACCOUNT VALUE', width: wAccVal, res: res),
-                        _hCell('PNL',           width: wPnl,    res: res),
-                        _hCell('ROI',           width: wRoi,    res: res),
-                        _hCell('VOLUME',        width: wVol,    res: res),
-                      ],
-                    ),
-                  ),
-                  // Divider below header
-                  Container(height: 0.5, color: AppColors.surfaceBright),
-                  // Data rows — uses ListView.builder to prevent overflow
-                  Expanded(
-                    child: ListView.builder(
-                      controller: _rightScroll,
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: traders.length,
-                      itemBuilder: (context, i) {
-                        final t = traders[i];
-                        return Container(
-                          height: rowH,
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-                          decoration: const BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              _dCell(
-                                _fmt(t.accountValue, isCurrency: true),
-                                width: wAccVal, res: res,
-                              ),
-                              _dCell(
-                                _fmt(t.pnl, isCurrency: true),
-                                width: wPnl, res: res,
-                                color: t.pnl >= 0 ? AppColors.trendGreen : AppColors.trendRed,
-                              ),
-                              _dCell(
-                                _fmt(t.roi, isPct: true),
-                                width: wRoi, res: res,
-                                color: t.roi >= 0 ? AppColors.trendGreen : AppColors.trendRed,
-                              ),
-                              _dCell(
-                                _fmt(t.volume, isCurrency: true),
-                                width: wVol, res: res,
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
+        _buildTable(res, vm),
+        if (vm.isLoading)
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: Shimmer.fromColors(
+              baseColor: Colors.transparent,
+              highlightColor: AppColors.brandAccent.withValues(alpha: 0.15),
+              child: Container(height: 2, color: Colors.white),
             ),
           ),
-        ),
       ],
     );
   }
 
-  Widget _hCell(String label, {required double width, required Responsive res}) {
-    return SizedBox(
-      width: width,
-      child: Center(
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.jetBrainsMono(
-            color: AppColors.textSecondary,
-            fontSize: res.fontSize(11),
-            fontWeight: FontWeight.normal,
+  // ── Shimmer skeleton ───────────────────────────────────────────────────────
+  Widget _buildShimmer(Responsive res) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Shimmer.fromColors(
+        baseColor: const Color(0xFF1E222D),
+        highlightColor: const Color(0xFF2E3340),
+        period: const Duration(milliseconds: 1400),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header row skeleton
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Row(
+                children: [
+                  _sPill(24, 10),
+                  const SizedBox(width: 10),
+                  _sPill(80, 10),
+                  const Spacer(),
+                  Flexible(child: _sPill(65, 10)),
+                  const SizedBox(width: 12),
+                  Flexible(child: _sPill(55, 10)),
+                  const SizedBox(width: 12),
+                  Flexible(child: _sPill(45, 10)),
+                  const SizedBox(width: 12),
+                  Flexible(child: _sPill(60, 10)),
+                ],
+              ),
+            ),
+            Container(height: 0.5, color: Colors.white12),
+            const SizedBox(height: 4),
+            ...List.generate(14, (index) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                children: [
+                  _sPill(22, 10),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _sPill(double.infinity, 11),
+                        const SizedBox(height: 5),
+                        _sPill(70, 8),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(child: _sPill(65, 11)),
+                  const SizedBox(width: 8),
+                  Flexible(child: _sPill(55, 11)),
+                  const SizedBox(width: 8),
+                  Flexible(child: _sPill(45, 11)),
+                  const SizedBox(width: 8),
+                  Flexible(child: _sPill(60, 11)),
+                ],
+              ),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sPill(double w, double h) => Container(
+        width: w == double.infinity ? null : w,
+        height: h,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(h / 2),
+        ),
+      );
+
+  // ── Table ──────────────────────────────────────────────────────────────────
+  // Single CustomScrollView approach — no extra divider between columns,
+  // no extra spacing. Header is a SliverPersistentHeader (sticky).
+  Widget _buildTable(Responsive res, LeaderboardViewModel vm) {
+    final double leftW  = res.isMobile ? 150.0 : 180.0;
+    const double wAcc   = 110.0;
+    const double wPnl   = 105.0;
+    const double wRoi   =  95.0;
+    const double wVol   = 110.0;
+    const double rightW = wAcc + wPnl + wRoi + wVol;
+
+    final traders = vm.topTraders;
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Fixed left column ──────────────────────────────────────────────
+          SizedBox(
+            width: leftW,
+            child: _StickyTable(
+              controller: _leftScroll,
+              header: _leftHeader(res),
+              itemCount: traders.length,
+              itemBuilder: (i) => _leftRow(i, traders[i], vm, res),
+            ),
+          ),
+
+          // ── Scrollable right columns ───────────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: SizedBox(
+                width: rightW,
+                child: _StickyTable(
+                  controller: _rightScroll,
+                  header: _rightHeader(res, vm, wAcc, wPnl, wRoi, wVol),
+                  itemCount: traders.length,
+                  itemBuilder: (i) => _rightRow(traders[i], res, wAcc, wPnl, wRoi, wVol),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Left sticky header
+  Widget _leftHeader(Responsive res) {
+    return Container(
+      height: 44,
+      color: Colors.black,
+      padding: const EdgeInsets.only(left: 12),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 30,
+            child: Text('#',
+                style: GoogleFonts.jetBrainsMono(
+                    color: AppColors.textSecondary,
+                    fontSize: res.fontSize(11))),
+          ),
+          const SizedBox(width: 4),
+          Text('Trader',
+              style: GoogleFonts.jetBrainsMono(
+                  color: AppColors.textSecondary,
+                  fontSize: res.fontSize(11))),
+        ],
+      ),
+    );
+  }
+
+  // Right sticky header — tapping a cell sorts by that metric
+  Widget _rightHeader(Responsive res, LeaderboardViewModel vm,
+      double wAcc, double wPnl, double wRoi, double wVol) {
+    return Container(
+      height: 44,
+      color: Colors.black,
+      child: Row(
+        children: [
+          _sortableHCell('ACC. VALUE', 'accountValue', wAcc, res, vm),
+          _sortableHCell('PNL',         'pnl',          wPnl, res, vm),
+          _sortableHCell('ROI',         'roi',          wRoi, res, vm),
+          _sortableHCell('VOLUME',      'volume',       wVol, res, vm),
+        ],
+      ),
+    );
+  }
+
+  Widget _sortableHCell(String label, String metric, double width,
+      Responsive res, LeaderboardViewModel vm) {
+    final active = vm.selectedMetric == metric;
+    return GestureDetector(
+      onTap: () => vm.setMetric(metric),
+      child: SizedBox(
+        width: width,
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (active) ...[
+                Icon(Icons.arrow_downward_rounded,
+                    size: 10, color: AppColors.brandAccent),
+                const SizedBox(width: 3),
+              ],
+              Text(
+                label,
+                style: GoogleFonts.jetBrainsMono(
+                  color: active ? AppColors.brandAccent : AppColors.textSecondary,
+                  fontSize: res.fontSize(11),
+                  fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _dCell(String text, {required double width, required Responsive res, Color? color}) {
+  // Left data row
+  Widget _leftRow(int i, Trader t, LeaderboardViewModel vm, Responsive res) {
+    final rank = i + 1 + (vm.currentPage - 1) * vm.rowsPerPage;
+    final addr = t.ethAddress;
+    final hasName = t.displayName.isNotEmpty &&
+        t.displayName != 'Anonymous' &&
+        !t.displayName.startsWith('0x');
+    final name = hasName
+        ? t.displayName
+        : '${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}';
+
+    final rankColor = rank == 1
+        ? const Color(0xFFFFD700)
+        : rank == 2
+            ? const Color(0xFFC0C0C0)
+            : rank == 3
+                ? const Color(0xFFCD7F32)
+                : rank <= 10
+                    ? AppColors.brandAccent
+                    : AppColors.textSecondary;
+
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.only(left: 8, right: 4),
+      decoration: const BoxDecoration(
+        border: Border(
+            bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 30,
+            child: Text('$rank',
+                style: GoogleFonts.jetBrainsMono(
+                  color: rankColor,
+                  fontSize: res.fontSize(10),
+                  fontWeight: rank <= 3 ? FontWeight.bold : FontWeight.normal,
+                )),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(name,
+                    style: GoogleFonts.jetBrainsMono(
+                      color: AppColors.textPrimary,
+                      fontSize: res.fontSize(11),
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis),
+                Text('${addr.substring(0, 8)}...',
+                    style: GoogleFonts.jetBrainsMono(
+                      color: AppColors.textSecondary,
+                      fontSize: res.fontSize(8),
+                    )),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Right data row
+  Widget _rightRow(Trader t, Responsive res,
+      double wAcc, double wPnl, double wRoi, double wVol) {
+    return Container(
+      height: 56,
+      decoration: const BoxDecoration(
+        border: Border(
+            bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+      ),
+      child: Row(
+        children: [
+          _dCell(_fmt(t.accountValue, isCurrency: true),
+              width: wAcc, res: res),
+          _dCell(_fmt(t.pnl, isCurrency: true),
+              width: wPnl,
+              res: res,
+              color: t.pnl >= 0 ? AppColors.trendGreen : AppColors.trendRed),
+          _dCell(_fmt(t.roi, isPct: true),
+              width: wRoi,
+              res: res,
+              color: t.roi >= 0 ? AppColors.trendGreen : AppColors.trendRed),
+          _dCell(_fmt(t.volume, isCurrency: true),
+              width: wVol, res: res),
+        ],
+      ),
+    );
+  }
+
+  Widget _dCell(String text,
+      {required double width, required Responsive res, Color? color}) {
     return SizedBox(
       width: width,
       child: Center(
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.jetBrainsMono(
-            color: color ?? AppColors.textPrimary,
-            fontSize: res.fontSize(11),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        child: Text(text,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.jetBrainsMono(
+              color: color ?? AppColors.textPrimary,
+              fontSize: res.fontSize(11),
+              fontWeight: FontWeight.w500,
+            )),
       ),
     );
   }
@@ -498,33 +658,63 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   // ── Pagination ─────────────────────────────────────────────────────────────
   Widget _buildPagination(LeaderboardViewModel vm, Responsive res) {
     if (vm.totalPages <= 1) return const SizedBox.shrink();
+
+    final total = vm.totalPages;
+    final cur   = vm.currentPage;
+    int start = (cur - 1).clamp(1, total);
+    int end   = (start + 2).clamp(1, total);
+    if (end == total && total > 3) start = (end - 2).clamp(1, total);
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _pageBtn(icon: Icons.chevron_left,  enabled: vm.currentPage > 1,              onTap: vm.previousPage, res: res),
-          const SizedBox(width: 12),
-          Text(
-            'Page ${vm.currentPage} of ${vm.totalPages}',
-            style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)),
-          ),
-          const SizedBox(width: 12),
-          _pageBtn(icon: Icons.chevron_right, enabled: vm.currentPage < vm.totalPages, onTap: vm.nextPage, res: res),
+          _pgBtn(icon: Icons.chevron_left,  enabled: cur > 1,      onTap: vm.previousPage, res: res),
+          const SizedBox(width: 6),
+          for (int p = start; p <= end; p++) ...[
+            _pgNumBtn(p, cur == p, () => vm.setPage(p), res),
+            const SizedBox(width: 4),
+          ],
+          const SizedBox(width: 2),
+          _pgBtn(icon: Icons.chevron_right, enabled: cur < total, onTap: vm.nextPage, res: res),
         ],
       ),
     );
   }
 
-  Widget _pageBtn({required IconData icon, required bool enabled, required VoidCallback onTap, required Responsive res}) {
+  Widget _pgNumBtn(int page, bool active, VoidCallback onTap, Responsive res) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: res.spacing(32), height: res.spacing(32),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active ? AppColors.brandAccent : AppColors.background,
+          border: Border.all(
+              color: active ? AppColors.brandAccent : AppColors.surfaceBright),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text('$page',
+            style: GoogleFonts.jetBrainsMono(
+              color: active ? Colors.black : AppColors.textPrimary,
+              fontSize: res.fontSize(12),
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            )),
+      ),
+    );
+  }
+
+  Widget _pgBtn({required IconData icon, required bool enabled,
+      required VoidCallback onTap, required Responsive res}) {
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
-        width: res.spacing(32),
-        height: res.spacing(32),
+        width: res.spacing(32), height: res.spacing(32),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: AppColors.background,
@@ -532,10 +722,74 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           borderRadius: BorderRadius.circular(4),
         ),
         child: Opacity(
-          opacity: enabled ? 1.0 : 0.4,
-          child: Icon(icon, size: res.fontSize(16), color: enabled ? AppColors.textPrimary : AppColors.textSecondary),
+          opacity: enabled ? 1.0 : 0.3,
+          child: Icon(icon, size: res.fontSize(16), color: AppColors.textPrimary),
         ),
       ),
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reusable sticky-header list — header stays pinned while rows scroll
+// ─────────────────────────────────────────────────────────────────────────────
+class _StickyTable extends StatelessWidget {
+  final ScrollController controller;
+  final Widget header;
+  final int itemCount;
+  final Widget Function(int index) itemBuilder;
+
+  const _StickyTable({
+    required this.controller,
+    required this.header,
+    required this.itemCount,
+    required this.itemBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      controller: controller,
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        // Sticky header
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _StickyHeaderDelegate(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                header,
+                Container(height: 0.5, color: AppColors.surfaceBright),
+              ],
+            ),
+            height: 44.5,
+          ),
+        ),
+        // Data rows
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (_, i) => itemBuilder(i),
+            childCount: itemCount,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final double height;
+  const _StickyHeaderDelegate({required this.child, required this.height});
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Material(color: Colors.transparent, child: child);
+  }
+
+  @override double get maxExtent => height;
+  @override double get minExtent => height;
+  @override bool shouldRebuild(_StickyHeaderDelegate old) =>
+      old.child != child || old.height != height;
 }
