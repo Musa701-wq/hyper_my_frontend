@@ -13,6 +13,7 @@ import '../viewmodels/wallet_viewmodel.dart';
 import '../viewmodels/portfolio_viewmodel.dart';
 import '../models/ticker_model.dart';
 import '../widgets/coming_soon_dialog.dart';
+import '../widgets/live_markets_drawer.dart';
 import '../widgets/error_state_widget.dart';
 import '../widgets/sparkline_widget.dart';
 import '../widgets/ticker_detail_dialog.dart';
@@ -1001,6 +1002,21 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.of(context).pushAndRemoveUntil(
                 _smoothRoute(const LeaderboardScreen()),
                 (route) => false,
+              );
+            },
+          ),
+
+          // ── Live Markets expandable ───────────────────────────────────────
+          LiveMarketsDrawerItem(
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).push(
+                PageRouteBuilder(
+                  pageBuilder: (_, __, ___) => const LiveMarketsScreen(),
+                  transitionDuration: const Duration(milliseconds: 250),
+                  transitionsBuilder: (_, anim, __, child) =>
+                      FadeTransition(opacity: anim, child: child),
+                ),
               );
             },
           ),

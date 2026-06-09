@@ -311,7 +311,7 @@ class _PeriodSelector extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.surfaceBright),
         ),
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(3),
         child: Row(
           children: _periods.map((p) {
             final selected = vm.selectedPeriod == p.$1;
@@ -323,7 +323,7 @@ class _PeriodSelector extends StatelessWidget {
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  padding: const EdgeInsets.symmetric(vertical: 6),
                   decoration: BoxDecoration(
                     gradient: selected
                         ? LinearGradient(
@@ -466,7 +466,7 @@ class _StatsContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Section 1 ──────────────────────────────────────────────────
-          _SectionHeader(
+           _SectionHeader(
             icon: Icons.public_rounded,
             title: 'Market Overview',
             subtitle: 'Liquidity & participation',
