@@ -459,10 +459,11 @@ class _StatsContent extends StatelessWidget {
       ),
     ];
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Section 1 ──────────────────────────────────────────────────
           _SectionHeader(
@@ -577,8 +578,7 @@ class _CardGrid extends StatelessWidget {
     final rows = <Widget>[];
     for (int i = 0; i < cards.length; i += 2) {
       rows.add(
-        SizedBox(
-          height: 72,
+        IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -595,7 +595,7 @@ class _CardGrid extends StatelessWidget {
       if (i + 2 < cards.length) rows.add(const SizedBox(height: 8));
     }
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: rows,
     );
   }
@@ -647,7 +647,7 @@ class _AnimatedStatCardState extends State<_AnimatedStatCard>
         builder: (_, __) => Transform.scale(
           scale: _scale.value,
           child: Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.circular(8),
@@ -666,6 +666,7 @@ class _AnimatedStatCardState extends State<_AnimatedStatCard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Icon + label row
                 Row(
