@@ -9,7 +9,7 @@ class PortfolioService {
   final String baseUrl;
 
   PortfolioService({String? url}) 
-    : baseUrl = url ?? (dotenv.env['WORKER_URL'] ?? 'http://localhost:4001');
+    : baseUrl = url ?? (dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com');
 
   Future<PortfolioSummaryModel> getPortfolioSummary(String wallet) async {
     try {

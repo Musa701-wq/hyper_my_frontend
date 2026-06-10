@@ -8,7 +8,7 @@ class LeaderboardService {
   final String baseUrl;
 
   LeaderboardService({String? url})
-    : baseUrl = url ?? (dotenv.env['STATS_API_URL'] ?? 'http://localhost:4000');
+    : baseUrl = url ?? (dotenv.env['STATS_API_URL'] ?? 'https://api.hyperliquid.bubblenexus.com');
 
   Future<LeaderboardStats> getStats({String period = 'allTime'}) async {
     final url = '$baseUrl/leaderboard/stats?period=$period';

@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hyperscreener/viewmodels/leaderboard_viewmodel.dart';
 import 'package:hyperscreener/viewmodels/wallet_viewmodel.dart';
@@ -18,17 +17,9 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Catch Flutter framework errors
   FlutterError.onError = (FlutterErrorDetails details) {
     debugPrint('FlutterError: ${details.exceptionAsString()}');
   };
-
-  // ✅ ATT + Firebase + dotenv — all in the SAME zone (no runZonedGuarded wrapping these)
-  if (Platform.isIOS) {
-    debugPrint("📱 ATT: Requesting tracking authorization...");
-    await Future.delayed(const Duration(milliseconds: 200));
-    await AppTrackingTransparency.requestTrackingAuthorization();
-  }
 
   await Future.wait([
     Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),

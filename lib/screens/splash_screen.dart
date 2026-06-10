@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import '../utils/app_colors.dart';
 import 'home_screen.dart';
 
@@ -14,10 +16,18 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _navigateToHome();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _requestAtt());
+    _startSplashTimer();
   }
 
-  Future<void> _navigateToHome() async {
+  Future<void> _requestAtt() async {
+    if (!Platform.isIOS) return;
+    debugPrint("📱 ATT: Requesting tracking authorization on splash...");
+    await AppTrackingTransparency.requestTrackingAuthorization();
+    debugPrint("📱 ATT: Authorization complete.");
+  }
+
+  Future<void> _startSplashTimer() async {
     await Future.delayed(const Duration(milliseconds: 5500));
     if (mounted) {
       Navigator.pushReplacement(

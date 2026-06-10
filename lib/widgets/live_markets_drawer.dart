@@ -102,12 +102,17 @@ class _LiveMarketsDrawerItemState extends State<LiveMarketsDrawerItem>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Live Markets full screen
-// Layout:
-//   Row 1 → [Top Gainers (Expanded)] [Top Losers (Expanded)]
-//   Row 2 → Most Active (full width)
 // ─────────────────────────────────────────────────────────────────────────────
 class LiveMarketsScreen extends StatelessWidget {
   const LiveMarketsScreen({super.key});
+
+  String _compact(double v) {
+    if (v >= 1e12) return '\$${(v / 1e12).toStringAsFixed(1)}T';
+    if (v >= 1e9) return '\$${(v / 1e9).toStringAsFixed(1)}B';
+    if (v >= 1e6) return '\$${(v / 1e6).toStringAsFixed(0)}M';
+    if (v >= 1e3) return '\$${(v / 1e3).toStringAsFixed(0)}K';
+    return '\$${v.toStringAsFixed(0)}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +151,6 @@ class LiveMarketsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            // thin accent line
             Container(
               height: 1,
               margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -180,17 +184,51 @@ class LiveMarketsScreen extends StatelessWidget {
                     );
                   }
 
+                  final gainers = all.where((t) => t.change24hPct > 0).toList()
+                    ..sort((a, b) => b.change24hPct.compareTo(a.change24hPct));
+                  final losers = all.where((t) => t.change24hPct < 0).toList()
+                    ..sort((a, b) => a.change24hPct.compareTo(b.change24hPct));
+                  final totalVol = all.fold<double>(0, (s, t) => s + t.volume24hUSD);
+
                   return SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(14, 0, 14, 28),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // ── Stats Summary ────────────────────────────
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                AppColors.brandAccent.withValues(alpha: 0.08),
+                                AppColors.surfaceBright.withValues(alpha: 0.1),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: AppColors.brandAccent.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              _statBlock('Markets', '${all.length}', Icons.show_chart_rounded),
+                              _statBlock('Gainers', '${gainers.length}', Icons.trending_up_rounded, color: AppColors.trendGreen),
+                              _statBlock('Losers', '${losers.length}', Icons.trending_down_rounded, color: AppColors.trendRed),
+                              _statBlock('Vol 24h', _compact(totalVol), Icons.bar_chart_rounded),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
                         // ── Top Gainers ───────────────────────────────
-                        _GainersCard(tickers: all),
+                        _GainersCard(tickers: gainers.take(5).toList()),
                         const SizedBox(height: 12),
 
                         // ── Top Losers ────────────────────────────────
-                        _LosersCard(tickers: all),
+                        _LosersCard(tickers: losers.take(5).toList()),
                         const SizedBox(height: 12),
 
                         // ── Most Active ───────────────────────────────
@@ -206,6 +244,27 @@ class LiveMarketsScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _statBlock(String label, String value, IconData icon, {Color? color}) {
+    final c = color ?? AppColors.brandAccent;
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, size: 16, color: c.withValues(alpha: 0.7)),
+          const SizedBox(height: 4),
+          Text(value,
+              style: GoogleFonts.jetBrainsMono(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              )),
+          Text(label,
+              style: GoogleFonts.jetBrainsMono(
+                  color: AppColors.textSecondary, fontSize: 8)),
+        ],
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -217,39 +276,28 @@ class _GainersCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final list = tickers.where((t) => t.change24hPct > 0).toList()
-      ..sort((a, b) => b.change24hPct.compareTo(a.change24hPct));
-    final top = list.take(3).toList();
-
     return _MarketCard(
       headerIcon: Icons.trending_up_rounded,
       headerLabel: 'Top Gainers',
       headerTag: '24h',
       accentColor: AppColors.trendGreen,
-      child: _MarketRows(items: top, isGainer: true),
+      child: _MarketRows(items: tickers, isGainer: true),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Top Losers card
-// ─────────────────────────────────────────────────────────────────────────────
 class _LosersCard extends StatelessWidget {
   final List<TickerModel> tickers;
   const _LosersCard({required this.tickers});
 
   @override
   Widget build(BuildContext context) {
-    final list = tickers.where((t) => t.change24hPct < 0).toList()
-      ..sort((a, b) => a.change24hPct.compareTo(b.change24hPct));
-    final top = list.take(3).toList();
-
     return _MarketCard(
       headerIcon: Icons.trending_down_rounded,
       headerLabel: 'Top Losers',
       headerTag: '24h',
       accentColor: AppColors.trendRed,
-      child: _MarketRows(items: top, isGainer: false),
+      child: _MarketRows(items: tickers, isGainer: false),
     );
   }
 }
@@ -275,58 +323,82 @@ class _MarketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF161A1F),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: accentColor.withValues(alpha: 0.18),
+          color: accentColor.withValues(alpha: 0.15),
           width: 0.8,
         ),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withValues(alpha: 0.04),
-            blurRadius: 12,
+            color: accentColor.withValues(alpha: 0.05),
+            blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Row(
-            children: [
-              Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(headerIcon, size: 12, color: accentColor),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(headerLabel,
-                    style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textPrimary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    )),
-              ),
-              Text(headerTag,
-                  style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textSecondary, fontSize: 9)),
-            ],
-          ),
-          // divider
+          // ── Gradient Header ──
           Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            height: 0.5,
-            color: AppColors.surfaceBright.withValues(alpha: 0.4),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  accentColor.withValues(alpha: 0.12),
+                  accentColor.withValues(alpha: 0.02),
+                ],
+              ),
+              border: Border(
+                bottom: BorderSide(
+                  color: accentColor.withValues(alpha: 0.1),
+                  width: 0.5,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: Icon(headerIcon, size: 13, color: accentColor),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(headerLabel,
+                      style: GoogleFonts.jetBrainsMono(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      )),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(headerTag,
+                      style: GoogleFonts.jetBrainsMono(
+                          color: accentColor, fontSize: 9, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
           ),
-          child,
+          // ── Body ──
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: child,
+          ),
         ],
       ),
     );

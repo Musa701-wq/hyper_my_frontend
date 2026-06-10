@@ -1212,43 +1212,85 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
+              gradient: widget.isActive
+                  ? LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        AppColors.brandAccent.withValues(alpha: 0.15),
+                        AppColors.brandAccent.withValues(alpha: 0.04),
+                      ],
+                    )
+                  : null,
               color: widget.isActive
-                  ? AppColors.surfaceBright
+                  ? null
                   : AppColors.brandAccent.withValues(alpha: _bg.value * 0.07),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: widget.isActive
-                    ? AppColors.surfaceBright
+                    ? AppColors.brandAccent.withValues(alpha: 0.3)
                     : AppColors.surfaceBright.withValues(alpha: 0.3),
-                width: 0.8,
+                width: widget.isActive ? 0.8 : 0.8,
               ),
+              boxShadow: widget.isActive
+                  ? [
+                      BoxShadow(
+                        color: AppColors.brandAccent.withValues(alpha: 0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
             ),
             child: Row(
               children: [
                 // ── Left accent bar ───────────────────────────────────────
                 Container(
-                  width: 3,
+                  width: 3.5,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: widget.isActive
-                        ? AppColors.brandAccent
-                        : Colors.transparent,
+                    gradient: widget.isActive
+                        ? LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              AppColors.brandAccent,
+                              AppColors.brandAccent.withValues(alpha: 0.3),
+                            ],
+                          )
+                        : null,
+                    color: widget.isActive ? null : Colors.transparent,
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(8),
-                      bottomLeft: Radius.circular(8),
+                      topLeft: Radius.circular(10),
+                      bottomLeft: Radius.circular(10),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                // ── Icon ──────────────────────────────────────────────────
                 Container(
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
+                    gradient: widget.isActive
+                        ? LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.brandAccent.withValues(alpha: 0.2),
+                              AppColors.brandAccent.withValues(alpha: 0.08),
+                            ],
+                          )
+                        : null,
                     color: widget.isActive
-                        ? AppColors.brandAccent.withValues(alpha: 0.15)
+                        ? null
                         : AppColors.surfaceBright.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(8),
+                    border: widget.isActive
+                        ? Border.all(
+                            color: AppColors.brandAccent.withValues(alpha: 0.2),
+                            width: 0.5,
+                          )
+                        : null,
                   ),
                   child: Icon(
                     widget.data.icon,
@@ -1259,7 +1301,6 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
                   ),
                 ),
                 const SizedBox(width: 12),
-                // ── Label + subtitle ──────────────────────────────────────
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1268,31 +1309,40 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
                         widget.data.label,
                         style: GoogleFonts.jetBrainsMono(
                           color: widget.isActive
-                              ? AppColors.brandAccent
+                              ? Colors.white
                               : AppColors.textPrimary,
                           fontSize: 13,
-                          fontWeight: widget.isActive
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
                         widget.data.subtitle,
                         style: GoogleFonts.jetBrainsMono(
-                          color: AppColors.textSecondary.withValues(alpha: 0.55),
+                          color: widget.isActive
+                              ? AppColors.brandAccent.withValues(alpha: 0.6)
+                              : AppColors.textSecondary.withValues(alpha: 0.55),
                           fontSize: 9.5,
                         ),
                       ),
                     ],
                   ),
                 ),
-                // ── Chevron ───────────────────────────────────────────────
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: 16,
-                  color: widget.isActive
-                      ? AppColors.brandAccent.withValues(alpha: 0.7)
-                      : AppColors.surfaceBright,
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: widget.isActive
+                      ? BoxDecoration(
+                          color: AppColors.brandAccent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        )
+                      : null,
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    size: 16,
+                    color: widget.isActive
+                        ? AppColors.brandAccent
+                        : AppColors.surfaceBright,
+                  ),
                 ),
                 const SizedBox(width: 8),
               ],
