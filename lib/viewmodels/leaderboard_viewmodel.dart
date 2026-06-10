@@ -6,6 +6,7 @@ class LeaderboardViewModel extends ChangeNotifier {
   final LeaderboardService _service = LeaderboardService();
 
   LeaderboardStats? _stats;
+  HeadlineResponse? _headline;
   LeaderboardResponse? _tradersResponse;
   List<Trader> _topTraders = [];
   bool _isLoading = false;
@@ -18,6 +19,7 @@ class LeaderboardViewModel extends ChangeNotifier {
 
   // Getters
   LeaderboardStats? get stats => _stats;
+  HeadlineResponse? get headline => _headline;
   List<Trader> get traders => _tradersResponse?.traders ?? [];
   List<Trader> get topTraders => _topTraders;
   bool get isLoading => _isLoading;
@@ -37,6 +39,7 @@ class LeaderboardViewModel extends ChangeNotifier {
       debugPrint('LeaderboardViewModel: Start Fetch Sequence (Stats & Top Traders)...');
       
       _stats = await _service.getStats(period: _selectedPeriod);
+      _headline = await _service.getHeadline(limit: 5);
       await fetchTopTraders();
       
       _error = null;

@@ -78,6 +78,23 @@ class LeaderboardService {
     }
   }
 
+  Future<HeadlineResponse> getHeadline({int limit = 5}) async {
+    final url = '$baseUrl/leaderboard/traders/headline?limit=$limit';
+    try {
+      debugPrint('🌐 [LeaderboardService] GET Headline: $url');
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
+      debugPrint('📥 [LeaderboardService] Headline Response (${response.statusCode}): ${response.body}');
+      if (response.statusCode == 200) {
+        return HeadlineResponse.fromJson(json.decode(response.body));
+      } else {
+        throw Exception('Failed to load headline');
+      }
+    } catch (e) {
+      debugPrint('Headline API Exception: $e');
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> getTraderDetails(String address) async {
     final response = await http.get(
       Uri.parse('$baseUrl/leaderboard/traders/$address'),

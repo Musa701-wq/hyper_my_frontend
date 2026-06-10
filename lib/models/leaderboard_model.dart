@@ -137,3 +137,26 @@ class LeaderboardResponse {
     );
   }
 }
+
+class HeadlineResponse {
+  final String period;
+  final List<Trader> gainers;
+  final List<Trader> losers;
+
+  HeadlineResponse({
+    required this.period,
+    required this.gainers,
+    required this.losers,
+  });
+
+  factory HeadlineResponse.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] ?? json;
+    final gainersList = (data['gainers'] as List?) ?? [];
+    final losersList = (data['losers'] as List?) ?? [];
+    return HeadlineResponse(
+      period: data['period']?.toString() ?? 'day',
+      gainers: gainersList.map((t) => Trader.fromJson(t)).toList(),
+      losers: losersList.map((t) => Trader.fromJson(t)).toList(),
+    );
+  }
+}
