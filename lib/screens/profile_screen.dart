@@ -549,9 +549,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildChartsSection(Responsive res, dynamic s, PortfolioViewModel vm) {
+    debugPrint('📊 [ProfileScreen] _buildChartsSection — snapshots.length: ${vm.snapshots.length}, valueSeries: ${vm.snapshotValueSeries.length}');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (vm.snapshots.isNotEmpty) ...[
+          _buildSnapshotChart(vm),
+          const SizedBox(height: 24),
+        ],
         _buildFullPnLChart(res, s, vm),
         const SizedBox(height: 24),
         _buildAssetTreemap(vm),
@@ -647,6 +652,210 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case 3: return _buildDetailedSpotBalances(s);
       default: return const Padding(padding: EdgeInsets.all(40), child: Center(child: Text('Empty', style: TextStyle(color: Colors.white24))));
     }
+  }
+
+  Widget _buildSnapshotChart(PortfolioViewModel vm) {
+    final series = vm.snapshotValueSeries;
+    final timestamps = vm.snapshotTimestamps;
+    debugPrint('📊 [ProfileScreen] _buildSnapshotChart called — series: ${series.length}, timestamps: ${timestamps.length}');
+    if (series.isEmpty) {
+      debugPrint('📊 [ProfileScreen] Series empty, snapshot chart hidden');
+      return const SizedBox.shrink();
+    }
+
+    final isPos = series.last >= series.first;
+    final themeColor = isPos ? AppColors.trendGreen : AppColors.trendRed;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBright.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Text('Account Value History',
+                style: GoogleFonts.inter(
+                    color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 200,
+            child: series.length < 2
+                ? Center(
+                    child: Text('Not enough data',
+                        style: GoogleFonts.jetBrainsMono(
+                            color: Colors.white24, fontSize: 12)),
+                  )
+                : _buildSnapshotBarChart(series, timestamps, themeColor),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _chartMetric('START',
+                    '\$${_fmtNum(series.first)}'),
+                _chartMetric('CURRENT',
+                    '\$${_fmtNum(series.last)}'),
+                _chartMetric(
+                  'CHANGE',
+                  '${(series.last - series.first) >= 0 ? '+' : ''}\$${_fmtNum(series.last - series.first)}',
+                  color: (series.last - series.first) >= 0
+                      ? AppColors.trendGreen
+                      : AppColors.trendRed,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSnapshotBarChart(List<double> data, List<int> timestamps, Color themeColor) {
+    final n = data.length;
+    final double minVal = data.reduce((a, b) => a < b ? a : b);
+    final double maxVal = data.reduce((a, b) => a > b ? a : b);
+    final double dataRange = maxVal - minVal;
+    final double pad = (dataRange * 0.18).abs().clamp(dataRange * 0.5, double.infinity);
+    final yMin = (minVal - pad).clamp(0.0, double.infinity);
+    final yMax = maxVal + pad;
+    final double chartRange = yMax - yMin;
+    final yInterval = (chartRange / 4).abs().clamp(1.0, double.maxFinite);
+
+    String fmtDate(int ts) {
+      final d = DateTime.fromMillisecondsSinceEpoch(ts);
+      final month = _getMonthName(d.month);
+      final day = d.day.toString().padLeft(2, '0');
+      final hh = d.hour.toString().padLeft(2, '0');
+      final mm = d.minute.toString().padLeft(2, '0');
+      return '$month $day\n$hh:$mm';
+    }
+
+    const double yAxisW = 60.0;
+    final barWidth = n > 15 ? 8.0 : 20.0;
+    final double chartW = n * (barWidth + 12) + 40;
+
+    return LayoutBuilder(builder: (ctx, box) {
+      final availW = box.maxWidth - yAxisW - 16;
+      final double finalW = chartW < availW ? availW : chartW;
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: yAxisW,
+              child: CustomPaint(
+                painter: _YAxisPainter(yMin: yMin, yMax: yMax, interval: yInterval),
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: SizedBox(
+                  width: finalW,
+                  child: BarChart(
+                    BarChartData(
+                      minY: yMin,
+                      maxY: yMax,
+                      alignment: BarChartAlignment.spaceAround,
+                      barGroups: List.generate(n, (i) {
+                        final barColor = data[i] >= data[0] ? AppColors.trendGreen : AppColors.trendRed;
+                        return BarChartGroupData(
+                          x: i,
+                          barRods: [
+                            BarChartRodData(
+                              toY: data[i],
+                              color: barColor.withOpacity(0.8),
+                              width: barWidth,
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(4),
+                                topRight: Radius.circular(4),
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: yInterval,
+                        getDrawingHorizontalLine: (_) => FlLine(
+                            color: Colors.white.withOpacity(0.04), strokeWidth: 1),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 40,
+                            getTitlesWidget: (value, meta) {
+                              final idx = value.toInt();
+                              if (idx < 0 || idx >= timestamps.length) return const SizedBox();
+                              final labelEvery = n <= 10 ? 1 : (n / 10).ceil();
+                              if (idx % labelEvery != 0) return const SizedBox();
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  fmtDate(timestamps[idx]),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  style: GoogleFonts.jetBrainsMono(
+                                      color: Colors.white.withOpacity(0.5), fontSize: 9, fontWeight: FontWeight.w500),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      barTouchData: BarTouchData(
+                        touchTooltipData: BarTouchTooltipData(
+                          getTooltipColor: (_) => AppColors.surfaceBright,
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            final abs = rod.toY.abs();
+                            String yLabel;
+                            if (abs >= 1000000) {
+                              yLabel = '\$${(rod.toY / 1000000).toStringAsFixed(2)}M';
+                            } else if (abs >= 1000) {
+                              yLabel = '\$${(rod.toY / 1000).toStringAsFixed(1)}K';
+                            } else {
+                              yLabel = '\$${rod.toY.toStringAsFixed(2)}';
+                            }
+                            final idx = group.x.toInt();
+                            final dateLabel = (idx >= 0 && idx < timestamps.length)
+                                ? fmtDate(timestamps[idx])
+                                : '';
+                            return BarTooltipItem(
+                              '$yLabel\n$dateLabel',
+                              GoogleFonts.jetBrainsMono(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildFullPnLChart(Responsive res, dynamic s, PortfolioViewModel vm) {
@@ -829,7 +1038,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildMainLineChart(List<double> pnlData, List<int> timestamps, Color themeColor) {
-    // ── Y range ──
     double minVal = pnlData.reduce((a, b) => a < b ? a : b);
     double maxVal = pnlData.reduce((a, b) => a > b ? a : b);
     double range  = maxVal - minVal;
@@ -839,158 +1047,143 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final yMax      = maxVal + pad;
     final yInterval = ((yMax - yMin) / 4).abs().clamp(1.0, double.maxFinite);
 
-    // ── Date format based on span ──
-    String Function(int ts) fmtDate;
-    if (timestamps.length >= 2) {
-      final spanDays = DateTime.fromMillisecondsSinceEpoch(timestamps.last)
-          .difference(DateTime.fromMillisecondsSinceEpoch(timestamps.first))
-          .inDays.abs();
-      if (spanDays > 1) {
-        fmtDate = (ts) {
-          final d = DateTime.fromMillisecondsSinceEpoch(ts);
-          return '${d.day} ${_getMonthName(d.month)}';
-        };
-      } else {
-        fmtDate = (ts) {
-          final d = DateTime.fromMillisecondsSinceEpoch(ts);
-          return '${d.hour.toString().padLeft(2, "0")}:${d.minute.toString().padLeft(2, "0")}';
-        };
-      }
-    } else {
-      fmtDate = (_) => '';
+    String fmtDate(int ts) {
+      final d = DateTime.fromMillisecondsSinceEpoch(ts);
+      final month = _getMonthName(d.month);
+      final day = d.day.toString().padLeft(2, '0');
+      final hh = d.hour.toString().padLeft(2, '0');
+      final mm = d.minute.toString().padLeft(2, '0');
+      return '$month $day\n$hh:$mm';
     }
 
-    final int n         = pnlData.length;
-    const double yAxisW = 52.0;
-    // ~4px per point so the line spreads — min = container width
-    final double minChartW = n * 4.0;
+    final int n = pnlData.length;
+    const double yAxisW = 60.0;
 
     final spots = List<FlSpot>.generate(n, (i) => FlSpot(i.toDouble(), pnlData[i]));
-    // Show ~8 evenly-spaced x labels
-    final int labelEvery = (n / 8).ceil().clamp(1, n);
+    final int labelEvery = n <= 20 ? 1 : (n / 10).ceil();
 
     return LayoutBuilder(builder: (ctx, box) {
-      final double chartW = minChartW.clamp(box.maxWidth - yAxisW, double.infinity);
+      final availW = box.maxWidth - yAxisW - 16;
+      final chartW = n <= 20 ? n * 55.0 : n * 8.0;
+      final double finalW = chartW < availW ? availW : chartW;
 
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── Fixed Y-axis labels (left, outside scroll) ──
-          SizedBox(
-            width: yAxisW,
-            child: CustomPaint(
-              painter: _YAxisPainter(
-                yMin: yMin,
-                yMax: yMax,
-                interval: yInterval,
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: yAxisW,
+              child: CustomPaint(
+                painter: _YAxisPainter(yMin: yMin, yMax: yMax, interval: yInterval),
               ),
             ),
-          ),
-          // ── Scrollable chart ──
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: SizedBox(
-                width: chartW,
-                child: LineChart(
-                  key: ValueKey('chart_${_selectedChartTabIndex}_${n}_${themeColor.value}_${timestamps.isNotEmpty ? timestamps.first : 0}'),
-                  LineChartData(
-                    minY: yMin,
-                    maxY: yMax,
-                    minX: 0,
-                    maxX: (n - 1).toDouble(),
-                    clipData: const FlClipData.all(),
-                    gridData: FlGridData(
-                      show: true,
-                      drawVerticalLine: false,
-                      horizontalInterval: yInterval,
-                      getDrawingHorizontalLine: (_) => FlLine(
-                          color: Colors.white.withOpacity(0.04), strokeWidth: 1),
-                    ),
-                    borderData: FlBorderData(show: false),
-                    titlesData: FlTitlesData(
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 26,
-                          getTitlesWidget: (value, meta) {
-                            final idx = value.toInt();
-                            if (idx < 0 || idx >= timestamps.length) return const SizedBox();
-                            if (idx % labelEvery != 0) return const SizedBox();
-                            if (value == meta.min || value == meta.max) return const SizedBox();
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: Text(
-                                fmtDate(timestamps[idx]),
-                                style: GoogleFonts.jetBrainsMono(
-                                    color: Colors.white38, fontSize: 8),
-                              ),
-                            );
-                          },
-                        ),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: SizedBox(
+                  width: finalW,
+                  child: LineChart(
+                    key: ValueKey('chart_${_selectedChartTabIndex}_$n'),
+                    LineChartData(
+                      minY: yMin,
+                      maxY: yMax,
+                      minX: 0,
+                      maxX: (n - 1).toDouble(),
+                      clipData: const FlClipData.all(),
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: yInterval,
+                        getDrawingHorizontalLine: (_) => FlLine(
+                            color: Colors.white.withOpacity(0.04), strokeWidth: 1),
                       ),
-                    ),
-                    lineTouchData: LineTouchData(
-                      touchTooltipData: LineTouchTooltipData(
-                        getTooltipColor: (_) => AppColors.surfaceBright,
-                        getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
-                          final abs = s.y.abs();
-                          final String yLabel;
-                          if (abs >= 1000000) {
-                            yLabel = '\$${(s.y / 1000000).toStringAsFixed(2)}M';
-                          } else if (abs >= 1000) {
-                            yLabel = '\$${(s.y / 1000).toStringAsFixed(1)}K';
-                          } else {
-                            yLabel = '\$${s.y.toStringAsFixed(2)}';
-                          }
-                          final idx = s.x.toInt();
-                          final dateLabel = (idx >= 0 && idx < timestamps.length)
-                              ? fmtDate(timestamps[idx])
-                              : '';
-                          return LineTooltipItem(
-                            '$yLabel  $dateLabel',
-                            GoogleFonts.jetBrainsMono(
-                                color: themeColor,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: spots,
-                        isCurved: true,
-                        curveSmoothness: 0.3,
-                        color: themeColor,
-                        barWidth: 2,
-                        isStrokeCapRound: true,
-                        dotData: const FlDotData(show: false),
-                        belowBarData: BarAreaData(
-                          show: true,
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              themeColor.withOpacity(0.18),
-                              themeColor.withOpacity(0.0),
-                            ],
+                      borderData: FlBorderData(show: false),
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 40,
+                            getTitlesWidget: (value, meta) {
+                              final idx = value.toInt();
+                              if (idx < 0 || idx >= timestamps.length) return const SizedBox();
+                              if (idx % labelEvery != 0) return const SizedBox();
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  fmtDate(timestamps[idx]),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  style: GoogleFonts.jetBrainsMono(
+                                      color: Colors.white.withOpacity(0.5), fontSize: 9, fontWeight: FontWeight.w500),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),
-                    ],
+                      lineTouchData: LineTouchData(
+                        touchTooltipData: LineTouchTooltipData(
+                          getTooltipColor: (_) => AppColors.surfaceBright,
+                          getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
+                            final abs = s.y.abs();
+                            final String yLabel;
+                            if (abs >= 1000000) {
+                              yLabel = '\$${(s.y / 1000000).toStringAsFixed(2)}M';
+                            } else if (abs >= 1000) {
+                              yLabel = '\$${(s.y / 1000).toStringAsFixed(1)}K';
+                            } else {
+                              yLabel = '\$${s.y.toStringAsFixed(2)}';
+                            }
+                            final idx = s.x.toInt();
+                            final dateLabel = (idx >= 0 && idx < timestamps.length)
+                                ? fmtDate(timestamps[idx])
+                                : '';
+                            return LineTooltipItem(
+                              '$yLabel  $dateLabel',
+                              GoogleFonts.jetBrainsMono(
+                                  color: themeColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: spots,
+                          isCurved: true,
+                          curveSmoothness: 0.3,
+                          color: themeColor,
+                          barWidth: 2,
+                          isStrokeCapRound: true,
+                          dotData: const FlDotData(show: false),
+                          belowBarData: BarAreaData(
+                            show: true,
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                themeColor.withOpacity(0.18),
+                                themeColor.withOpacity(0.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
                   ),
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     });
   }
@@ -2430,27 +2623,26 @@ class _YAxisPainter extends CustomPainter {
     final range = yMax - yMin;
     if (range <= 0 || interval <= 0) return;
 
-    // Draw 5 labels from yMax down to yMin
     final steps = (range / interval).round().clamp(1, 8);
     for (int i = 0; i <= steps; i++) {
       final value = yMax - i * interval;
       if (value < yMin - interval * 0.1) break;
 
       final frac = (yMax - value) / range;
-      // Reserve 26px at bottom for x-axis labels
-      const bottomReserve = 26.0;
+      const bottomReserve = 40.0;
       final y = frac * (size.height - bottomReserve);
 
       tp.text = TextSpan(
         text: _fmt(value),
         style: const TextStyle(
-          color: Color(0x66FFFFFF),
-          fontSize: 8,
+          color: Color(0x88FFFFFF),
+          fontSize: 10,
           fontFamily: 'JetBrainsMono',
+          fontWeight: FontWeight.w500,
         ),
       );
-      tp.layout(maxWidth: 50);
-      tp.paint(canvas, Offset(0, y - tp.height / 2));
+      tp.layout(maxWidth: 54);
+      tp.paint(canvas, Offset(4, y - tp.height / 2));
     }
   }
 

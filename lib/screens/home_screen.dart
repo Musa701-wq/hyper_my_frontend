@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hyperscreener/screens/subscription_screen.dart';
-import 'package:hyperscreener/screens/leaderboard_screen.dart';
 import 'package:hyperscreener/screens/leaderboard_stats_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -819,6 +818,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDrawer(BuildContext context, Responsive res) {
+    final walletVm = context.watch<WalletViewModel>();
+    final wallet = walletVm.address ?? '';
+    final shortWallet = wallet.isNotEmpty
+        ? '0x${wallet.substring(2, 6)}...${wallet.substring(wallet.length - 4)}'
+        : '';
+
     final navItems = [
       _DrawerItemData(
         icon: Icons.home_rounded,
@@ -863,10 +868,8 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Logo row
                 Row(
                   children: [
-                    // Logo icon with app icon image
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: Image.asset(
@@ -901,7 +904,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             letterSpacing: 0.5,
                           ),
                         ),
-                        // PRO badge — only when user has purchased
                         Consumer<SubscriptionViewModel>(
                           builder: (_, sub, __) => sub.isPro
                               ? Container(
@@ -936,10 +938,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                // Live indicator
                 Row(
                   children: [
-                    _PulseDot(),
+                    const PulseDot(),
                     const SizedBox(width: 6),
                     Text(
                       'Live data • Hyperliquid Mainnet',
@@ -954,33 +955,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
-          // ── Nav label ───────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-            child: Row(
-              children: [
-                Text(
-                  'NAVIGATION',
-                  style: GoogleFonts.jetBrainsMono(
-                    color: AppColors.textSecondary.withValues(alpha: 0.5),
-                    fontSize: 9,
-                    letterSpacing: 1.8,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    height: 0.5,
-                    color: AppColors.surfaceBright.withValues(alpha: 0.4),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Nav items ───────────────────────────────────────────────────
+          // ── MARKETS ─────────────────────────────────────────────────────
+          _sectionLabel('MARKETS'),
           ...navItems.asMap().entries.map((e) {
             final isActive = (e.value.label == 'Home' && _selectedIndex == 0) ||
                 (e.value.label == 'Portfolio' && _selectedIndex == 3);
@@ -990,23 +968,20 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }),
 
-          // ── Leaderboard expandable ───────────────────────────────────────
+          const SizedBox(height: 4),
+
+          // ── ANALYTICS ───────────────────────────────────────────────────
+          _sectionLabel('ANALYTICS'),
+
           _LeaderboardDrawerItem(
-            onStatsTap: () {
+            onTap: () {
               Navigator.of(context).pushAndRemoveUntil(
                 _smoothRoute(const LeaderboardStatsScreen()),
                 (route) => false,
               );
             },
-            onTopTradersTap: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                _smoothRoute(const LeaderboardScreen()),
-                (route) => false,
-              );
-            },
           ),
 
-          // ── Live Markets expandable ───────────────────────────────────────
           LiveMarketsDrawerItem(
             onTap: () {
               Navigator.pop(context);
@@ -1023,13 +998,62 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const Spacer(),
 
-          // ── Bottom section ───────────────────────────────────────────────
+          // ── Bottom: wallet + settings ───────────────────────────────────
           Container(
             margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
             height: 0.5,
             color: AppColors.surfaceBright.withValues(alpha: 0.3),
           ),
-          const SizedBox(height: 4),
+          if (wallet.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceBright.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.surfaceBright.withValues(alpha: 0.3),
+                  width: 0.8,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: AppColors.brandAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.account_balance_wallet_rounded,
+                        size: 14, color: AppColors.brandAccent),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Wallet',
+                            style: GoogleFonts.jetBrainsMono(
+                                color: AppColors.textSecondary, fontSize: 8,
+                                letterSpacing: 1)),
+                        Text(shortWallet,
+                            style: GoogleFonts.jetBrainsMono(
+                                color: AppColors.textPrimary, fontSize: 11,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 6, height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.trendGreen,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           _DrawerNavItem(
             data: _DrawerItemData(
               icon: Icons.settings_outlined,
@@ -1046,6 +1070,31 @@ class _HomeScreenState extends State<HomeScreen> {
             isActive: false,
           ),
           SizedBox(height: MediaQuery.of(context).padding.bottom + 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.jetBrainsMono(
+              color: AppColors.textSecondary.withValues(alpha: 0.5),
+              fontSize: 9,
+              letterSpacing: 1.8,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              height: 0.5,
+              color: AppColors.surfaceBright.withValues(alpha: 0.4),
+            ),
+          ),
         ],
       ),
     );
@@ -1256,15 +1305,11 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Leaderboard expandable drawer item
+// Leaderboard drawer item — animated press + chevron
 // ─────────────────────────────────────────────────────────────────────────────
 class _LeaderboardDrawerItem extends StatefulWidget {
-  final VoidCallback onStatsTap;
-  final VoidCallback onTopTradersTap;
-  const _LeaderboardDrawerItem({
-    required this.onStatsTap,
-    required this.onTopTradersTap,
-  });
+  final VoidCallback onTap;
+  const _LeaderboardDrawerItem({required this.onTap});
 
   @override
   State<_LeaderboardDrawerItem> createState() => _LeaderboardDrawerItemState();
@@ -1272,16 +1317,16 @@ class _LeaderboardDrawerItem extends StatefulWidget {
 
 class _LeaderboardDrawerItemState extends State<_LeaderboardDrawerItem>
     with SingleTickerProviderStateMixin {
-  bool _expanded = false;
   late final AnimationController _ctrl;
-  late final Animation<double> _expandAnim;
+  late final Animation<double> _bg;
 
   @override
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 200));
-    _expandAnim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+        vsync: this, duration: const Duration(milliseconds: 100));
+    _bg = Tween<double>(begin: 0, end: 1)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
   }
 
   @override
@@ -1290,43 +1335,31 @@ class _LeaderboardDrawerItemState extends State<_LeaderboardDrawerItem>
     super.dispose();
   }
 
-  void _toggle() {
-    setState(() => _expanded = !_expanded);
-    _expanded ? _ctrl.forward() : _ctrl.reverse();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // ── Parent item ────────────────────────────────────────────────
-        GestureDetector(
-          onTap: _toggle,
-          child: Container(
+    return GestureDetector(
+      onTapDown: (_) => _ctrl.forward(),
+      onTapUp: (_) { _ctrl.reverse(); widget.onTap(); },
+      onTapCancel: () => _ctrl.reverse(),
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (_, __) {
+          return Container(
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: _expanded
-                  ? AppColors.surfaceBright
-                  : Colors.transparent,
+              color: AppColors.brandAccent.withValues(alpha: _bg.value * 0.07),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: _expanded
-                    ? AppColors.surfaceBright
-                    : AppColors.surfaceBright.withValues(alpha: 0.3),
+                color: AppColors.surfaceBright.withValues(alpha: 0.3),
                 width: 0.8,
               ),
             ),
             child: Row(
               children: [
-                // Left accent bar
-                Container(
-                  width: 3,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: _expanded
-                        ? AppColors.brandAccent
-                        : Colors.transparent,
-                    borderRadius: const BorderRadius.only(
+                Container(width: 3, height: 50,
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(8),
                       bottomLeft: Radius.circular(8),
                     ),
@@ -1336,17 +1369,13 @@ class _LeaderboardDrawerItemState extends State<_LeaderboardDrawerItem>
                 Container(
                   width: 34, height: 34,
                   decoration: BoxDecoration(
-                    color: _expanded
-                        ? AppColors.brandAccent.withValues(alpha: 0.15)
-                        : AppColors.surfaceBright.withValues(alpha: 0.6),
+                    color: AppColors.surfaceBright.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.leaderboard_rounded,
                     size: 17,
-                    color: _expanded
-                        ? AppColors.brandAccent
-                        : AppColors.textSecondary,
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1354,192 +1383,27 @@ class _LeaderboardDrawerItemState extends State<_LeaderboardDrawerItem>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Leaderboard',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: _expanded
-                              ? AppColors.brandAccent
-                              : AppColors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: _expanded
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                      ),
-                      Text(
-                        'Stats & rankings',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: AppColors.textSecondary.withValues(alpha: 0.55),
-                          fontSize: 9.5,
-                        ),
-                      ),
+                      Text('Leaderboard',
+                          style: GoogleFonts.jetBrainsMono(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.normal,
+                          )),
+                      Text('Stats & rankings',
+                          style: GoogleFonts.jetBrainsMono(
+                            color: AppColors.textSecondary.withValues(alpha: 0.55),
+                            fontSize: 9.5,
+                          )),
                     ],
                   ),
                 ),
-                AnimatedRotation(
-                  turns: _expanded ? 0.25 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    Icons.chevron_right_rounded,
-                    size: 16,
-                    color: _expanded
-                        ? AppColors.brandAccent.withValues(alpha: 0.7)
-                        : AppColors.surfaceBright,
-                  ),
-                ),
+                const Icon(Icons.chevron_right_rounded,
+                    size: 16, color: AppColors.surfaceBright),
                 const SizedBox(width: 8),
               ],
             ),
-          ),
-        ),
-
-        // ── Sub items (animated) ────────────────────────────────────────
-        SizeTransition(
-          sizeFactor: _expandAnim,
-          child: Column(
-            children: [
-              _SubItem(
-                icon: Icons.query_stats_rounded,
-                label: 'Market Stats',
-                subtitle: 'Global overview',
-                onTap: widget.onStatsTap,
-              ),
-              _SubItem(
-                icon: Icons.workspace_premium_rounded,
-                label: 'Top Traders',
-                subtitle: 'Leaderboard rankings',
-                onTap: widget.onTopTradersTap,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SubItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final VoidCallback onTap;
-  const _SubItem({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(left: 28, right: 12, bottom: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceBright.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: AppColors.surfaceBright.withValues(alpha: 0.3),
-            width: 0.8,
-          ),
-        ),
-        child: Row(
-          children: [
-            // Connector line
-            Container(
-              width: 2,
-              height: 30,
-              decoration: BoxDecoration(
-                color: AppColors.brandAccent.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Container(
-              width: 28, height: 28,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceBright,
-                borderRadius: BorderRadius.circular(7),
-              ),
-              child: Icon(icon, size: 14, color: AppColors.textSecondary),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: GoogleFonts.jetBrainsMono(
-                        color: AppColors.textPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      )),
-                  Text(subtitle,
-                      style: GoogleFonts.jetBrainsMono(
-                        color: AppColors.textSecondary.withValues(alpha: 0.5),
-                        fontSize: 9,
-                      )),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded,
-                size: 14, color: AppColors.surfaceBright),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Pulsing live dot
-// ─────────────────────────────────────────────────────────────────────────────
-class _PulseDot extends StatefulWidget {
-  @override
-  State<_PulseDot> createState() => _PulseDotState();
-}
-
-class _PulseDotState extends State<_PulseDot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _anim;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat(reverse: true);
-    _anim = Tween<double>(begin: 0.4, end: 1.0)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _anim,
-      builder: (_, __) => Container(
-        width: 7,
-        height: 7,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.trendGreen.withValues(alpha: _anim.value),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.trendGreen.withValues(alpha: _anim.value * 0.5),
-              blurRadius: 6,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

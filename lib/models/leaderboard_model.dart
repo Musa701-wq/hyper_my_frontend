@@ -138,6 +138,29 @@ class LeaderboardResponse {
   }
 }
 
+class TraderSnapshot {
+  final int timestamp; // milliseconds since epoch
+  final double accountValue;
+
+  TraderSnapshot({
+    required this.timestamp,
+    required this.accountValue,
+  });
+
+  factory TraderSnapshot.fromJson(Map<String, dynamic> json) {
+    int ts;
+    if (json['fetchedAt'] is String) {
+      ts = DateTime.tryParse(json['fetchedAt'])?.millisecondsSinceEpoch ?? 0;
+    } else {
+      ts = (json['timestamp'] ?? 0).toInt();
+    }
+    return TraderSnapshot(
+      timestamp: ts,
+      accountValue: (json['accountValue'] ?? 0).toDouble(),
+    );
+  }
+}
+
 class HeadlineResponse {
   final String period;
   final List<Trader> gainers;

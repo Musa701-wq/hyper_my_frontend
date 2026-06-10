@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/portfolio_summary_model.dart';
 import '../models/portfolio_history_model.dart';
+import '../models/leaderboard_model.dart';
 import '../services/portfolio_cache.dart';
 import '../services/portfolio_service.dart';
+import '../services/leaderboard_service.dart';
 
 class AssetCompositionItem {
   final String coin;
@@ -34,6 +36,7 @@ enum PortfolioTimeRange { hour, day, week, month, year, all }
 
 class PortfolioViewModel extends ChangeNotifier {
   final PortfolioService _service = PortfolioService();
+  final LeaderboardService _leaderboardService = LeaderboardService();
 
   PortfolioSummaryModel? _summary;
   PortfolioHistoryModel? _history;
@@ -55,6 +58,15 @@ class PortfolioViewModel extends ChangeNotifier {
   bool get hasData => _summary != null;
   String? get error => _error;
   DateTime? get lastFetchTime => _lastFetchTime;
+
+  List<TraderSnapshot> _snapshots = [];
+  List<TraderSnapshot> get snapshots => _snapshots;
+
+  // Processed snapshot chart series
+  List<double> _snapshotValueSeries = [];
+  List<int> _snapshotTimestamps = [];
+  List<double> get snapshotValueSeries => _snapshotValueSeries;
+  List<int> get snapshotTimestamps => _snapshotTimestamps;
 
   List<double> _combinedPnlSeries = [];
   List<double> _perpPnlSeries = [];
@@ -156,6 +168,9 @@ class PortfolioViewModel extends ChangeNotifier {
       _isRefreshing = false;
       notifyListeners();
     }
+
+    // Fetch snapshots separately (non-blocking for portfolio)
+    _fetchSnapshots(wallet);
   }
 
   List<TradeFill>? _lastSortedFills;
@@ -330,6 +345,35 @@ class PortfolioViewModel extends ChangeNotifier {
     }
 
     _assetComposition = items;
+  }
+
+  Future<void> _fetchSnapshots(String wallet) async {
+    debugPrint('📊 [PortfolioVM] Fetching snapshots for $wallet');
+    try {
+      _snapshots = await _leaderboardService.getTraderSnapshots(wallet);
+      debugPrint('📊 [PortfolioVM] Snapshots received: ${_snapshots.length} entries');
+      _processSnapshots();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('📊 [PortfolioVM] Snapshots fetch failed (non-fatal): $e');
+    }
+  }
+
+  void _processSnapshots() {
+    debugPrint('📊 [PortfolioVM] Processing ${_snapshots.length} snapshots');
+    if (_snapshots.isEmpty) {
+      debugPrint('📊 [PortfolioVM] No snapshots to process, graph will not show');
+      return;
+    }
+
+    final sorted = List<TraderSnapshot>.from(_snapshots)
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    _snapshotTimestamps = sorted.map((s) => s.timestamp).toList();
+    _snapshotValueSeries = sorted.map((s) => s.accountValue).toList();
+    debugPrint('📊 [PortfolioVM] Snapshot series: ${_snapshotValueSeries.length} points, '
+        'first: ${_snapshotValueSeries.isNotEmpty ? _snapshotValueSeries.first : "N/A"}, '
+        'last: ${_snapshotValueSeries.isNotEmpty ? _snapshotValueSeries.last : "N/A"}');
   }
 
   @override

@@ -4,66 +4,97 @@ import 'package:provider/provider.dart';
 
 import '../models/ticker_model.dart';
 import '../utils/app_colors.dart';
+import '../utils/common_widgets.dart';
 import '../viewmodels/home_viewmodel.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Drawer nav item → navigates to LiveMarketsScreen
 // ─────────────────────────────────────────────────────────────────────────────
-class LiveMarketsDrawerItem extends StatelessWidget {
+class LiveMarketsDrawerItem extends StatefulWidget {
   final VoidCallback onTap;
   const LiveMarketsDrawerItem({super.key, required this.onTap});
 
   @override
+  State<LiveMarketsDrawerItem> createState() => _LiveMarketsDrawerItemState();
+}
+
+class _LiveMarketsDrawerItemState extends State<LiveMarketsDrawerItem>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _bg;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 100));
+    _bg = Tween<double>(begin: 0, end: 1)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: AppColors.surfaceBright.withValues(alpha: 0.3),
-            width: 0.8,
-          ),
-        ),
-        child: Row(
-          children: [
-            // accent bar placeholder
-            Container(width: 3, height: 60, color: Colors.transparent),
-            const SizedBox(width: 12),
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceBright.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.bar_chart_rounded,
-                  size: 17, color: AppColors.textSecondary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Live Markets',
-                      style: GoogleFonts.jetBrainsMono(
-                          color: AppColors.textPrimary, fontSize: 13)),
-                  Text('Gainers • Losers • Active',
-                      style: GoogleFonts.jetBrainsMono(
-                          color: AppColors.textSecondary.withValues(alpha: 0.55),
-                          fontSize: 9.5)),
-                ],
+      onTapDown: (_) => _ctrl.forward(),
+      onTapUp: (_) { _ctrl.reverse(); widget.onTap(); },
+      onTapCancel: () => _ctrl.reverse(),
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (_, __) {
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.brandAccent.withValues(alpha: _bg.value * 0.07),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppColors.surfaceBright.withValues(alpha: 0.3),
+                width: 0.8,
               ),
             ),
-            _PulseDot(color: AppColors.trendGreen),
-            const SizedBox(width: 8),
-            Icon(Icons.chevron_right_rounded,
-                size: 16, color: AppColors.surfaceBright),
-            const SizedBox(width: 8),
-          ],
-        ),
+            child: Row(
+              children: [
+                Container(width: 3, height: 60, color: Colors.transparent),
+                const SizedBox(width: 12),
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceBright.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.bar_chart_rounded,
+                      size: 17, color: AppColors.textSecondary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Live Markets',
+                          style: GoogleFonts.jetBrainsMono(
+                              color: AppColors.textPrimary, fontSize: 13)),
+                      Text('Gainers • Losers • Active',
+                          style: GoogleFonts.jetBrainsMono(
+                              color: AppColors.textSecondary.withValues(alpha: 0.55),
+                              fontSize: 9.5)),
+                    ],
+                  ),
+                ),
+                const PulseDot(color: AppColors.trendGreen),
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right_rounded,
+                    size: 16, color: AppColors.surfaceBright),
+                const SizedBox(width: 8),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -106,7 +137,7 @@ class LiveMarketsScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       )),
                   const SizedBox(width: 8),
-                  _PulseDot(color: AppColors.trendGreen),
+                  const PulseDot(color: AppColors.trendGreen),
                   const Spacer(),
                   Text('Real-time',
                       style: GoogleFonts.jetBrainsMono(
@@ -702,61 +733,6 @@ class _Avatar extends StatelessWidget {
               fontSize: size * 0.30,
               fontWeight: FontWeight.bold,
             )),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Pulsing dot
-// ─────────────────────────────────────────────────────────────────────────────
-class _PulseDot extends StatefulWidget {
-  final Color color;
-  const _PulseDot({required this.color});
-
-  @override
-  State<_PulseDot> createState() => _PulseDotState();
-}
-
-class _PulseDotState extends State<_PulseDot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c;
-  late final Animation<double> _a;
-
-  @override
-  void initState() {
-    super.initState();
-    _c = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat(reverse: true);
-    _a = Tween<double>(begin: 0.3, end: 1.0)
-        .animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _a,
-      builder: (_, __) => Container(
-        width: 6,
-        height: 6,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: widget.color.withValues(alpha: _a.value),
-          boxShadow: [
-            BoxShadow(
-              color: widget.color.withValues(alpha: _a.value * 0.5),
-              blurRadius: 5,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
       ),
     );
   }

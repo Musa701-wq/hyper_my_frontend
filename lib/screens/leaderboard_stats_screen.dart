@@ -121,8 +121,8 @@ class _LeaderboardStatsScreenState extends State<LeaderboardStatsScreen>
     }
     if (vm.stats == null) return _buildShimmer();
 
-    // Period change re-fetch — show shimmer overlay while loading
-    if (vm.isLoading) {
+    // Period change re-fetch — show shimmer overlay while loading (skip for search)
+    if (vm.isLoading && vm.searchQuery.isEmpty) {
       return _buildShimmer();
     }
 
@@ -474,7 +474,7 @@ class _MarqueeScrollState extends State<_MarqueeScroll>
     _ctrl = ScrollController();
     _animCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 20),
+      duration: const Duration(seconds: 60),
     )..addListener(_scroll);
   }
 
@@ -1042,6 +1042,55 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
     );
   }
 
+  Widget _buildRowsPerPage(LeaderboardViewModel vm) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Text('Show:',
+            style: GoogleFonts.jetBrainsMono(
+                color: AppColors.textSecondary,
+                fontSize: 10)),
+        const SizedBox(width: 6),
+        Theme(
+          data: Theme.of(context).copyWith(canvasColor: AppColors.background),
+          child: Container(
+            height: 26,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              border: Border.all(color: AppColors.surfaceBright),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: vm.rowsPerPage,
+                dropdownColor: AppColors.background,
+                style: GoogleFonts.jetBrainsMono(
+                    color: AppColors.textPrimary,
+                    fontSize: 11),
+                icon: const Icon(Icons.keyboard_arrow_down,
+                    color: AppColors.textSecondary, size: 14),
+                isDense: true,
+                onChanged: (v) {
+                  if (v != null) vm.setRowsPerPage(v);
+                },
+                items: [10, 20, 30, 50]
+                    .map((v) => DropdownMenuItem(
+                          value: v,
+                          child: Text('$v rows',
+                              style: GoogleFonts.jetBrainsMono(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 10)),
+                        ))
+                    .toList(),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildTable(Responsive res, LeaderboardViewModel vm) {
     const double leftW = 150;
     const double wAcc = 100;
@@ -1339,7 +1388,9 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSearchBar(vm),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
+            _buildRowsPerPage(vm),
+            const SizedBox(height: 6),
             if (vm.isLoading && vm.topTraders.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
