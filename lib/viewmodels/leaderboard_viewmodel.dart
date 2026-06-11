@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+
 import '../models/leaderboard_model.dart';
 import '../services/leaderboard_service.dart';
 
@@ -16,6 +18,8 @@ class LeaderboardViewModel extends ChangeNotifier {
   int _currentPage = 1;
   int _rowsPerPage = 20;
   String _searchQuery = '';
+  Timer? _searchDebounce;
+
 
   // Getters
   LeaderboardStats? get stats => _stats;
@@ -80,8 +84,19 @@ class LeaderboardViewModel extends ChangeNotifier {
   void setSearchQuery(String query) {
     if (_searchQuery == query) return;
     _searchQuery = query;
-    _currentPage = 1; // Reset to first page on search
-    fetchTopTraders();
+    _currentPage = 1;
+
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+      fetchTopTraders();
+    });
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
   }
 
   void setRowsPerPage(int rows) {

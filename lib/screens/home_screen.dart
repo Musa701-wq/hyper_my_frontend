@@ -103,17 +103,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 tooltip: sub.isPro ? 'Pro Active' : 'Go Pro',
               ),
             ),
-            GestureDetector(
-              onTap: () {
-                AnalyticsService.logFeatureClick('Live Signal');
-                showDialog(
-                  context: context,
-                  builder: (context) => const ComingSoonDialog(featureName: 'Live Signal'),
-                );
-              },
-              child: const Icon(Icons.sensors, color: AppColors.brandAccent),
-            ),
-            const SizedBox(width: 8),
+            // ── Live Signal button commented out (coming soon) ──
+            // GestureDetector(
+            //   onTap: () {
+            //     AnalyticsService.logFeatureClick('Live Signal');
+            //     showDialog(
+            //       context: context,
+            //       builder: (context) => const ComingSoonDialog(featureName: 'Live Signal'),
+            //     );
+            //   },
+            //   child: const Icon(Icons.sensors, color: AppColors.brandAccent),
+            // ),
+            // const SizedBox(width: 8),
             Consumer<WalletViewModel>(
               builder: (context, wallet, _) {
                 final connected = wallet.isConnected;
@@ -176,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        body: _selectedIndex == 3
+        body: _selectedIndex == 1
           ? Consumer<PortfolioViewModel>(
               builder: (context, portfolioVm, _) => _buildPortfolioBody(portfolioVm),
             )
@@ -327,36 +328,27 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         SizedBox(height: res.spacing(16)),
                         
-                        // Extra Filters (USDC, TOTAL)
-                        Row(
-                          children: [
-                            const Spacer(),
-                            GestureDetector(
-                              onTap: () {
-                                AnalyticsService.logFeatureClick('USDC Filter');
-                                showDialog(context: context, builder: (context) => const ComingSoonDialog(featureName: 'USDC Filter'));
-                              },
-                              child: Text('USDC', style: GoogleFonts.jetBrainsMono(color: AppColors.brandAccent.withValues(alpha: 0.8), fontSize: res.fontSize(12), decoration: TextDecoration.underline, decorationColor: AppColors.brandAccent.withValues(alpha: 0.4))),
-                            ),
-                            SizedBox(width: res.spacing(12)),
-                            GestureDetector(
-                              onTap: () {
-                                AnalyticsService.logFeatureClick('TOTAL Filter');
-                                showDialog(context: context, builder: (context) => const ComingSoonDialog(featureName: 'TOTAL Filter'));
-                              },
-                              child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: res.spacing(12), vertical: res.spacing(6)),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: AppColors.brandAccent),
-                                  borderRadius: BorderRadius.circular(4),
-                                  color: AppColors.brandAccent.withValues(alpha: 0.1),
-                                ),
-                                child: Text('TOTAL', style: GoogleFonts.jetBrainsMono(color: AppColors.brandAccent, fontSize: res.fontSize(12))),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: res.spacing(16)),
+                        // ── USDC / TOTAL filters commented out (coming soon) ──
+                        // Row(
+                        //   children: [
+                        //     const Spacer(),
+                        //     GestureDetector(
+                        //       onTap: () {
+                        //         AnalyticsService.logFeatureClick('USDC Filter');
+                        //         showDialog(context: context, builder: (context) => const ComingSoonDialog(featureName: 'USDC Filter'));
+                        //       },
+                        //       child: Text('USDC', ...),
+                        //     ),
+                        //     GestureDetector(
+                        //       onTap: () {
+                        //         AnalyticsService.logFeatureClick('TOTAL Filter');
+                        //         showDialog(context: context, builder: (context) => const ComingSoonDialog(featureName: 'TOTAL Filter'));
+                        //       },
+                        //       child: Text('TOTAL', ...),
+                        //     ),
+                        //   ],
+                        // ),
+                        // SizedBox(height: res.spacing(16)),
                         
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -592,27 +584,20 @@ class _HomeScreenState extends State<HomeScreen> {
           selectedItemColor: AppColors.brandAccent,
           unselectedItemColor: AppColors.textSecondary,
           onTap: (index) {
-            if (index == 0 || index == 3) {
+            if (index == 0 || index == 1) {
               setState(() => _selectedIndex = index);
-            } else {
-              final names = ['Home', 'Markets', 'Trade', 'Portfolio'];
-              showDialog(
-                context: context,
-                builder: (context) => ComingSoonDialog(featureName: names[index]),
-              );
             }
           },
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Markets'),
-            BottomNavigationBarItem(icon: Icon(Icons.swap_horiz), label: 'Trade'),
+            // BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Markets'),
+            // BottomNavigationBarItem(icon: Icon(Icons.swap_horiz), label: 'Trade'),
             BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Portfolio'),
           ],
         ),
       ),
     );
   }
-
   Widget _buildTickerIcon(String iconUrl, double size) {
     if (iconUrl.isEmpty) {
       return Icon(Icons.star_border, size: size, color: AppColors.textSecondary);
@@ -721,7 +706,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
-    return const ProfileScreen();
+    return ProfileScreen(walletAddress: wallet.address!);
   }
 
   // ── Connect dialog ─────────────────────────────────────────────────────────
@@ -734,7 +719,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (!mounted) return;
           // Initialize portfolio with the address
           context.read<PortfolioViewModel>().initializePortfolio(address);
-          setState(() => _selectedIndex = 3);
+          setState(() => _selectedIndex = 1);
         },
       ),
     );
@@ -837,7 +822,7 @@ class _HomeScreenState extends State<HomeScreen> {
         subtitle: 'Your positions',
         onTap: () {
           Navigator.pop(context);
-          setState(() => _selectedIndex = 3);
+          setState(() => _selectedIndex = 1);
         },
       ),
     ];
@@ -961,7 +946,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _sectionLabel('MARKETS'),
           ...navItems.asMap().entries.map((e) {
             final isActive = (e.value.label == 'Home' && _selectedIndex == 0) ||
-                (e.value.label == 'Portfolio' && _selectedIndex == 3);
+                (e.value.label == 'Portfolio' && _selectedIndex == 1);
             return _DrawerNavItem(
               data: e.value,
               isActive: isActive,
@@ -1054,21 +1039,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-          _DrawerNavItem(
-            data: _DrawerItemData(
-              icon: Icons.settings_outlined,
-              label: 'Settings',
-              subtitle: 'App preferences',
-              onTap: () {
-                Navigator.pop(context);
-                showDialog(
-                  context: context,
-                  builder: (_) => const ComingSoonDialog(featureName: 'Settings'),
-                );
-              },
-            ),
-            isActive: false,
-          ),
+          // ── Settings item commented out (coming soon) ──
+          // _DrawerNavItem(
+          //   data: _DrawerItemData(
+          //     icon: Icons.settings_outlined,
+          //     label: 'Settings',
+          //     subtitle: 'App preferences',
+          //     onTap: () {
+          //       Navigator.pop(context);
+          //       showDialog(
+          //         context: context,
+          //         builder: (_) => const ComingSoonDialog(featureName: 'Settings'),
+          //       );
+          //     },
+          //   ),
+          //   isActive: false,
+          // ),
           SizedBox(height: MediaQuery.of(context).padding.bottom + 12),
         ],
       ),
@@ -1471,7 +1457,7 @@ class _ConnectDialog extends StatefulWidget {
 }
 
 class _ConnectDialogState extends State<_ConnectDialog> {
-  final _ctrl = TextEditingController(text: kDummyWallet);
+  final _ctrl = TextEditingController();
   bool _loading = false;
 
   @override
@@ -1559,34 +1545,7 @@ class _ConnectDialogState extends State<_ConnectDialog> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          // Testing note
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.brandAccent.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                  color: AppColors.brandAccent.withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline,
-                    size: 12,
-                    color: AppColors.brandAccent.withValues(alpha: 0.7)),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Testing mode — dummy address pre-filled',
-                    style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.brandAccent.withValues(alpha: 0.7),
-                      fontSize: 9,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+
         ],
       ),
       actions: [

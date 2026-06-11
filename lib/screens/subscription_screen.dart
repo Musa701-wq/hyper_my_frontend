@@ -386,8 +386,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
         ),
         _buildFAQItem(
           res,
-          question: 'What is HyperView Pro?',
-          answer: 'HyperView Pro provides institutional-grade trading tools, including giga-depth orderbook visuals, real-time whale inflow alerts, and advanced CVD analytics.',
+          question: 'What is HyperScreener Pro?',
+          answer: 'HyperScreener Pro provides institutional-grade trading tools, including giga-depth orderbook visuals, real-time whale inflow alerts, and advanced CVD analytics.',
         ),
         _buildFAQItem(
           res,

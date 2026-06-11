@@ -95,8 +95,15 @@ class PortfolioViewModel extends ChangeNotifier {
   Future<void> initializePortfolio(String wallet) async {
     await _loadFromCache(wallet);
     await fetchPortfolio(wallet);
+    // Auto-retry once if first fetch failed and no cached data
+    if (_error != null && !_hasData) {
+      await Future.delayed(const Duration(seconds: 2));
+      await fetchPortfolio(wallet, force: true);
+    }
     _startAutoRefresh(wallet);
   }
+
+  bool get _hasData => _summary != null;
 
   Future<void> _loadFromCache(String wallet) async {
     final cached = await PortfolioCache.load(wallet);

@@ -199,18 +199,18 @@ class LiveMarketsScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                AppColors.brandAccent.withValues(alpha: 0.08),
-                                AppColors.surfaceBright.withValues(alpha: 0.1),
-                              ],
-                            ),
+                            color: const Color(0xFF161A1F),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: AppColors.brandAccent.withValues(alpha: 0.1),
+                              color: AppColors.brandAccent.withValues(alpha: 0.2),
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.brandAccent.withValues(alpha: 0.06),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: Row(
                             children: [
@@ -327,12 +327,12 @@ class _MarketCard extends StatelessWidget {
         color: const Color(0xFF161A1F),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: accentColor.withValues(alpha: 0.15),
+          color: accentColor.withValues(alpha: 0.2),
           width: 0.8,
         ),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withValues(alpha: 0.05),
+            color: accentColor.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -350,13 +350,13 @@ class _MarketCard extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  accentColor.withValues(alpha: 0.12),
-                  accentColor.withValues(alpha: 0.02),
+                  accentColor.withValues(alpha: 0.18),
+                  accentColor.withValues(alpha: 0.05),
                 ],
               ),
               border: Border(
                 bottom: BorderSide(
-                  color: accentColor.withValues(alpha: 0.1),
+                  color: accentColor.withValues(alpha: 0.15),
                   width: 0.5,
                 ),
               ),
@@ -471,10 +471,10 @@ class _MarketRows extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                   border:
-                      Border.all(color: color.withValues(alpha: 0.25), width: 0.5),
+                      Border.all(color: color.withValues(alpha: 0.35), width: 0.5),
                 ),
                 child: Text(pct,
                     style: GoogleFonts.jetBrainsMono(
@@ -538,15 +538,15 @@ class _MostActiveCardState extends State<_MostActiveCard> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF161A1F),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: barColor.withValues(alpha: 0.18),
+          color: barColor.withValues(alpha: 0.25),
           width: 0.8,
         ),
         boxShadow: [
           BoxShadow(
-            color: barColor.withValues(alpha: 0.04),
-            blurRadius: 12,
+            color: barColor.withValues(alpha: 0.08),
+            blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
@@ -579,10 +579,10 @@ class _MostActiveCardState extends State<_MostActiveCard> {
               Container(
                 height: 26,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceBright.withValues(alpha: 0.4),
+                  color: const Color(0xFF1A1D21),
                   borderRadius: BorderRadius.circular(7),
                   border: Border.all(
-                      color: AppColors.surfaceBright.withValues(alpha: 0.3),
+                      color: AppColors.surfaceBright.withValues(alpha: 0.4),
                       width: 0.5),
                 ),
                 child: Row(
@@ -793,10 +793,10 @@ class _Avatar extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(colors: [
-          c.withValues(alpha: 0.35),
-          c.withValues(alpha: 0.12),
+          c.withValues(alpha: 0.50),
+          c.withValues(alpha: 0.20),
         ]),
-        border: Border.all(color: c.withValues(alpha: 0.45), width: 0.8),
+        border: Border.all(color: c.withValues(alpha: 0.55), width: 1),
       ),
       child: Center(
         child: Text(initials,

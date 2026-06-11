@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import '../utils/app_colors.dart';
@@ -12,19 +13,55 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  bool _attRequested = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _requestAtt());
     _startSplashTimer();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_attRequested) {
+      _requestAtt();
+    }
+  }
+
+  static const _attChannel = MethodChannel('custom_att');
+
   Future<void> _requestAtt() async {
-    if (!Platform.isIOS) return;
-    debugPrint("📱 ATT: Requesting tracking authorization on splash...");
-    await AppTrackingTransparency.requestTrackingAuthorization();
-    debugPrint("📱 ATT: Authorization complete.");
+    if (!Platform.isIOS || _attRequested) return;
+
+    final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+    if (status != TrackingStatus.notDetermined) return;
+
+    _attRequested = true;
+    debugPrint("📱 ATT: Requesting tracking authorization...");
+
+    final int raw;
+    try {
+      raw = await _attChannel.invokeMethod('requestAtt');
+    } catch (_) {
+      // fallback to plugin if native channel fails
+      final fallback = await AppTrackingTransparency.requestTrackingAuthorization();
+      debugPrint("📱 ATT: Authorization complete → $fallback.");
+      if (fallback == TrackingStatus.notDetermined) _attRequested = false;
+      return;
+    }
+
+    final result = TrackingStatus.values[raw];
+    debugPrint("📱 ATT: Authorization complete → $result.");
+    if (result == TrackingStatus.notDetermined) _attRequested = false;
   }
 
   Future<void> _startSplashTimer() async {

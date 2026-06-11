@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../viewmodels/portfolio_viewmodel.dart';
 import '../utils/app_colors.dart';
+import '../viewmodels/wallet_viewmodel.dart';
+
 import '../utils/responsive.dart';
 import '../widgets/error_state_widget.dart';
 import '../widgets/shimmer_skeleton.dart';
@@ -12,8 +14,8 @@ class ProfileScreen extends StatefulWidget {
   final String walletAddress;
 
   const ProfileScreen({
-    super.key, 
-    this.walletAddress = '0x31ca8395cf837de08b24da3f660e77761dfb974b',
+    super.key,
+    required this.walletAddress,
   });
 
   @override
@@ -47,74 +49,134 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final res = Responsive(context);
     
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Consumer<PortfolioViewModel>(
-        builder: (context, vm, _) {
-          if (vm.isLoading && !vm.hasData) {
-            return _buildPortfolioShimmer(res);
-          }
-
-          if (vm.error != null && !vm.hasData) {
-            return ErrorStateWidget(
-              errorMessage: vm.error!,
-              onRetry: () => vm.fetchPortfolio(widget.walletAddress, force: true),
-            );
-          }
-
-          if (!vm.hasData) {
-            return const Center(child: Text('No data found', style: TextStyle(color: Colors.white)));
-          }
-
-          final s = vm.summary!;
-
-          return RefreshIndicator(
-            color: AppColors.brandAccent,
-            onRefresh: () => vm.fetchPortfolio(widget.walletAddress, force: true),
-            child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(
-              horizontal: res.horizontalPadding(16),
-              vertical: 24,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDynamicHeader(res, widget.walletAddress),
-                if (vm.isRefreshing) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.brandAccent),
+    return Consumer<PortfolioViewModel>(
+      builder: (context, vm, _) {
+        final wallet = widget.walletAddress;
+        final walletVm = context.read<WalletViewModel>();
+        final bool isMe = walletVm.isConnected && walletVm.address?.toLowerCase() == wallet.toLowerCase();
+        
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            leading: (vm.hasData && !isMe) 
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+                  onPressed: () => Navigator.of(context).pop(),
+                )
+              : null,
+            centerTitle: false,
+            titleSpacing: (vm.hasData && !isMe) ? 0 : 16,
+            title: vm.hasData 
+              ? Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(
+                        color: Colors.purpleAccent,
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Updating…',
-                        style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10),
+                      child: Center(
+                        child: Text(
+                          wallet.length > 2 ? wallet[2].toUpperCase() : 'W',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 24),
-                _buildSummaryCards(res, s),
-                const SizedBox(height: 32),
-                _buildChartsSection(res, s, vm),
-                const SizedBox(height: 24),
-                _buildStatsCards(res, s, vm),
-                const SizedBox(height: 24),
-                _buildPortfolioTabsSection(res, s, vm),
-                const SizedBox(height: 24),
-                _buildRecentlyTradedSection(res, vm),
-                const SizedBox(height: 60),
-              ],
-            ),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          isMe ? 'Welcome back,' : 'Trader Profile,',
+                          style: GoogleFonts.inter(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                          ),
+                        ),
+                        Text(
+                          '0x${wallet.substring(2, 6)}...${wallet.substring(wallet.length - 4)}',
+                          style: GoogleFonts.jetBrainsMono(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              : const SizedBox.shrink(),
+            actions: [
+              _headerIconButton(
+                _hideValue ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                onTap: () => setState(() => _hideValue = !_hideValue),
+              ),
+              const SizedBox(width: 8),
+            ],
           ),
-          );
-        },
-      ),
+          body: vm.isLoading && !vm.hasData
+              ? _buildPortfolioShimmer(res)
+              : vm.error != null && !vm.hasData
+                  ? ErrorStateWidget(
+                      errorMessage: vm.error!,
+                      onRetry: () => vm.fetchPortfolio(widget.walletAddress, force: true),
+                    )
+                  : !vm.hasData
+                      ? const Center(child: Text('No data found', style: TextStyle(color: Colors.white)))
+                      : RefreshIndicator(
+                          color: AppColors.brandAccent,
+                          onRefresh: () => vm.fetchPortfolio(widget.walletAddress, force: true),
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: res.horizontalPadding(16),
+                              vertical: 12,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (vm.isRefreshing) ...[
+                                  Row(
+                                    children: [
+                                      const SizedBox(
+                                        width: 12,
+                                        height: 12,
+                                        child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.brandAccent),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Updating…',
+                                        style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+                                _buildSummaryCards(res, vm.summary!),
+                                const SizedBox(height: 32),
+                                _buildChartsSection(res, vm.summary!, vm),
+                                const SizedBox(height: 24),
+                                _buildStatsCards(res, vm.summary!, vm),
+                                const SizedBox(height: 24),
+                                _buildPortfolioTabsSection(res, vm.summary!, vm),
+                                const SizedBox(height: 24),
+                                _buildRecentlyTradedSection(res, vm),
+                                const SizedBox(height: 60),
+                              ],
+                            ),
+                          ),
+                        ),
+        );
+      },
     );
   }
 
@@ -162,42 +224,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildDynamicHeader(Responsive res, String wallet) {
-    final String initial = wallet.length > 2 ? wallet[2].toUpperCase() : 'W';
-    final String shortId = '0x${wallet.substring(2, 6)}...${wallet.substring(wallet.length - 4)}';
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: const BoxDecoration(
-                color: Colors.purpleAccent,
-                shape: BoxShape.circle,
-              ),
-              child: Center(child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Welcome back,', style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 13)),
-                Text(shortId, style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ],
-        ),
-        // Only hide/show toggle — no notification icon
-        _headerIconButton(
-          _hideValue ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-          onTap: () => setState(() => _hideValue = !_hideValue),
-        ),
-      ],
-    );
-  }
 
   Widget _headerIconButton(IconData icon, {bool hasDot = false, VoidCallback? onTap}) {
     return GestureDetector(
@@ -234,7 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       mainAxisSpacing: 16,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.5,
+      childAspectRatio: res.value(mobile: 1.5, tablet: 2.2, desktop: 1.5),
       children: [
         _buildDesignCard('ACCOUNT VALUE', s.totalBalance, '', Icons.account_balance_wallet, AppColors.brandAccent),
         _buildDesignCard('WITHDRAWABLE', s.withdrawable, '', Icons.account_balance, AppColors.brandAccent),
@@ -245,17 +271,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildDesignCard(String title, dynamic value, String trend, IconData icon, Color accent, {bool isWallet = false}) {
-     String displayValue = isWallet 
+    final res = Responsive(context);
+    String displayValue = isWallet 
         ? '0x${value.substring(2, 6)}...${value.substring(value.length - 4)}'
         : '\$${value.toStringAsFixed(2)}';
      
      if (_hideValue && !isWallet) displayValue = '****';
 
      return Container(
-       padding: const EdgeInsets.all(16),
+       padding: EdgeInsets.all(res.value(mobile: 16, tablet: 12, desktop: 16)),
        decoration: BoxDecoration(
          color: AppColors.surfaceBright.withOpacity(0.2),
-         borderRadius: BorderRadius.circular(20),
+         borderRadius: BorderRadius.circular(res.value(mobile: 20, tablet: 14, desktop: 20)),
          border: Border.all(color: Colors.white.withOpacity(0.05)),
        ),
        child: Column(
@@ -265,25 +292,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
            Row(
              mainAxisAlignment: MainAxisAlignment.spaceBetween,
              children: [
-               Text(title, style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+               Text(title, style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: res.value(mobile: 10, tablet: 8, desktop: 10), fontWeight: FontWeight.w600, letterSpacing: 0.5)),
                Container(
-                 padding: const EdgeInsets.all(6),
+                 padding: EdgeInsets.all(res.value(mobile: 6, tablet: 4, desktop: 6)),
                  decoration: BoxDecoration(color: accent.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                 child: Icon(icon, color: accent, size: 16),
+                 child: Icon(icon, color: accent, size: res.value(mobile: 16, tablet: 12, desktop: 16)),
                ),
              ],
            ),
            Column(
              crossAxisAlignment: CrossAxisAlignment.start,
              children: [
-               Text(displayValue, style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+               Text(displayValue, style: GoogleFonts.inter(color: Colors.white, fontSize: res.value(mobile: 16, tablet: 13, desktop: 16), fontWeight: FontWeight.bold)),
                const SizedBox(height: 4),
                Row(
                  children: [
-                    if (!isWallet) Icon(trend.contains('-') ? Icons.arrow_drop_down : Icons.arrow_drop_up, color: trend.contains('-') ? AppColors.trendRed : AppColors.trendGreen, size: 14),
+                    if (!isWallet) Icon(trend.contains('-') ? Icons.arrow_drop_down : Icons.arrow_drop_up, color: trend.contains('-') ? AppColors.trendRed : AppColors.trendGreen, size: res.value(mobile: 14, tablet: 11, desktop: 14)),
                     if (isWallet) Container(width: 6, height: 6, decoration: BoxDecoration(color: AppColors.trendGreen, shape: BoxShape.circle)),
                     const SizedBox(width: 4),
-                    Text(trend, style: GoogleFonts.inter(color: trend.contains('-') ? AppColors.trendRed : AppColors.trendGreen, fontSize: 10, fontWeight: FontWeight.w500)),
+                    Text(trend, style: GoogleFonts.inter(color: trend.contains('-') ? AppColors.trendRed : AppColors.trendGreen, fontSize: res.value(mobile: 10, tablet: 8, desktop: 10), fontWeight: FontWeight.w500)),
                  ],
                ),
              ],

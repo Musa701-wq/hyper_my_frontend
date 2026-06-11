@@ -40,4 +40,26 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
   end
+
+  # Strip debug network permissions from the Runner app's Info.plist
+  # so the local-network dialog never appears on first install.
+  runner_project = Xcodeproj::Project.open('Runner.xcodeproj')
+  runner_project.targets.each do |target|
+    next unless target.name == 'Runner'
+
+    existing = target.shell_script_build_phases.find { |p|
+      p.name == 'Remove Network Permissions'
+    }
+    next if existing
+
+    phase = target.new_shell_script_build_phase('Remove Network Permissions')
+    phase.shell_script = <<~'SCRIPT'
+      PLIST="${CODESIGNING_FOLDER_PATH}/Info.plist"
+      if [ -f "$PLIST" ]; then
+        /usr/libexec/PlistBuddy -c "Delete NSLocalNetworkUsageDescription" "$PLIST" 2>/dev/null || true
+        /usr/libexec/PlistBuddy -c "Delete NSBonjourServices" "$PLIST" 2>/dev/null || true
+      fi
+    SCRIPT
+  end
+  runner_project.save
 end

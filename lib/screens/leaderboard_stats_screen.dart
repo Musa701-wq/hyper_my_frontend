@@ -2,22 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
-
 import '../utils/app_colors.dart';
 import '../utils/common_widgets.dart';
 import '../utils/responsive.dart';
 import '../viewmodels/leaderboard_viewmodel.dart';
 import '../models/leaderboard_model.dart';
 import 'home_screen.dart';
+import 'profile_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 class LeaderboardStatsScreen extends StatefulWidget {
   const LeaderboardStatsScreen({super.key});
-
   @override
   State<LeaderboardStatsScreen> createState() => _LeaderboardStatsScreenState();
 }
-
 class _LeaderboardStatsScreenState extends State<LeaderboardStatsScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _fadeCtrl;
@@ -29,7 +27,6 @@ class _LeaderboardStatsScreenState extends State<LeaderboardStatsScreen>
     _fadeCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 400));
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final vm = Provider.of<LeaderboardViewModel>(context, listen: false);
       // If data already cached, fade in immediately
@@ -120,19 +117,16 @@ class _LeaderboardStatsScreenState extends State<LeaderboardStatsScreen>
       );
     }
     if (vm.stats == null) return _buildShimmer();
-
     // Period change re-fetch — show shimmer overlay while loading (skip for search)
     if (vm.isLoading && vm.searchQuery.isEmpty) {
       return _buildShimmer();
     }
-
     // Data ready — trigger fade if not already playing
     if (_fadeCtrl.status == AnimationStatus.dismissed) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _fadeCtrl.forward();
       });
     }
-
     return FadeTransition(
       opacity: _fadeAnim,
       child: _StatsContent(stats: vm.stats!, res: res),
@@ -954,35 +948,10 @@ class _TopTradersSection extends StatefulWidget {
 
 class _TopTradersSectionState extends State<_TopTradersSection> {
   final TextEditingController _searchController = TextEditingController();
-  late final ScrollController _leftScroll;
-  late final ScrollController _rightScroll;
-  bool _syncingLeft = false;
-  bool _syncingRight = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _leftScroll = ScrollController();
-    _rightScroll = ScrollController();
-    _leftScroll.addListener(() {
-      if (_syncingRight) return;
-      _syncingLeft = true;
-      if (_rightScroll.hasClients) _rightScroll.jumpTo(_leftScroll.offset);
-      _syncingLeft = false;
-    });
-    _rightScroll.addListener(() {
-      if (_syncingLeft) return;
-      _syncingRight = true;
-      if (_leftScroll.hasClients) _leftScroll.jumpTo(_rightScroll.offset);
-      _syncingRight = false;
-    });
-  }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _leftScroll.dispose();
-    _rightScroll.dispose();
     super.dispose();
   }
 
@@ -997,11 +966,14 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
     return '$p${v.toStringAsFixed(2)}';
   }
 
-  Widget _buildSearchBar(LeaderboardViewModel vm) {
+  Widget _buildSearchBar(LeaderboardViewModel vm, {bool compact = false}) {
+    final double iconSize = compact ? 14 : 16;
+    final double fontSize = compact ? 11 : 13;
+    final double vPad = compact ? 6 : 10;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 0),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
           color: AppColors.background,
           border: Border.all(color: AppColors.surfaceBright),
@@ -1009,28 +981,28 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
         ),
         child: Row(
           children: [
-            Icon(Icons.search, color: AppColors.textSecondary, size: 16),
-            const SizedBox(width: 6),
+            Icon(Icons.search, color: AppColors.textSecondary, size: iconSize),
+            const SizedBox(width: 4),
             Expanded(
               child: TextField(
                 controller: _searchController,
                 onChanged: (v) => vm.setSearchQuery(v),
                 style: GoogleFonts.jetBrainsMono(
-                  color: AppColors.textPrimary, fontSize: 13),
+                  color: AppColors.textPrimary, fontSize: fontSize),
                 decoration: InputDecoration(
-                  hintText: 'Search address or name...',
+                  hintText: 'Search...',
                   hintStyle: GoogleFonts.jetBrainsMono(
-                    color: AppColors.textSecondary, fontSize: 13),
+                    color: AppColors.textSecondary, fontSize: fontSize),
                   border: InputBorder.none,
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  contentPadding: EdgeInsets.symmetric(vertical: vPad),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? GestureDetector(
                           onTap: () {
                             _searchController.clear();
                             vm.setSearchQuery('');
                           },
-                          child: const Icon(Icons.close, color: AppColors.textSecondary, size: 14),
+                          child: Icon(Icons.close, color: AppColors.textSecondary, size: iconSize - 2),
                         )
                       : null,
                 ),
@@ -1042,19 +1014,20 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
     );
   }
 
-  Widget _buildRowsPerPage(LeaderboardViewModel vm) {
+  Widget _buildRowsPerPage(LeaderboardViewModel vm, {bool compact = false}) {
+    final s = compact ? 9 : 11;
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Text('Show:',
             style: GoogleFonts.jetBrainsMono(
                 color: AppColors.textSecondary,
-                fontSize: 10)),
-        const SizedBox(width: 6),
+                fontSize: s.toDouble())),
+        SizedBox(width: compact ? 4 : 6),
         Theme(
           data: Theme.of(context).copyWith(canvasColor: AppColors.background),
           child: Container(
-            height: 26,
+            height: compact ? 26 : 30,
             padding: const EdgeInsets.symmetric(horizontal: 6),
             decoration: BoxDecoration(
               color: AppColors.background,
@@ -1067,7 +1040,7 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
                 dropdownColor: AppColors.background,
                 style: GoogleFonts.jetBrainsMono(
                     color: AppColors.textPrimary,
-                    fontSize: 11),
+                    fontSize: compact ? 10 : 12),
                 icon: const Icon(Icons.keyboard_arrow_down,
                     color: AppColors.textSecondary, size: 14),
                 isDense: true,
@@ -1080,7 +1053,7 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
                           child: Text('$v rows',
                               style: GoogleFonts.jetBrainsMono(
                                   color: AppColors.textPrimary,
-                                  fontSize: 10)),
+                                  fontSize: compact ? 10 : 12)),
                         ))
                     .toList(),
               ),
@@ -1092,67 +1065,99 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
   }
 
   Widget _buildTable(Responsive res, LeaderboardViewModel vm) {
-    const double leftW = 150;
-    const double wAcc = 100;
-    const double wPnl = 95;
-    const double wRoi = 85;
-    const double wVol = 100;
-    const double rightW = wAcc + wPnl + wRoi + wVol;
+    // On tablet/desktop, all columns fit — no horizontal scroll needed
+    final bool isTabletPlus = !res.isMobile;
+
+    final double leftW = res.value(mobile: 110, tablet: 180, desktop: 220);
+    final double wAcc  = res.value(mobile: 75,  tablet: 110, desktop: 130);
+    final double wPnl  = res.value(mobile: 70,  tablet: 110, desktop: 130);
+    final double wRoi  = res.value(mobile: 60,  tablet: 90,  desktop: 110);
+    final double wVol  = res.value(mobile: 75,  tablet: 110, desktop: 130);
+    final double rightW = wAcc + wPnl + wRoi + wVol;
 
     final traders = vm.topTraders;
 
-    return Padding(
-      padding: const EdgeInsets.only(left: 0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: leftW,
-            child: _StickyTable(
-              controller: _leftScroll,
-              header: _leftHeader(res),
-              itemCount: traders.length,
-              itemBuilder: (i) => _leftRow(i, traders[i], vm, res),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: SizedBox(
-                width: rightW,
+    // Tablet/desktop: expand right columns to fill full width
+    if (isTabletPlus) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final availableRight = constraints.maxWidth - leftW;
+          // Distribute remaining space evenly across 4 columns
+          final colW = availableRight / 4;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: leftW,
                 child: _StickyTable(
-                  controller: _rightScroll,
-                  header: _rightHeader(res, vm, wAcc, wPnl, wRoi, wVol),
+                  header: _leftHeader(res),
                   itemCount: traders.length,
-                  itemBuilder: (i) => _rightRow(traders[i], res, wAcc, wPnl, wRoi, wVol),
+                  itemBuilder: (i) => _leftRow(i, traders[i], vm, res),
                 ),
+              ),
+              Expanded(
+                child: _StickyTable(
+                  header: _rightHeader(res, vm, colW, colW, colW, colW),
+                  itemCount: traders.length,
+                  itemBuilder: (i) => _rightRow(traders[i], res, colW, colW, colW, colW),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    // Mobile: sticky left + horizontal scroll for right columns
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: leftW,
+          child: _StickyTable(
+            header: _leftHeader(res),
+            itemCount: traders.length,
+            itemBuilder: (i) => _leftRow(i, traders[i], vm, res),
+          ),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: SizedBox(
+              width: rightW,
+              child: _StickyTable(
+                header: _rightHeader(res, vm, wAcc, wPnl, wRoi, wVol),
+                itemCount: traders.length,
+                itemBuilder: (i) => _rightRow(traders[i], res, wAcc, wPnl, wRoi, wVol),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _leftHeader(Responsive res) {
+    final s = res.value(mobile: 8.0, tablet: 10.0, desktop: 11.0);
+    final h = res.value(mobile: 34.0, tablet: 40.0, desktop: 44.0);
     return Container(
-      height: 40,
+      height: h,
       color: const Color(0xFF0D0F13),
       padding: const EdgeInsets.only(left: 8),
       child: Row(
         children: [
           SizedBox(
-            width: 26,
+            width: 22,
             child: Text('#',
                 style: GoogleFonts.jetBrainsMono(
                     color: AppColors.textSecondary,
-                    fontSize: 10)),
+                    fontSize: s)),
           ),
           Text('Trader',
               style: GoogleFonts.jetBrainsMono(
                   color: AppColors.textSecondary,
-                  fontSize: 10)),
+                  fontSize: s)),
         ],
       ),
     );
@@ -1160,22 +1165,24 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
 
   Widget _rightHeader(Responsive res, LeaderboardViewModel vm,
       double wAcc, double wPnl, double wRoi, double wVol) {
+    final double s = res.value(mobile: 8.0, tablet: 10.0, desktop: 11.0);
+    final double h = res.value(mobile: 34.0, tablet: 40.0, desktop: 44.0);
     return Container(
-      height: 40,
+      height: h,
       color: const Color(0xFF0D0F13),
       child: Row(
         children: [
-          _sortableHCell('ACC', 'accountValue', wAcc, res, vm),
-          _sortableHCell('PNL', 'pnl', wPnl, res, vm),
-          _sortableHCell('ROI', 'roi', wRoi, res, vm),
-          _sortableHCell('VOL', 'volume', wVol, res, vm),
+          _sortableHCell('+ ACC', 'accountValue', wAcc, s, res, vm),
+          _sortableHCell('PNL', 'pnl', wPnl, s, res, vm),
+          _sortableHCell('ROI', 'roi', wRoi, s, res, vm),
+          _sortableHCell('VOL', 'volume', wVol, s, res, vm),
         ],
       ),
     );
   }
 
   Widget _sortableHCell(String label, String metric, double width,
-      Responsive res, LeaderboardViewModel vm) {
+      double fontSize, Responsive res, LeaderboardViewModel vm) {
     final active = vm.selectedMetric == metric;
     return GestureDetector(
       onTap: () => vm.setMetric(metric),
@@ -1190,13 +1197,13 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
                 Padding(
                   padding: const EdgeInsets.only(right: 2),
                   child: Icon(Icons.arrow_downward_rounded,
-                      size: 9, color: AppColors.brandAccent),
+                      size: 7, color: AppColors.brandAccent),
                 ),
               Text(
                 label,
                 style: GoogleFonts.jetBrainsMono(
                   color: active ? AppColors.brandAccent : AppColors.textSecondary,
-                  fontSize: 10,
+                  fontSize: fontSize,
                   fontWeight: active ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -1225,76 +1232,99 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
                 ? const Color(0xFFCD7F32)
                 : AppColors.textSecondary;
 
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.only(left: 4, right: 4),
-      decoration: const BoxDecoration(
-        border: Border(
-            bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+    final double rowH     = res.value(mobile: 44.0, tablet: 52.0, desktop: 56.0);
+    final double nameSize = res.value(mobile: 9.0,  tablet: 11.0, desktop: 12.0);
+    final double addrSize = res.value(mobile: 6.5,  tablet: 8.5,  desktop: 9.0);
+    final double rankSize = res.value(mobile: 9.0,  tablet: 11.0, desktop: 12.0);
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProfileScreen(walletAddress: addr),
+        ),
       ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 26,
-            child: Text('$rank',
-                style: GoogleFonts.jetBrainsMono(
-                  color: rankColor,
-                  fontSize: 10,
-                  fontWeight: rank <= 3 ? FontWeight.bold : FontWeight.normal,
-                )),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(name,
-                    style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textPrimary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis),
-                Text('${addr.substring(0, 8)}...',
-                    style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textSecondary,
-                      fontSize: 7.5,
-                    )),
-              ],
+      child: Container(
+        height: rowH,
+        padding: const EdgeInsets.only(left: 4, right: 4),
+        decoration: const BoxDecoration(
+          border: Border(
+              bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 22,
+              child: Text('$rank',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: rankColor,
+                    fontSize: rankSize,
+                    fontWeight: rank <= 3 ? FontWeight.bold : FontWeight.normal,
+                  )),
             ),
-          ),
-        ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(name,
+                      style: GoogleFonts.jetBrainsMono(
+                        color: AppColors.textPrimary,
+                        fontSize: nameSize,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis),
+                  Text('${addr.substring(0, 8)}...',
+                      style: GoogleFonts.jetBrainsMono(
+                        color: AppColors.textSecondary,
+                        fontSize: addrSize,
+                      )),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _rightRow(Trader t, Responsive res,
       double wAcc, double wPnl, double wRoi, double wVol) {
-    return Container(
-      height: 50,
-      decoration: const BoxDecoration(
-        border: Border(
-            bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+    final double rowH     = res.value(mobile: 44.0, tablet: 52.0, desktop: 56.0);
+    final double cellSize = res.value(mobile: 8.0,  tablet: 11.0, desktop: 12.0);
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProfileScreen(walletAddress: t.ethAddress),
+        ),
       ),
-      child: Row(
-        children: [
-          _dCell(_fmt(t.accountValue, isCurrency: true),
-              width: wAcc, res: res),
-          _dCell(_fmt(t.pnl, isCurrency: true),
-              width: wPnl, res: res,
-              color: t.pnl >= 0 ? AppColors.trendGreen : AppColors.trendRed),
-          _dCell(_fmt(t.roi, isPct: true),
-              width: wRoi, res: res,
-              color: t.roi >= 0 ? AppColors.trendGreen : AppColors.trendRed),
-          _dCell(_fmt(t.volume, isCurrency: true),
-              width: wVol, res: res),
-        ],
+      child: Container(
+        height: rowH,
+        decoration: const BoxDecoration(
+          border: Border(
+              bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+        ),
+        child: Row(
+          children: [
+            _dCell(_fmt(t.accountValue, isCurrency: true),
+                width: wAcc, fontSize: cellSize, res: res),
+            _dCell(_fmt(t.pnl, isCurrency: true),
+                width: wPnl, fontSize: cellSize, res: res,
+                color: t.pnl >= 0 ? AppColors.trendGreen : AppColors.trendRed),
+            _dCell(_fmt(t.roi, isPct: true),
+                width: wRoi, fontSize: cellSize, res: res,
+                color: t.roi >= 0 ? AppColors.trendGreen : AppColors.trendRed),
+            _dCell(_fmt(t.volume, isCurrency: true),
+                width: wVol, fontSize: cellSize, res: res),
+          ],
+        ),
       ),
     );
   }
 
   Widget _dCell(String text,
-      {required double width, required Responsive res, Color? color}) {
+      {required double width, required double fontSize, required Responsive res, Color? color}) {
     return SizedBox(
       width: width,
       child: Center(
@@ -1302,7 +1332,7 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
             textAlign: TextAlign.center,
             style: GoogleFonts.jetBrainsMono(
               color: color ?? AppColors.textPrimary,
-              fontSize: 10,
+              fontSize: fontSize,
               fontWeight: FontWeight.w500,
             )),
       ),
@@ -1387,9 +1417,9 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSearchBar(vm),
+            _buildSearchBar(vm, compact: res.isMobile),
             const SizedBox(height: 6),
-            _buildRowsPerPage(vm),
+            _buildRowsPerPage(vm, compact: res.isMobile),
             const SizedBox(height: 6),
             if (vm.isLoading && vm.topTraders.isEmpty)
               Padding(
@@ -1410,7 +1440,8 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
                 child: Center(
                   child: Text('No traders found',
                       style: GoogleFonts.jetBrainsMono(
-                          color: AppColors.textSecondary, fontSize: 11)),
+                          color: AppColors.textSecondary,
+                          fontSize: res.value(mobile: 11.0, tablet: 13.0, desktop: 14.0))),
                 ),
               )
             else
@@ -1423,15 +1454,13 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
   }
 }
 
-// ── Sticky table helpers (copied from leaderboard_screen) ──────────────────
+// ── Simple table (no slivers — avoids semantics parentDataDirty crash) ─────
 class _StickyTable extends StatelessWidget {
-  final ScrollController controller;
   final Widget header;
   final int itemCount;
   final Widget Function(int index) itemBuilder;
 
   const _StickyTable({
-    required this.controller,
     required this.header,
     required this.itemCount,
     required this.itemBuilder,
@@ -1439,47 +1468,13 @@ class _StickyTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      controller: controller,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      slivers: [
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: _StickyHeaderDelegate(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                header,
-                Container(height: 0.5, color: AppColors.surfaceBright),
-              ],
-            ),
-            height: 40.5,
-          ),
-        ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (_, i) => itemBuilder(i),
-            childCount: itemCount,
-          ),
-        ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        header,
+        Container(height: 0.5, color: AppColors.surfaceBright),
+        ...List.generate(itemCount, (i) => itemBuilder(i)),
       ],
     );
   }
-}
-
-class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  final double height;
-  const _StickyHeaderDelegate({required this.child, required this.height});
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Material(color: Colors.transparent, child: child);
-  }
-
-  @override double get maxExtent => height;
-  @override double get minExtent => height;
-  @override bool shouldRebuild(_StickyHeaderDelegate old) =>
-      old.child != child || old.height != height;
 }
