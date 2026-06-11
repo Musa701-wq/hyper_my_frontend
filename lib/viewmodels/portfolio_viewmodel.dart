@@ -32,6 +32,54 @@ class SymbolTradeSummary {
   double get winRate => trades > 0 ? (wins / trades * 100) : 0;
 }
 
+class PerformanceMetrics {
+  final double winRate;
+  final int totalWins;
+  final int totalTrades;
+  final double profitFactor;
+  final double avgWin;
+  final double avgLoss;
+  final double largestWin;
+  final String largestWinCoin;
+  final double largestLoss;
+  final String largestLossCoin;
+  final List<double> winSparkline;
+  final List<double> lossSparkline;
+  final double totalVolume;
+  final double totalFees;
+
+  PerformanceMetrics({
+    this.winRate = 0,
+    this.totalWins = 0,
+    this.totalTrades = 0,
+    this.profitFactor = 0,
+    this.avgWin = 0,
+    this.avgLoss = 0,
+    this.largestWin = 0,
+    this.largestWinCoin = '',
+    this.largestLoss = 0,
+    this.largestLossCoin = '',
+    this.winSparkline = const [],
+    this.lossSparkline = const [],
+    this.totalVolume = 0,
+    this.totalFees = 0,
+  });
+}
+
+class RiskMetrics {
+  final double leverageRisk;
+  final double concentrationRisk;
+  final double marginUsage;
+  final double volatilityRisk;
+
+  RiskMetrics({
+    this.leverageRisk = 0,
+    this.concentrationRisk = 0,
+    this.marginUsage = 0,
+    this.volatilityRisk = 0,
+  });
+}
+
 enum PortfolioTimeRange { hour, day, week, month, year, all }
 
 class PortfolioViewModel extends ChangeNotifier {
@@ -90,6 +138,12 @@ class PortfolioViewModel extends ChangeNotifier {
 
   List<AssetCompositionItem> _assetComposition = [];
   List<AssetCompositionItem> get assetComposition => _assetComposition;
+
+  PerformanceMetrics _performanceMetrics = PerformanceMetrics();
+  PerformanceMetrics get performanceMetrics => _performanceMetrics;
+
+  RiskMetrics _riskMetrics = RiskMetrics();
+  RiskMetrics get riskMetrics => _riskMetrics;
 
   /// Cache-first load, then network refresh + 30s auto-refresh.
   Future<void> initializePortfolio(String wallet) async {
@@ -158,6 +212,31 @@ class PortfolioViewModel extends ChangeNotifier {
       _summary = results[0] as PortfolioSummaryModel;
       _history = results[1] as PortfolioHistoryModel;
       _error = null;
+
+      // Fallback calculation for withdrawable if API returns 0
+      if (_summary!.withdrawable == 0 && _summary!.totalBalance > 0) {
+        final double calculatedWithdrawable = (_summary!.totalBalance - _summary!.totalMarginUsed).clamp(0.0, double.infinity);
+        debugPrint('⚠️ [PortfolioVM] API returned withdrawable=0, using fallback: $calculatedWithdrawable');
+        
+        // Re-create summary with calculated value
+        _summary = PortfolioSummaryModel(
+          walletAddress: _summary!.walletAddress,
+          totalBalance: _summary!.totalBalance,
+          perpAccountValue: _summary!.perpAccountValue,
+          spotUSDValue: _summary!.spotUSDValue,
+          unrealizedPnl: _summary!.unrealizedPnl,
+          unrealizedPnlPct: _summary!.unrealizedPnlPct,
+          buyingPower: calculatedWithdrawable, 
+          withdrawable: calculatedWithdrawable,
+          marginUsed: _summary!.marginUsed,
+          totalMarginUsed: _summary!.totalMarginUsed,
+          positions: _summary!.positions,
+          spotBalances: _summary!.spotBalances,
+          openOrders: _summary!.openOrders,
+          fetchedAt: _summary!.fetchedAt,
+          isStale: _summary!.isStale,
+        );
+      }
 
       await PortfolioCache.save(wallet: wallet, summary: _summary!, history: _history!);
       _processHistory();
@@ -286,6 +365,120 @@ class PortfolioViewModel extends ChangeNotifier {
 
     _lastProcessedRange = _selectedRange;
     _calculateAssetComposition();
+    _calculatePerformanceMetrics(filteredFills);
+    _calculateRiskMetrics();
+  }
+
+  void _calculatePerformanceMetrics(List<TradeFill> fills) {
+    if (fills.isEmpty) {
+      _performanceMetrics = PerformanceMetrics();
+      return;
+    }
+
+    // Grouping into trades (simplified: 1 fill = 1 trade for now, or group by hash)
+    final Map<String, List<TradeFill>> tradesByHash = {};
+    for (var f in fills) {
+      final key = f.hash.isNotEmpty ? f.hash : '${f.time}-${f.coin}';
+      tradesByHash.putIfAbsent(key, () => []).add(f);
+    }
+
+    final List<_TradeGroup> trades = tradesByHash.values.map((group) {
+      return _TradeGroup(
+        coin: group.first.coin,
+        time: group.first.time,
+        pnl: group.fold(0.0, (sum, f) => sum + f.closedPnl),
+        volume: group.fold(0.0, (sum, f) => sum + (f.px * f.sz)),
+        fee: group.fold(0.0, (sum, f) => sum + f.fee),
+      );
+    }).toList();
+
+    final wins = trades.where((t) => t.pnl > 0).toList();
+    final losses = trades.where((t) => t.pnl < 0).toList();
+
+    final grossProfit = wins.fold(0.0, (sum, t) => sum + t.pnl);
+    final grossLoss = losses.fold(0.0, (sum, t) => sum + t.pnl.abs());
+    
+    double largestWin = 0;
+    String largestWinCoin = '';
+    double largestLoss = 0;
+    String largestLossCoin = '';
+    
+    for (var t in trades) {
+      if (t.pnl > largestWin) {
+        largestWin = t.pnl;
+        largestWinCoin = t.coin;
+      }
+      if (t.pnl < largestLoss) {
+        largestLoss = t.pnl;
+        largestLossCoin = t.coin;
+      }
+    }
+
+    final totalVolume = trades.fold(0.0, (sum, t) => sum + t.volume);
+    final totalFees = trades.fold(0.0, (sum, t) => sum + t.fee);
+
+    _performanceMetrics = PerformanceMetrics(
+      winRate: trades.isNotEmpty ? (wins.length / trades.length * 100) : 0,
+      totalWins: wins.length,
+      totalTrades: trades.length,
+      profitFactor: grossLoss > 0 ? (grossProfit / grossLoss) : (grossProfit > 0 ? 999 : 0),
+      avgWin: wins.isNotEmpty ? (grossProfit / wins.length) : 0,
+      avgLoss: losses.isNotEmpty ? (grossLoss / losses.length) : 0,
+      largestWin: largestWin,
+      largestWinCoin: largestWinCoin,
+      largestLoss: largestLoss,
+      largestLossCoin: largestLossCoin,
+      winSparkline: wins.reversed.take(10).map((t) => t.pnl).toList().reversed.toList(),
+      lossSparkline: losses.reversed.take(10).map((t) => t.pnl.abs()).toList().reversed.toList(),
+      totalVolume: totalVolume,
+      totalFees: totalFees,
+    );
+  }
+
+  void _calculateRiskMetrics() {
+    if (_summary == null) return;
+    
+    final double balance = _summary!.totalBalance;
+    final double marginUsed = _summary!.totalMarginUsed;
+    final double withdrawable = _summary!.withdrawable;
+
+    // Leverage Risk: normalized against 10x
+    final double leverage = balance > 0 
+        ? (marginUsed * 10 / balance).clamp(0.0, 50.0) 
+        : 0.0;
+    final leverageRisk = (leverage / 10 * 100).clamp(0.0, 100.0);
+
+    // Concentration Risk: largest asset %
+    double maxAssetPct = 0.0;
+    if (_assetComposition.isNotEmpty) {
+      maxAssetPct = _assetComposition.map((e) => e.percentage).reduce((a, b) => a > b ? a : b);
+    }
+
+    // Margin Usage
+    final double marginUsagePct = withdrawable > 0 
+        ? (1.0 - (withdrawable / balance)) * 100.0 
+        : 100.0;
+
+    // Volatility Risk: simple baseline
+    double volRisk = 25.0; 
+    if (_combinedPnlSeries.length > 5) {
+      final returns = <double>[];
+      for (int i = 1; i < _combinedPnlSeries.length; i++) {
+        final r = _combinedPnlSeries[i] - _combinedPnlSeries[i-1];
+        returns.add(r);
+      }
+      final mean = returns.reduce((a, b) => a + b) / returns.length;
+      final variance = returns.map((r) => (r - mean) * (r - mean)).reduce((a, b) => a + b) / returns.length;
+      final stdDev = variance > 0 ? (variance / (balance + 1.0) * 1000.0) : 0.0;
+      volRisk = (stdDev * 10).clamp(10.0, 95.0);
+    }
+
+    _riskMetrics = RiskMetrics(
+      leverageRisk: leverageRisk,
+      concentrationRisk: maxAssetPct,
+      marginUsage: marginUsagePct.clamp(0.0, 100.0),
+      volatilityRisk: volRisk,
+    );
   }
 
   void _calculateAssetComposition() {
@@ -388,4 +581,14 @@ class PortfolioViewModel extends ChangeNotifier {
     _refreshTimer?.cancel();
     super.dispose();
   }
+}
+
+class _TradeGroup {
+  final String coin;
+  final int time;
+  final double pnl;
+  final double volume;
+  final double fee;
+
+  _TradeGroup({required this.coin, required this.time, required this.pnl, required this.volume, required this.fee});
 }

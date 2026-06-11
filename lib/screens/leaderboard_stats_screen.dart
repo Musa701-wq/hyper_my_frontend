@@ -49,34 +49,89 @@ class _LeaderboardStatsScreenState extends State<LeaderboardStatsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final res = Responsive(context);
     return AppBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
-          child: Consumer<LeaderboardViewModel>(
-            builder: (context, vm, _) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _TopBar(vm: vm),
-                  const SizedBox(height: 8),
-                  _PeriodSelector(
-                    vm: vm,
-                    onPeriodTap: () => _fadeCtrl.reset(),
-                  ),
-                  const SizedBox(height: 10),
-                  Expanded(child: _buildBody(vm, res)),
-                ],
-              );
-            },
+          child: LeaderboardStatsBody(
+            onBack: () => Navigator.of(context).pushReplacement(
+              PageRouteBuilder(
+                pageBuilder: (_, __, ___) => const HomeScreen(),
+                transitionDuration: Duration.zero,
+                reverseTransitionDuration: Duration.zero,
+                transitionsBuilder: (_, __, ___, child) => child,
+              ),
+            ),
+            showTopBar: true,
           ),
         ),
       ),
     );
   }
+}
+
+class LeaderboardStatsBody extends StatefulWidget {
+  final VoidCallback? onBack;
+  final bool showTopBar;
+  const LeaderboardStatsBody({super.key, this.onBack, this.showTopBar = true});
+
+  @override
+  State<LeaderboardStatsBody> createState() => _LeaderboardStatsBodyState();
+}
+
+class _LeaderboardStatsBodyState extends State<LeaderboardStatsBody>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _fadeCtrl;
+  late final Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 400));
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final vm = Provider.of<LeaderboardViewModel>(context, listen: false);
+      if (vm.stats != null) {
+        _fadeCtrl.forward();
+      } else {
+        vm.fetchAllData().then((_) {
+          if (mounted) _fadeCtrl.forward();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _fadeCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final res = Responsive(context);
+    return Consumer<LeaderboardViewModel>(
+      builder: (context, vm, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.showTopBar) _TopBar(vm: vm, onBack: widget.onBack),
+            if (widget.showTopBar) const SizedBox(height: 8),
+            _PeriodSelector(
+              vm: vm,
+              onPeriodTap: () => _fadeCtrl.reset(),
+            ),
+            const SizedBox(height: 10),
+            Expanded(child: _buildBody(vm, res)),
+          ],
+        );
+      },
+    );
+  }
 
   Widget _buildBody(LeaderboardViewModel vm, Responsive res) {
+    // ... no changes to _buildBody and other helper methods internally ...
     // First load — show shimmer
     if (vm.isLoading && vm.stats == null) {
       return _buildShimmer();
@@ -230,7 +285,8 @@ class _LeaderboardStatsScreenState extends State<LeaderboardStatsScreen>
 // ─────────────────────────────────────────────────────────────────────────────
 class _TopBar extends StatelessWidget {
   final LeaderboardViewModel vm;
-  const _TopBar({required this.vm});
+  final VoidCallback? onBack;
+  const _TopBar({required this.vm, this.onBack});
 
   @override
   Widget build(BuildContext context) {
@@ -239,19 +295,13 @@ class _TopBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(4, 8, 12, 0),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios,
-                color: AppColors.textPrimary, size: 20),
-            onPressed: () => Navigator.of(context).pushReplacement(
-              PageRouteBuilder(
-                pageBuilder: (_, __, ___) => const HomeScreen(),
-                transitionDuration: Duration.zero,
-                reverseTransitionDuration: Duration.zero,
-                transitionsBuilder: (_, __, ___, child) => child,
-              ),
+          if (onBack != null)
+            IconButton(
+              icon: const Icon(Icons.arrow_back_ios,
+                  color: AppColors.textPrimary, size: 20),
+              onPressed: onBack,
+              padding: EdgeInsets.zero,
             ),
-            padding: EdgeInsets.zero,
-          ),
           Text(
             'Market Stats',
             style: GoogleFonts.jetBrainsMono(

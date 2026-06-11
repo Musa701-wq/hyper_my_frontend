@@ -33,18 +33,25 @@ class PortfolioSummaryModel {
     required this.isStale,
   });
 
+  static double _parse(dynamic v) {
+    if (v == null) return 0.0;
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v) ?? 0.0;
+    return 0.0;
+  }
+
   factory PortfolioSummaryModel.fromJson(Map<String, dynamic> json) {
     return PortfolioSummaryModel(
       walletAddress: json['walletAddress'] ?? '',
-      totalBalance: (json['totalBalance'] ?? 0).toDouble(),
-      perpAccountValue: (json['perpAccountValue'] ?? 0).toDouble(),
-      spotUSDValue: (json['spotUSDValue'] ?? 0).toDouble(),
-      unrealizedPnl: (json['unrealizedPnl'] ?? 0).toDouble(),
-      unrealizedPnlPct: (json['unrealizedPnlPct'] ?? 0).toDouble(),
-      buyingPower: (json['buyingPower'] ?? 0).toDouble(),
-      withdrawable: (json['withdrawable'] ?? 0).toDouble(),
-      marginUsed: (json['marginUsed'] ?? 0).toDouble(),
-      totalMarginUsed: (json['totalMarginUsed'] ?? 0).toDouble(),
+      totalBalance: _parse(json['totalBalance']),
+      perpAccountValue: _parse(json['perpAccountValue']),
+      spotUSDValue: _parse(json['spotUSDValue']),
+      unrealizedPnl: _parse(json['unrealizedPnl']),
+      unrealizedPnlPct: _parse(json['unrealizedPnlPct']),
+      buyingPower: _parse(json['buyingPower']),
+      withdrawable: _parse(json['withdrawable']),
+      marginUsed: _parse(json['marginUsed']),
+      totalMarginUsed: _parse(json['totalMarginUsed']),
       positions: (json['positions'] as List? ?? [])
           .map((e) => PerpPosition.fromJson(e))
           .toList(),
@@ -95,17 +102,17 @@ class PerpPosition {
     return PerpPosition(
       coin: json['coin'] ?? '',
       side: json['side'] ?? '',
-      size: (json['size'] ?? 0).toDouble(),
-      entryPx: (json['entryPx'] ?? 0).toDouble(),
-      markPx: (json['markPx'] ?? 0).toDouble(),
-      liqPx: (json['liqPx'] ?? 0).toDouble(),
-      liqDistancePct: (json['liqDistancePct'] ?? 0).toDouble(),
+      size: PortfolioSummaryModel._parse(json['size']),
+      entryPx: PortfolioSummaryModel._parse(json['entryPx']),
+      markPx: PortfolioSummaryModel._parse(json['markPx']),
+      liqPx: PortfolioSummaryModel._parse(json['liqPx']),
+      liqDistancePct: PortfolioSummaryModel._parse(json['liqDistancePct']),
       liqRisk: json['liqRisk'] ?? 'safe',
-      unrealizedPnl: (json['unrealizedPnl'] ?? 0).toDouble(),
-      unrealizedPnlPct: (json['unrealizedPnlPct'] ?? 0).toDouble(),
-      leverage: (json['leverage'] ?? 0).toDouble(),
-      marginUsed: (json['marginUsed'] ?? 0).toDouble(),
-      maxLeverage: (json['maxLeverage'] ?? 0).toDouble(),
+      unrealizedPnl: PortfolioSummaryModel._parse(json['unrealizedPnl']),
+      unrealizedPnlPct: PortfolioSummaryModel._parse(json['unrealizedPnlPct']),
+      leverage: PortfolioSummaryModel._parse(json['leverage']),
+      marginUsed: PortfolioSummaryModel._parse(json['marginUsed']),
+      maxLeverage: PortfolioSummaryModel._parse(json['maxLeverage']),
     );
   }
 }
@@ -135,12 +142,12 @@ class SpotBalance {
     return SpotBalance(
       coin: json['coin'] ?? '',
       iconUrl: json['iconUrl'] ?? '',
-      total: (json['total'] ?? 0).toDouble(),
-      hold: (json['hold'] ?? 0).toDouble(),
-      available: (json['available'] ?? 0).toDouble(),
-      markPx: (json['markPx'] ?? 0).toDouble(),
-      usdValue: (json['usdValue'] ?? 0).toDouble(),
-      allocationPct: (json['allocationPct'] ?? 0).toDouble(),
+      total: PortfolioSummaryModel._parse(json['total']),
+      hold: PortfolioSummaryModel._parse(json['hold']),
+      available: PortfolioSummaryModel._parse(json['available']),
+      markPx: PortfolioSummaryModel._parse(json['markPx']),
+      usdValue: PortfolioSummaryModel._parse(json['usdValue']),
+      allocationPct: PortfolioSummaryModel._parse(json['allocationPct']),
     );
   }
 }
@@ -168,8 +175,8 @@ class OpenOrder {
     return OpenOrder(
       coin: json['coin'] ?? '',
       side: json['side'] ?? '',
-      size: (json['size'] ?? 0).toDouble(),
-      limitPx: (json['limitPx'] ?? 0).toDouble(),
+      size: PortfolioSummaryModel._parse(json['size']),
+      limitPx: PortfolioSummaryModel._parse(json['limitPx']),
       orderType: json['orderType'] ?? '',
       oid: json['oid'] ?? 0,
       timestamp: json['timestamp'] ?? 0,

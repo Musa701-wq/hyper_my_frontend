@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../models/ticker_model.dart';
+import '../models/trader_distribution_model.dart';
 import '../utils/app_exceptions.dart';
 
 class HomeViewModel extends ChangeNotifier {
@@ -27,9 +29,38 @@ class HomeViewModel extends ChangeNotifier {
   String _searchQuery = '';
   int _rowsPerPage = 10;
   int _currentPage = 1;
+  
+  TraderDistributionModel? _volumeDist;
+  TraderDistributionModel? _valueDist;
+  bool _isDistLoading = false;
 
   List<TickerModel> get tickers => _tickers;
+  TraderDistributionModel? get volumeDist => _volumeDist;
+  TraderDistributionModel? get valueDist => _valueDist;
+  bool get isDistLoading => _isDistLoading;
   String get selectedTab => _selectedTab;
+
+  // All tickers unfiltered
+  List<TickerModel> get allTickers => _tickers;
+
+  // Gainers/Losers helpers
+  List<TickerModel> get gainers {
+    final sorted = _tickers.where((t) => t.change24hPct > 0).toList()
+      ..sort((a, b) => b.change24hPct.compareTo(a.change24hPct));
+    return sorted;
+  }
+
+  List<TickerModel> get losers {
+    final sorted = _tickers.where((t) => t.change24hPct < 0).toList()
+      ..sort((a, b) => a.change24hPct.compareTo(b.change24hPct));
+    return sorted;
+  }
+
+  int get gainersCount => _tickers.where((t) => t.change24hPct > 0).length;
+  int get losersCount => _tickers.where((t) => t.change24hPct < 0).length;
+  double get totalVolume =>
+      _tickers.fold(0, (sum, t) => sum + t.volume24hUSD);
+
   List<TickerModel> get filteredTickers {
     List<TickerModel> list = _tickers;
     
@@ -184,6 +215,61 @@ class HomeViewModel extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
     _connectWebSocket();
+    
+    // Also fetch distributions
+    if (_selectedTab == 'ALL' || _selectedTab == 'HIP-3') {
+      fetchTraderDistribution();
+    }
+  }
+
+  Future<void> fetchTraderDistribution({String period = 'allTime'}) async {
+    if (_isDistLoading) return;
+    _isDistLoading = true;
+    notifyListeners();
+
+    try {
+      final hipBaseUrl = dotenv.env['HIP_BASE_URL'] ?? 'https://api.hyperliquid.bubblenexus.com';
+      
+      // Fetch distributions independently so one failure doesn't block the other
+      await Future.wait([
+        _fetchVolumeDist(hipBaseUrl, period),
+        _fetchValueDist(hipBaseUrl, period),
+      ]);
+    } catch (e) {
+      debugPrint('Trader distributions fetch wrapper failed: $e');
+    } finally {
+      _isDistLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _fetchVolumeDist(String baseUrl, String period) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/leaderboard/volume/distribution?period=$period')).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        _volumeDist = TraderDistributionModel.fromJson(json.decode(response.body));
+        debugPrint('Volume distribution loaded successfully');
+      } else {
+        debugPrint('Volume distribution API error: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Volume distribution fetch failed: $e');
+    }
+  }
+
+  Future<void> _fetchValueDist(String baseUrl, String period) async {
+    try {
+      // CHART 1: Trader Distribution By Account Value
+      final response = await http.get(Uri.parse('$baseUrl/leaderboard/traders/distribution')).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        _valueDist = TraderDistributionModel.fromJson(json.decode(response.body));
+        debugPrint('Trader (Value) distribution loaded successfully');
+      } else {
+        debugPrint('Trader (Value) distribution API error: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Trader (Value) distribution fetch failed: $e');
+    }
   }
 
   void _connectWebSocket() {
@@ -229,9 +315,19 @@ class HomeViewModel extends ChangeNotifier {
                 final Map<String, dynamic> mids = decoded['data']['mids'];
                 mids.forEach((symbol, price) {
                   final idx = _tickers.indexWhere((t) => t.symbol == symbol);
-                  if (idx != -1) {
-                    _tickers[idx] = _tickers[idx].copyWithPartial(
-                        {'lastPrice': double.tryParse(price.toString()) ?? 0.0});
+                   if (idx != -1) {
+                    final newPrice = double.tryParse(price.toString()) ?? 0.0;
+                    double newChange = _tickers[idx].change24hPct;
+                    
+                    // Recalculate change percentage if we have previous day price
+                    if (_tickers[idx].prevDayPx > 0) {
+                      newChange = ((newPrice - _tickers[idx].prevDayPx) / _tickers[idx].prevDayPx) * 100;
+                    }
+
+                    _tickers[idx] = _tickers[idx].copyWithPartial({
+                      'lastPrice': newPrice,
+                      'change24hPct': newChange,
+                    });
                     updated = true;
                   }
                 });
@@ -303,7 +399,18 @@ class HomeViewModel extends ChangeNotifier {
     );
 
     if (index != -1) {
-      _tickers[index] = _tickers[index].copyWithPartial(updateData);
+      final oldTicker = _tickers[index];
+      final Map<String, dynamic> mergedData = Map.from(updateData);
+      
+      // If price is updated but change isn't, recalculate change
+      if (mergedData.containsKey('lastPrice') && !mergedData.containsKey('change24hPct')) {
+        final newPrice = _toDouble(mergedData['lastPrice']);
+        if (oldTicker.prevDayPx > 0) {
+          mergedData['change24hPct'] = ((newPrice - oldTicker.prevDayPx) / oldTicker.prevDayPx) * 100;
+        }
+      }
+
+      _tickers[index] = oldTicker.copyWithPartial(mergedData);
       _extractDexes();
       _extractCategories();
       return true;
@@ -322,6 +429,12 @@ class HomeViewModel extends ChangeNotifier {
       }
     }
     return false;
+  }
+
+  static double _toDouble(dynamic v) {
+    if (v == null) return 0.0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0.0;
   }
 
   void _extractDexes() {

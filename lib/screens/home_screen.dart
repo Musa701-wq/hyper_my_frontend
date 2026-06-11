@@ -177,405 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        body: _selectedIndex == 1
-          ? Consumer<PortfolioViewModel>(
-              builder: (context, portfolioVm, _) => _buildPortfolioBody(portfolioVm),
-            )
-          : Consumer<HomeViewModel>(
-          builder: (context, viewModel, child) {
-            return RefreshIndicator(
-              onRefresh: viewModel.fetchTickers,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Padding(
-                  padding: EdgeInsets.all(res.spacing(16)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Leaderboard',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: AppColors.textPrimary,
-                          fontSize: res.fontSize(20),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: res.spacing(16)),
-                      
-                      // Search Bar
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: res.spacing(12)),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          border: Border.all(color: AppColors.surfaceBright),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.search, color: AppColors.textSecondary, size: res.fontSize(20)),
-                            SizedBox(width: res.spacing(8)),
-                            Expanded(
-                              child: TextField(
-                                onChanged: (value) {
-                                  viewModel.setSearchQuery(value);
-                                  AnalyticsService.logSearch(value);
-                                },
-                                style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(14)),
-                                decoration: InputDecoration(
-                                  hintText: 'Search by symbol...',
-                                  hintStyle: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(14)),
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(vertical: res.spacing(12)),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: res.spacing(12)),
-                      
-                      Container(
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.surfaceBright),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: SingleChildScrollView(
-                          controller: _tabScrollController,
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.all(4),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildTab(viewModel, 'ALL', res),
-                              _buildTab(viewModel, 'PERPS', res),
-                              _buildTab(viewModel, 'SPOT', res),
-                              _buildTab(viewModel, 'CRYPTO', res),
-                              _buildTab(viewModel, 'HIP-3', res),
-                            ],
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: res.spacing(12)),
-
-                      if (viewModel.isLoading)
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height - 180,
-                          child: _buildShimmerSkeleton(res),
-                        )
-                      else if (viewModel.errorMessage.isNotEmpty)
-                        Padding(
-                          padding: EdgeInsets.only(top: res.spacing(40)),
-                          child: ErrorStateWidget(
-                            errorMessage: viewModel.errorMessage,
-                            onRetry: () => viewModel.fetchTickers(),
-                          ),
-                        )
-                      else ...[
-                        // Horizontal Filters Row
-                        if (viewModel.selectedTab == 'HIP-3' || viewModel.selectedTab == 'CRYPTO')
-                          SizedBox(
-                            height: 32,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: (viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'HIP-3' ? viewModel.cryptoCategories : viewModel.availableDexes).length,
-                              separatorBuilder: (context, index) => const SizedBox(width: 8),
-                              itemBuilder: (context, index) {
-                                final isCategoryMode = viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'HIP-3';
-                                final items = isCategoryMode ? viewModel.cryptoCategories : viewModel.availableDexes;
-                                final item = items[index];
-                                final isSelected = isCategoryMode 
-                                  ? viewModel.selectedCryptoCategory == item 
-                                  : viewModel.selectedDex == item;
-                                
-                                return GestureDetector(
-                                  onTap: () {
-                                    if (isCategoryMode) {
-                                      viewModel.setSelectedCryptoCategory(item);
-                                      AnalyticsService.logCategoryClick(item);
-                                    } else {
-                                      viewModel.setSelectedDex(item);
-                                      AnalyticsService.logFeatureClick('Dex: $item');
-                                    }
-                                  },
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(horizontal: res.spacing(12)),
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: isSelected ? AppColors.brandAccent.withValues(alpha: 0.1) : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(
-                                        color: isSelected ? AppColors.brandAccent : AppColors.surfaceBright,
-                                        width: isSelected ? 1 : 0.5,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      item == 'All' ? 'All' : item.toLowerCase(),
-                                      style: GoogleFonts.jetBrainsMono(
-                                        color: isSelected ? AppColors.brandAccent : AppColors.textSecondary,
-                                        fontSize: res.fontSize(12),
-                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        SizedBox(height: res.spacing(16)),
-                        
-                        // ── USDC / TOTAL filters commented out (coming soon) ──
-                        // Row(
-                        //   children: [
-                        //     const Spacer(),
-                        //     GestureDetector(
-                        //       onTap: () {
-                        //         AnalyticsService.logFeatureClick('USDC Filter');
-                        //         showDialog(context: context, builder: (context) => const ComingSoonDialog(featureName: 'USDC Filter'));
-                        //       },
-                        //       child: Text('USDC', ...),
-                        //     ),
-                        //     GestureDetector(
-                        //       onTap: () {
-                        //         AnalyticsService.logFeatureClick('TOTAL Filter');
-                        //         showDialog(context: context, builder: (context) => const ComingSoonDialog(featureName: 'TOTAL Filter'));
-                        //       },
-                        //       child: Text('TOTAL', ...),
-                        //     ),
-                        //   ],
-                        // ),
-                        // SizedBox(height: res.spacing(16)),
-                        
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Fixed Left Column (Symbol)
-                            SizedBox(
-                              width: res.columnWidth(150),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Header Row for Fixed Part
-                                  Container(
-                                    height: 48,
-                                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-                                    child: Row(
-                                      children: [
-                                        SizedBox(width: res.columnWidth(30), child: Text('#', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
-                                        const SizedBox(width: 4),
-                                        Expanded(child: Text('Symbol', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(height: res.spacing(8)),
-                                  // Data Rows
-                                  ...viewModel.paginatedTickers.asMap().entries.map((entry) {
-                                    final index = entry.key;
-                                    final ticker = entry.value;
-                                    final rank = (viewModel.currentPage - 1) * viewModel.rowsPerPage + (index + 1);
-                                    
-                                    return GestureDetector(
-                                      onTap: () => _showTickerDetail(ticker),
-                                      behavior: HitTestBehavior.opaque,
-                                      child: Container(
-                                      height: res.value(mobile: 56.0, tablet: 64.0),
-                                      padding: const EdgeInsets.only(left: 8.0, right: 4.0, top: 10.0, bottom: 10.0),
-                                      decoration: const BoxDecoration(
-                                        border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          SizedBox(
-                                            width: res.columnWidth(30), 
-                                            child: Text(rank.toString(), style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(10)))
-                                          ),
-                                          const SizedBox(width: 4),
-                                          SizedBox(
-                                            width: res.fontSize(20), height: res.fontSize(20),
-                                            child: _buildTickerIcon(ticker.iconUrl, res.fontSize(20)),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  ticker.displayName.split(':').last,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: FontWeight.bold),
-                                                ),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                                  decoration: BoxDecoration(
-                                                    color: AppColors.brandAccent.withValues(alpha: 0.1),
-                                                    borderRadius: BorderRadius.circular(2),
-                                                  ),
-                                                  child: Text(
-                                                    viewModel.selectedTab == 'CRYPTO' ? ticker.cryptoCategory.toUpperCase() : ticker.dex.toUpperCase(), 
-                                                    style: GoogleFonts.jetBrainsMono(color: AppColors.brandAccent, fontSize: res.fontSize(8))
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    );
-                                  }),
-                                ],
-                              ),
-                            ),
-                            // Scrollable Right Section
-                            Expanded(
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Header
-                                    Container(
-                                      height: 48,
-                                      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
-                                      child: Row(
-                                        children: [
-                                          SizedBox(width: res.columnWidth(85), child: Text('Price', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
-                                          SizedBox(width: res.columnWidth(85), child: Text('24h Change', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
-                                          SizedBox(
-                                            width: res.columnWidth(85),
-                                            child: Row(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Text('8h Fund', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11))),
-                                                const SizedBox(width: 4),
-                                                GestureDetector(
-                                                  onTap: () => showDialog(
-                                                    context: context,
-                                                    builder: (context) => const FundingLegendDialog(),
-                                                  ),
-                                                  child: Icon(Icons.info_outline, size: 12, color: AppColors.textSecondary.withValues(alpha: 0.8)),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          SizedBox(width: res.columnWidth(80), child: Text('Vol 24H', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
-                                          SizedBox(width: res.columnWidth(90), child: Text('Open Int.', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
-                                          SizedBox(width: res.columnWidth(50), child: Text('Trend', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(height: res.spacing(8)),
-                                    // Data Rows
-                                    ...viewModel.paginatedTickers.map((ticker) {
-                                      final changeColor = ticker.change24hPct >= 0 ? AppColors.trendGreen : AppColors.trendRed;
-                                      final formattedChange = '${ticker.change24hPct >= 0 ? '+' : ''}${ticker.change24hPct.toStringAsFixed(2)}%';
-                                      final formattedFunding = '${ticker.funding8hPct.toStringAsFixed(4)}%';
-                                      final formattedOI = '\$${(ticker.openInterestUSD / 1e6).toStringAsFixed(1)}M';
-
-                                      return GestureDetector(
-                                        onTap: () => _showTickerDetail(ticker),
-                                        behavior: HitTestBehavior.opaque,
-                                        child: Container(
-                                        height: res.value(mobile: 56.0, tablet: 64.0),
-                                        width: res.columnWidth(490),
-                                        padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 10.0),
-                                        decoration: const BoxDecoration(
-                                          border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            SizedBox(width: res.columnWidth(85), child: Text(ticker.lastPrice.toStringAsFixed(4), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: FontWeight.bold))),
-                                            SizedBox(width: res.columnWidth(85), child: Text(formattedChange, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: changeColor, fontSize: res.fontSize(11)))),
-                                            SizedBox(width: res.columnWidth(85), child: Text(formattedFunding, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: ticker.funding8hPct >= 0 ? AppColors.trendGreen : AppColors.trendRed, fontSize: res.fontSize(11)))),
-                                            SizedBox(width: res.columnWidth(80), child: Text(_formatVolume(ticker.volume24hUSD), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(11)))),
-                                            SizedBox(width: res.columnWidth(90), child: Text(formattedOI, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(11)))),
-                                            SizedBox(
-                                              width: res.columnWidth(50), 
-                                              child: Center(
-                                                child: SparklineWidget(
-                                                  color: changeColor,
-                                                  width: res.columnWidth(40),
-                                                  height: res.value(mobile: 24.0, tablet: 32.0),
-                                                  seed: ticker.symbol,
-                                                  changePct: ticker.change24hPct,
-                                                ),
-                                              )
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      );
-                                    }),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: res.spacing(32)),
-
-                        // Pagination Controls
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('Rows:', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(12))),
-                            const SizedBox(width: 8),
-                            Theme(
-                              data: Theme.of(context).copyWith(canvasColor: AppColors.background),
-                              child: Container(
-                                height: 32,
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                decoration: BoxDecoration(
-                                  color: AppColors.background,
-                                  border: Border.all(color: AppColors.surfaceBright),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<int>(
-                                    dropdownColor: AppColors.background,
-                                    value: viewModel.rowsPerPage,
-                                    icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary, size: 16),
-                                    style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(12)),
-                                    borderRadius: BorderRadius.circular(8),
-                                    elevation: 8,
-                                    onChanged: (val) => val != null ? viewModel.setRowsPerPage(val) : null,
-                                    items: [10, 20, 50, 100].map((v) => DropdownMenuItem(value: v, child: Text(v.toString()))).toList(),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            _buildPageButton(res, icon: Icons.chevron_left, isEnabled: viewModel.currentPage > 1, isActive: false, onTap: () => viewModel.previousPage()),
-                            const SizedBox(width: 8),
-                            ...() {
-                              final totalPages = (viewModel.totalFilteredCount / viewModel.rowsPerPage).ceil();
-                              if (totalPages <= 1) return [_buildPageButton(res, text: '1', isActive: true, onTap: () {})];
-                              List<Widget> buttons = [];
-                              int start = (viewModel.currentPage - 1).clamp(1, totalPages);
-                              int end = (start + 2).clamp(1, totalPages);
-                              if (end == totalPages && totalPages > 3) start = end - 2;
-                              for (int i = start; i <= end; i++) {
-                                buttons.add(Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: _buildPageButton(res, text: i.toString(), isActive: i == viewModel.currentPage, onTap: () => viewModel.setPage(i))));
-                              }
-                              return buttons;
-                            }(),
-                            const SizedBox(width: 8),
-                            _buildPageButton(res, icon: Icons.chevron_right, isEnabled: (viewModel.currentPage * viewModel.rowsPerPage < viewModel.totalFilteredCount), isActive: false, onTap: () => viewModel.nextPage()),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
+        body: _buildTabBody(res),
         bottomNavigationBar: BottomNavigationBar(
           backgroundColor: AppColors.background.withValues(alpha: 0.85),
           elevation: 0,
@@ -583,21 +185,414 @@ class _HomeScreenState extends State<HomeScreen> {
           currentIndex: _selectedIndex,
           selectedItemColor: AppColors.brandAccent,
           unselectedItemColor: AppColors.textSecondary,
+          selectedLabelStyle: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: GoogleFonts.jetBrainsMono(fontSize: 10),
           onTap: (index) {
-            if (index == 0 || index == 1) {
-              setState(() => _selectedIndex = index);
-            }
+            setState(() => _selectedIndex = index);
           },
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-            // BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Markets'),
-            // BottomNavigationBarItem(icon: Icon(Icons.swap_horiz), label: 'Trade'),
+            BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), label: 'Markets'),
+            BottomNavigationBarItem(icon: Icon(Icons.leaderboard_outlined), label: 'Leaderboard'),
             BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Portfolio'),
           ],
         ),
       ),
     );
   }
+  Widget _buildTabBody(Responsive res) {
+    switch (_selectedIndex) {
+      case 0:
+        return _buildHomeBody(res);
+      case 1:
+        return const LiveMarketsBody();
+      case 2:
+        return const LeaderboardStatsBody(showTopBar: false);
+      case 3:
+        return Consumer<PortfolioViewModel>(
+          builder: (context, portfolioVm, _) => _buildPortfolioBody(portfolioVm),
+        );
+      default:
+        return _buildHomeBody(res);
+    }
+  }
+
+  Widget _buildHomeBody(Responsive res) {
+    return Consumer<HomeViewModel>(
+      builder: (context, viewModel, child) {
+        return RefreshIndicator(
+          onRefresh: viewModel.fetchTickers,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Padding(
+              padding: EdgeInsets.all(res.spacing(16)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Market Screener',
+                    style: GoogleFonts.jetBrainsMono(
+                      color: AppColors.textPrimary,
+                      fontSize: res.fontSize(20),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: res.spacing(16)),
+                  
+                  // Search Bar
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: res.spacing(12)),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      border: Border.all(color: AppColors.surfaceBright),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.search, color: AppColors.textSecondary, size: res.fontSize(20)),
+                        SizedBox(width: res.spacing(8)),
+                        Expanded(
+                          child: TextField(
+                            onChanged: (value) {
+                              viewModel.setSearchQuery(value);
+                              AnalyticsService.logSearch(value);
+                            },
+                            style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(14)),
+                            decoration: InputDecoration(
+                              hintText: 'Search by symbol...',
+                              hintStyle: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(14)),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(vertical: res.spacing(12)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: res.spacing(12)),
+                  
+                  Container(
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.surfaceBright),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: SingleChildScrollView(
+                      controller: _tabScrollController,
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.all(4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildTab(viewModel, 'ALL', res),
+                          _buildTab(viewModel, 'PERPS', res),
+                          _buildTab(viewModel, 'SPOT', res),
+                          _buildTab(viewModel, 'CRYPTO', res),
+                          _buildTab(viewModel, 'HIP-3', res),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: res.spacing(12)),
+
+                  if (viewModel.isLoading)
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height - 180,
+                      child: _buildShimmerSkeleton(res),
+                    )
+                  else if (viewModel.errorMessage.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: res.spacing(40)),
+                      child: ErrorStateWidget(
+                        errorMessage: viewModel.errorMessage,
+                        onRetry: () => viewModel.fetchTickers(),
+                      ),
+                    )
+                  else ...[
+                    // Horizontal Filters Row
+                    if (viewModel.selectedTab == 'HIP-3' || viewModel.selectedTab == 'CRYPTO')
+                      SizedBox(
+                        height: 32,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: (viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'HIP-3' ? viewModel.cryptoCategories : viewModel.availableDexes).length,
+                          separatorBuilder: (context, index) => const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final isCategoryMode = viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'HIP-3';
+                            final items = isCategoryMode ? viewModel.cryptoCategories : viewModel.availableDexes;
+                            final item = items[index];
+                            final isSelected = isCategoryMode 
+                              ? viewModel.selectedCryptoCategory == item 
+                              : viewModel.selectedDex == item;
+                            
+                            return GestureDetector(
+                              onTap: () {
+                                if (isCategoryMode) {
+                                  viewModel.setSelectedCryptoCategory(item);
+                                  AnalyticsService.logCategoryClick(item);
+                                } else {
+                                  viewModel.setSelectedDex(item);
+                                  AnalyticsService.logFeatureClick('Dex: $item');
+                                }
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: res.spacing(12)),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: isSelected ? AppColors.brandAccent.withValues(alpha: 0.1) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: isSelected ? AppColors.brandAccent : AppColors.surfaceBright,
+                                    width: isSelected ? 1 : 0.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  item == 'All' ? 'All' : item.toLowerCase(),
+                                  style: GoogleFonts.jetBrainsMono(
+                                    color: isSelected ? AppColors.brandAccent : AppColors.textSecondary,
+                                    fontSize: res.fontSize(12),
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    SizedBox(height: res.spacing(16)),
+                    
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Fixed Left Column (Symbol)
+                        SizedBox(
+                          width: res.columnWidth(150),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Header Row for Fixed Part
+                              Container(
+                                height: 48,
+                                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                                child: Row(
+                                  children: [
+                                    SizedBox(width: res.columnWidth(30), child: Text('#', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
+                                    const SizedBox(width: 4),
+                                    Expanded(child: Text('Symbol', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: res.spacing(8)),
+                              // Data Rows
+                              ...viewModel.paginatedTickers.asMap().entries.map((entry) {
+                                final index = entry.key;
+                                final ticker = entry.value;
+                                final rank = (viewModel.currentPage - 1) * viewModel.rowsPerPage + (index + 1);
+                                
+                                return GestureDetector(
+                                  onTap: () => _showTickerDetail(ticker),
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Container(
+                                  height: res.value(mobile: 56.0, tablet: 64.0),
+                                  padding: const EdgeInsets.only(left: 8.0, right: 4.0, top: 10.0, bottom: 10.0),
+                                  decoration: const BoxDecoration(
+                                    border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: res.columnWidth(30), 
+                                        child: Text(rank.toString(), style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(10)))
+                                      ),
+                                      const SizedBox(width: 4),
+                                      SizedBox(
+                                        width: res.fontSize(20), height: res.fontSize(20),
+                                        child: _buildTickerIcon(ticker.iconUrl, res.fontSize(20)),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              ticker.displayName.split(':').last,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: FontWeight.bold),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.brandAccent.withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(2),
+                                              ),
+                                              child: Text(
+                                                viewModel.selectedTab == 'CRYPTO' ? ticker.cryptoCategory.toUpperCase() : ticker.dex.toUpperCase(), 
+                                                style: GoogleFonts.jetBrainsMono(color: AppColors.brandAccent, fontSize: res.fontSize(8))
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
+                        // Scrollable Right Section
+                        Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Header
+                                Container(
+                                  height: 48,
+                                  padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(width: res.columnWidth(85), child: Text('Price', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
+                                      SizedBox(width: res.columnWidth(85), child: Text('24h Change', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
+                                      SizedBox(
+                                        width: res.columnWidth(85),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text('8h Fund', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11))),
+                                            const SizedBox(width: 4),
+                                            GestureDetector(
+                                              onTap: () => showDialog(
+                                                context: context,
+                                                builder: (context) => const FundingLegendDialog(),
+                                              ),
+                                              child: Icon(Icons.info_outline, size: 12, color: AppColors.textSecondary.withValues(alpha: 0.8)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(width: res.columnWidth(80), child: Text('Vol 24H', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
+                                      SizedBox(width: res.columnWidth(90), child: Text('Open Int.', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
+                                      SizedBox(width: res.columnWidth(50), child: Text('Trend', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: res.spacing(8)),
+                                // Data Rows
+                                ...viewModel.paginatedTickers.map((ticker) {
+                                  final changeColor = ticker.change24hPct >= 0 ? AppColors.trendGreen : AppColors.trendRed;
+                                  final formattedChange = '${ticker.change24hPct >= 0 ? '+' : ''}${ticker.change24hPct.toStringAsFixed(2)}%';
+                                  final formattedFunding = '${ticker.funding8hPct.toStringAsFixed(4)}%';
+                                  final formattedOI = '\$${(ticker.openInterestUSD / 1e6).toStringAsFixed(1)}M';
+
+                                  return GestureDetector(
+                                    onTap: () => _showTickerDetail(ticker),
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Container(
+                                    height: res.value(mobile: 56.0, tablet: 64.0),
+                                    width: res.columnWidth(490),
+                                    padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 10.0),
+                                    decoration: const BoxDecoration(
+                                      border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        SizedBox(width: res.columnWidth(85), child: Text(ticker.lastPrice.toStringAsFixed(4), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: FontWeight.bold))),
+                                        SizedBox(width: res.columnWidth(85), child: Text(formattedChange, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: changeColor, fontSize: res.fontSize(11)))),
+                                        SizedBox(width: res.columnWidth(85), child: Text(formattedFunding, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: ticker.funding8hPct >= 0 ? AppColors.trendGreen : AppColors.trendRed, fontSize: res.fontSize(11)))),
+                                        SizedBox(width: res.columnWidth(80), child: Text(_formatVolume(ticker.volume24hUSD), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(11)))),
+                                        SizedBox(width: res.columnWidth(90), child: Text(formattedOI, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(11)))),
+                                        SizedBox(
+                                          width: res.columnWidth(50), 
+                                          child: Center(
+                                            child: SparklineWidget(
+                                              color: changeColor,
+                                              width: res.columnWidth(40),
+                                              height: res.value(mobile: 24.0, tablet: 32.0),
+                                              seed: ticker.symbol,
+                                              changePct: ticker.change24hPct,
+                                            ),
+                                          )
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: res.spacing(32)),
+
+                    // Pagination Controls
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Rows:', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(12))),
+                        const SizedBox(width: 8),
+                        Theme(
+                          data: Theme.of(context).copyWith(canvasColor: AppColors.background),
+                          child: Container(
+                            height: 32,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: AppColors.background,
+                              border: Border.all(color: AppColors.surfaceBright),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<int>(
+                                dropdownColor: AppColors.background,
+                                value: viewModel.rowsPerPage,
+                                icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary, size: 16),
+                                style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(12)),
+                                borderRadius: BorderRadius.circular(8),
+                                elevation: 8,
+                                onChanged: (val) => val != null ? viewModel.setRowsPerPage(val) : null,
+                                items: [10, 20, 50, 100].map((v) => DropdownMenuItem(value: v, child: Text(v.toString()))).toList(),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        _buildPageButton(res, icon: Icons.chevron_left, isEnabled: viewModel.currentPage > 1, isActive: false, onTap: () => viewModel.previousPage()),
+                        const SizedBox(width: 8),
+                        ...() {
+                          final totalPages = (viewModel.totalFilteredCount / viewModel.rowsPerPage).ceil();
+                          if (totalPages <= 1) return [_buildPageButton(res, text: '1', isActive: true, onTap: () {})];
+                          List<Widget> buttons = [];
+                          int start = (viewModel.currentPage - 1).clamp(1, totalPages);
+                          int end = (start + 2).clamp(1, totalPages);
+                          if (end == totalPages && totalPages > 3) start = end - 2;
+                          for (int i = start; i <= end; i++) {
+                            buttons.add(Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: _buildPageButton(res, text: i.toString(), isActive: i == viewModel.currentPage, onTap: () => viewModel.setPage(i))));
+                          }
+                          return buttons;
+                        }(),
+                        const SizedBox(width: 8),
+                        _buildPageButton(res, icon: Icons.chevron_right, isEnabled: (viewModel.currentPage * viewModel.rowsPerPage < viewModel.totalFilteredCount), isActive: false, onTap: () => viewModel.nextPage()),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildTickerIcon(String iconUrl, double size) {
     if (iconUrl.isEmpty) {
       return Icon(Icons.star_border, size: size, color: AppColors.textSecondary);
@@ -817,12 +812,24 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () { Navigator.pop(context); setState(() => _selectedIndex = 0); },
       ),
       _DrawerItemData(
+        icon: Icons.bar_chart_rounded,
+        label: 'Markets',
+        subtitle: 'Live gainers/losers',
+        onTap: () { Navigator.pop(context); setState(() => _selectedIndex = 1); },
+      ),
+      _DrawerItemData(
+        icon: Icons.leaderboard_rounded,
+        label: 'Leaderboard',
+        subtitle: 'Global performance',
+        onTap: () { Navigator.pop(context); setState(() => _selectedIndex = 2); },
+      ),
+      _DrawerItemData(
         icon: Icons.account_balance_wallet_rounded,
         label: 'Portfolio',
         subtitle: 'Your positions',
         onTap: () {
           Navigator.pop(context);
-          setState(() => _selectedIndex = 1);
+          setState(() => _selectedIndex = 3);
         },
       ),
     ];
@@ -942,11 +949,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 8),
 
-          // ── MARKETS ─────────────────────────────────────────────────────
-          _sectionLabel('MARKETS'),
+          _sectionLabel('NAVIGATION'),
           ...navItems.asMap().entries.map((e) {
-            final isActive = (e.value.label == 'Home' && _selectedIndex == 0) ||
-                (e.value.label == 'Portfolio' && _selectedIndex == 1);
+            final isActive = (e.key == _selectedIndex);
             return _DrawerNavItem(
               data: e.value,
               isActive: isActive,
@@ -958,28 +963,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // ── ANALYTICS ───────────────────────────────────────────────────
           _sectionLabel('ANALYTICS'),
 
-          _LeaderboardDrawerItem(
-            onTap: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                _smoothRoute(const LeaderboardStatsScreen()),
-                (route) => false,
-              );
-            },
-          ),
-
-          LiveMarketsDrawerItem(
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.of(context).push(
-                PageRouteBuilder(
-                  pageBuilder: (_, __, ___) => const LiveMarketsScreen(),
-                  transitionDuration: const Duration(milliseconds: 250),
-                  transitionsBuilder: (_, anim, __, child) =>
-                      FadeTransition(opacity: anim, child: child),
-                ),
-              );
-            },
-          ),
+          const SizedBox(height: 4),
 
           const Spacer(),
 

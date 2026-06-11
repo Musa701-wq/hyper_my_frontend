@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -170,6 +171,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 _buildPortfolioTabsSection(res, vm.summary!, vm),
                                 const SizedBox(height: 24),
                                 _buildRecentlyTradedSection(res, vm),
+                                const SizedBox(height: 32),
+                                _buildPerformanceAnalyticsSection(res, vm),
+                                const SizedBox(height: 32),
+                                _buildDisclaimerSection(res),
                                 const SizedBox(height: 60),
                               ],
                             ),
@@ -254,6 +259,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSummaryCards(Responsive res, dynamic s) {
+    final double withdrawablePct = s.totalBalance > 0 ? (s.withdrawable / s.totalBalance * 100) : 0.0;
+    
     return GridView.count(
       crossAxisCount: res.gridColumnCount(mobile: 2, tablet: 2, desktop: 4),
       crossAxisSpacing: 16,
@@ -263,14 +270,520 @@ class _ProfileScreenState extends State<ProfileScreen> {
       childAspectRatio: res.value(mobile: 1.5, tablet: 2.2, desktop: 1.5),
       children: [
         _buildDesignCard('ACCOUNT VALUE', s.totalBalance, '', Icons.account_balance_wallet, AppColors.brandAccent),
-        _buildDesignCard('WITHDRAWABLE', s.withdrawable, '', Icons.account_balance, AppColors.brandAccent),
+        _buildDesignCard('WITHDRAWABLE', s.withdrawable, '${withdrawablePct.toStringAsFixed(2)}% of account', Icons.account_balance, AppColors.brandAccent, showProgress: true, progressValue: withdrawablePct / 100),
         _buildDesignCard('UNREALIZED PNL', s.unrealizedPnl, '${s.unrealizedPnlPct.toStringAsFixed(2)}%', Icons.show_chart, AppColors.trendRed),
         _buildDesignCard('WALLET', s.walletAddress, 'Live', Icons.qr_code_scanner, Colors.purpleAccent, isWallet: true),
       ],
     );
   }
 
-  Widget _buildDesignCard(String title, dynamic value, String trend, IconData icon, Color accent, {bool isWallet = false}) {
+  String _formatVolume(double value) {
+    if (value >= 1e9) {
+      return '${(value / 1e9).toStringAsFixed(1)}B';
+    } else if (value >= 1e6) {
+      return '${(value / 1e6).toStringAsFixed(1)}M';
+    } else if (value >= 1e3) {
+      return '${(value / 1e3).toStringAsFixed(1)}K';
+    } else {
+      return value.toStringAsFixed(0);
+    }
+  }
+
+  void _showPerformanceDisclaimer(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceBright,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Information', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _disclaimerItem('Calculation Basis', 'All trade analytics (win rate, PnL, volume, performance metrics) are calculated from the last 500 fills — the maximum available from Hyperliquid\'s API per request.'),
+              const SizedBox(height: 16),
+              _disclaimerItem('Data Sources', 'Data sourced using ASXN\'s node, Hyperliquid, DEX, Coingecko and Hyperscan and is updated every 30 seconds.'),
+              const SizedBox(height: 16),
+              _disclaimerItem('Informational Purpose', 'ASXN Dashboards are purely for informational purposes only. They are not intended to and should not be interpreted as investment or financial advice.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Dismiss', style: GoogleFonts.inter(color: AppColors.brandAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _disclaimerItem(String title, String body) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: GoogleFonts.inter(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(body, style: GoogleFonts.inter(color: Colors.white38, fontSize: 11)),
+      ],
+    );
+  }
+
+  Widget _buildDisclaimerSection(Responsive res) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          Text(
+            'All trade analytics (win rate, PnL, volume, performance metrics) are calculated from the last 500 fills — the maximum available from Hyperliquid\'s API per request.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(color: Colors.white24, fontSize: 10),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Data sourced using ASXN\'s node, Hyperliquid, DEX, Coingecko and Hyperscan and is updated every 30 seconds.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(color: Colors.white24, fontSize: 10),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'ASXN Dashboards are purely for informational purposes only. They are not intended to and should not be interpreted as investment or financial advice.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(color: Colors.white24, fontSize: 10, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _fmtNum(double val) {
+    if (val.abs() >= 1000000) return '${(val / 1000000).toStringAsFixed(2)}M';
+    if (val.abs() >= 1000) return '${(val / 1000).toStringAsFixed(2)}K';
+    if (val.abs() >= 100) return val.toStringAsFixed(2);
+    if (val.abs() >= 10) return val.toStringAsFixed(3);
+    return val.toStringAsFixed(4);
+  }
+
+  Widget _buildPerformanceAnalyticsSection(Responsive res, PortfolioViewModel vm) {
+    final m = vm.performanceMetrics;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Performance Analytics',
+              style: GoogleFonts.jetBrainsMono(
+                color: AppColors.textPrimary,
+                fontSize: res.fontSize(18),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            IconButton(
+              icon: Icon(Icons.info_outline, color: AppColors.textSecondary.withOpacity(0.5), size: 18),
+              onPressed: () => _showPerformanceDisclaimer(context),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        SizedBox(
+          height: 100,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _buildPerformanceCard(
+                'WIN RATE', 
+                '${m.winRate.toStringAsFixed(1)}%', 
+                '${m.totalWins} Wins / ${m.totalTrades} Trades',
+                color: AppColors.trendGreen,
+                progress: m.winRate / 100,
+              ),
+              _buildPerformanceCard(
+                'PROFIT FACTOR', 
+                m.profitFactor.toStringAsFixed(2), 
+                'Gross Profit / Gross Loss',
+                sparkline: m.winSparkline.take(5).toList(),
+              ),
+              _buildPerformanceCard(
+                'AVG WIN', 
+                '+\$${m.avgWin.toStringAsFixed(2)}', 
+                'Average Winning Trade',
+                color: AppColors.trendGreen,
+                sparkline: m.winSparkline,
+              ),
+              _buildPerformanceCard(
+                'AVG LOSS', 
+                '-\$${m.avgLoss.toStringAsFixed(2)}', 
+                'Average Losing Trade',
+                color: AppColors.trendRed,
+                sparkline: m.lossSparkline,
+              ),
+              _buildPerformanceCard(
+                'LARGEST WIN', 
+                '+\$${m.largestWin.toStringAsFixed(2)}', 
+                m.largestWinCoin,
+                color: AppColors.trendGreen,
+              ),
+              _buildPerformanceCard(
+                'LARGEST LOSS', 
+                '-\$${m.largestLoss.abs().toStringAsFixed(2)}', 
+                m.largestLossCoin,
+                color: AppColors.trendRed,
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 24),
+        
+        if (res.isMobile) ...[
+          _buildRecentActivitySection(res, vm),
+          const SizedBox(height: 24),
+          _buildTradingActivityDashboard(res, vm),
+          const SizedBox(height: 24),
+          _buildRiskOverviewDashboard(res, vm),
+        ] else ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _buildRecentActivitySection(res, vm)),
+              const SizedBox(width: 16),
+              Expanded(child: _buildTradingActivityDashboard(res, vm)),
+              const SizedBox(width: 16),
+              Expanded(child: _buildRiskOverviewDashboard(res, vm)),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPerformanceCard(String title, String value, String sub, {Color? color, double? progress, List<double>? sparkline}) {
+    return Container(
+      width: 160,
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBright.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(title, style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 9, fontWeight: FontWeight.bold)),
+              ),
+              if (progress != null)
+                SizedBox(
+                  width: 16, height: 16,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 2,
+                    backgroundColor: AppColors.surfaceBright.withOpacity(0.3),
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.trendGreen),
+                  ),
+                ),
+            ],
+          ),
+          Text(value, style: GoogleFonts.jetBrainsMono(color: color ?? Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(sub, style: GoogleFonts.inter(color: AppColors.textSecondary.withOpacity(0.7), fontSize: 8), overflow: TextOverflow.ellipsis),
+              ),
+              if (sparkline != null && sparkline.isNotEmpty)
+                SizedBox(
+                  width: 30, height: 12,
+                  child: LineChart(
+                    LineChartData(
+                      gridData: const FlGridData(show: false),
+                      titlesData: const FlTitlesData(show: false),
+                      borderData: FlBorderData(show: false),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: sparkline.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
+                          isCurved: true,
+                          color: color ?? AppColors.brandAccent,
+                          barWidth: 1,
+                          dotData: const FlDotData(show: false),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentActivitySection(Responsive res, PortfolioViewModel vm) {
+    final recent = vm.historyFills.take(5).toList();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBright.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Recent Activity', style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          ...recent.map((f) {
+            final isBuy = f.side.toLowerCase() == 'buy';
+            final timeStr = _formatTimeAgo(f.time);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8, height: 8,
+                    decoration: BoxDecoration(color: isBuy ? AppColors.trendGreen : AppColors.trendRed, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${f.dir} ${f.sz} ${f.coin}', style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+                        Text(timeStr, style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    f.closedPnl != 0 
+                      ? '${f.closedPnl > 0 ? '+' : ''}${f.closedPnl.toStringAsFixed(4)}'
+                      : '${f.px.toStringAsFixed(4)} px',
+                    style: GoogleFonts.jetBrainsMono(
+                      color: f.closedPnl > 0 ? AppColors.trendGreen : (f.closedPnl < 0 ? AppColors.trendRed : AppColors.textPrimary),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  String _formatTimeAgo(int timestamp) {
+    final diff = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(timestamp));
+    if (diff.inDays > 0) return '${diff.inDays}d ago';
+    if (diff.inHours > 0) return '${diff.inHours}h ago';
+    if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+    return 'Just now';
+  }
+
+  Widget _buildTradingActivityDashboard(Responsive res, PortfolioViewModel vm) {
+    final m = vm.performanceMetrics;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBright.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Trading Activity', style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTradingStat('TOTAL TRADES', m.totalTrades.toString()),
+                    _buildTradingStat('TOTAL VOLUME', '\$${_formatVolume(m.totalVolume)}'),
+                    _buildTradingStat('WINNING TRADES', '${m.totalWins} (${m.winRate.toStringAsFixed(1)}%)', color: AppColors.trendGreen),
+                    _buildTradingStat('LOSING TRADES', '${m.totalTrades - m.totalWins} (${(100 - m.winRate).toStringAsFixed(1)}%)', color: AppColors.trendRed),
+                    _buildTradingStat('TOTAL FEES', '\$${m.totalFees.toStringAsFixed(2)}'),
+                  ],
+                ),
+              ),
+              SizedBox(
+                width: 100, height: 100,
+                child: PieChart(
+                  PieChartData(
+                    sectionsSpace: 0,
+                    centerSpaceRadius: 30,
+                    startDegreeOffset: -90,
+                    sections: [
+                      PieChartSectionData(
+                        color: AppColors.trendGreen,
+                        value: m.totalWins.toDouble(),
+                        radius: 8,
+                        showTitle: false,
+                      ),
+                      PieChartSectionData(
+                        color: AppColors.trendRed,
+                        value: (m.totalTrades - m.totalWins).toDouble(),
+                        radius: 8,
+                        showTitle: false,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _chartLegend('Wins', AppColors.trendGreen),
+              const SizedBox(width: 16),
+              _chartLegend('Losses', AppColors.trendRed),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTradingStat(String label, String value, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+          Text(value, style: GoogleFonts.jetBrainsMono(color: color ?? Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _chartLegend(String label, Color color) {
+    return Row(
+      children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Text(label, style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 11)),
+      ],
+    );
+  }
+
+  Widget _buildRiskOverviewDashboard(Responsive res, PortfolioViewModel vm) {
+    final r = vm.riskMetrics;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBright.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Risk Overview', style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              SizedBox(
+                width: 120, height: 120,
+                child: RadarChart(
+                  RadarChartData(
+                    radarBorderData: const BorderSide(color: AppColors.surfaceBright, width: 0.5),
+                    gridBorderData: const BorderSide(color: AppColors.surfaceBright, width: 0.2),
+                    tickBorderData: const BorderSide(color: AppColors.surfaceBright, width: 0.1),
+                    ticksTextStyle: const TextStyle(color: Colors.transparent),
+                    titlePositionPercentageOffset: 0.2,
+                    titleTextStyle: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 8),
+                    dataSets: [
+                      RadarDataSet(
+                        fillColor: AppColors.trendGreen.withOpacity(0.3),
+                        borderColor: AppColors.trendGreen,
+                        entryRadius: 2,
+                        dataEntries: [
+                          RadarEntry(value: r.leverageRisk),
+                          RadarEntry(value: r.volatilityRisk),
+                          RadarEntry(value: r.concentrationRisk),
+                          RadarEntry(value: r.marginUsage),
+                        ],
+                      ),
+                    ],
+                    getTitle: (index, angle) {
+                      switch (index) {
+                        case 0: return const RadarChartTitle(text: 'Leverage');
+                        case 1: return const RadarChartTitle(text: 'Volatil.');
+                        case 2: return const RadarChartTitle(text: 'Concent.');
+                        case 3: return const RadarChartTitle(text: 'Margin');
+                        default: return const RadarChartTitle(text: '');
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildRiskBar('Leverage Risk', r.leverageRisk),
+                    _buildRiskBar('Concentration Risk', r.concentrationRisk),
+                    _buildRiskBar('Margin Usage', r.marginUsage),
+                    _buildRiskBar('Volatility Risk', r.volatilityRisk),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRiskBar(String label, double value) {
+    final color = value > 70 ? AppColors.trendRed : (value > 40 ? Colors.orange : AppColors.trendGreen);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label, style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 9)),
+              Text(value > 70 ? 'High' : (value > 40 ? 'Med' : 'Low'), style: GoogleFonts.inter(color: color, fontSize: 9, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: value / 100,
+              minHeight: 3,
+              backgroundColor: AppColors.surfaceBright.withOpacity(0.2),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(String label, dynamic value, String subtitle, IconData icon, Color color) {
+    return Container();
+  }
+
+  Widget _buildDesignCard(String title, dynamic value, String trend, IconData icon, Color accent, {bool isWallet = false, bool showProgress = false, double progressValue = 0.0}) {
     final res = Responsive(context);
     String displayValue = isWallet 
         ? '0x${value.substring(2, 6)}...${value.substring(value.length - 4)}'
@@ -305,12 +818,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
              children: [
                Text(displayValue, style: GoogleFonts.inter(color: Colors.white, fontSize: res.value(mobile: 16, tablet: 13, desktop: 16), fontWeight: FontWeight.bold)),
                const SizedBox(height: 4),
-               Row(
+               if (showProgress) ...[
+                 ClipRRect(
+                   borderRadius: BorderRadius.circular(2),
+                   child: LinearProgressIndicator(
+                     value: progressValue.clamp(0.0, 1.0),
+                     minHeight: 3,
+                     backgroundColor: AppColors.surfaceBright.withOpacity(0.2),
+                     valueColor: AlwaysStoppedAnimation<Color>(accent),
+                   ),
+                 ),
+                 const SizedBox(height: 4),
+                 Text(trend, style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: res.value(mobile: 9, tablet: 7, desktop: 9), fontWeight: FontWeight.w400)),
+               ] else Row(
                  children: [
                     if (!isWallet) Icon(trend.contains('-') ? Icons.arrow_drop_down : Icons.arrow_drop_up, color: trend.contains('-') ? AppColors.trendRed : AppColors.trendGreen, size: res.value(mobile: 14, tablet: 11, desktop: 14)),
                     if (isWallet) Container(width: 6, height: 6, decoration: BoxDecoration(color: AppColors.trendGreen, shape: BoxShape.circle)),
                     const SizedBox(width: 4),
-                    Text(trend, style: GoogleFonts.inter(color: trend.contains('-') ? AppColors.trendRed : AppColors.trendGreen, fontSize: res.value(mobile: 10, tablet: 8, desktop: 10), fontWeight: FontWeight.w500)),
+                    Text(trend, style: GoogleFonts.inter(color: (isWallet || trend.isEmpty) ? AppColors.textSecondary : (trend.contains('-') ? AppColors.trendRed : AppColors.trendGreen), fontSize: res.value(mobile: 10, tablet: 8, desktop: 10), fontWeight: FontWeight.w500)),
                  ],
                ),
              ],
@@ -748,11 +1273,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final double minVal = data.reduce((a, b) => a < b ? a : b);
     final double maxVal = data.reduce((a, b) => a > b ? a : b);
     final double dataRange = maxVal - minVal;
-    final double pad = (dataRange * 0.18).abs().clamp(dataRange * 0.5, double.infinity);
-    final yMin = (minVal - pad).clamp(0.0, double.infinity);
-    final yMax = maxVal + pad;
-    final double chartRange = yMax - yMin;
-    final yInterval = (chartRange / 4).abs().clamp(1.0, double.maxFinite);
+    
+    // 1. Calculate a "nice" interval
+    double rawInterval = (dataRange / 5).abs().clamp(0.01, double.infinity);
+    double exponent = (log(rawInterval) / ln10).floorToDouble();
+    double fraction = rawInterval / pow(10, exponent);
+    double niceFraction;
+    if (fraction < 1.5) { niceFraction = 1.0; }
+    else if (fraction < 3.0) { niceFraction = 2.0; }
+    else if (fraction < 7.0) { niceFraction = 5.0; }
+    else { niceFraction = 10.0; }
+    double yInterval = niceFraction * pow(10, exponent);
+
+    // 2. Align yMin and yMax to this interval
+    double yMin = (minVal / yInterval).floorToDouble() * yInterval;
+    double yMax = (maxVal / yInterval).ceilToDouble() * yInterval;
+
+    // Add padding if too tight
+    if (yMax - maxVal < yInterval * 0.2) yMax += yInterval;
+    if (minVal - yMin < yInterval * 0.2) yMin -= yInterval;
+    if (yMin < 0) yMin = 0; // Don't go negative for account value
 
     String fmtDate(int ts) {
       final d = DateTime.fromMillisecondsSinceEpoch(ts);
@@ -1065,14 +1605,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildMainLineChart(List<double> pnlData, List<int> timestamps, Color themeColor) {
-    double minVal = pnlData.reduce((a, b) => a < b ? a : b);
-    double maxVal = pnlData.reduce((a, b) => a > b ? a : b);
-    double range  = maxVal - minVal;
-    double pad    = (range * 0.18).abs();
-    if (pad < 1) pad = 1;
-    final yMin      = minVal - pad;
-    final yMax      = maxVal + pad;
-    final yInterval = ((yMax - yMin) / 4).abs().clamp(1.0, double.maxFinite);
+    final double minVal = pnlData.reduce((a, b) => a < b ? a : b);
+    final double maxVal = pnlData.reduce((a, b) => a > b ? a : b);
+    final double range = (maxVal - minVal).abs();
+    
+    // 1. Calculate a "nice" interval
+    double rawInterval = (range / 5).abs().clamp(0.01, double.infinity);
+    double exponent = (log(rawInterval) / ln10).floorToDouble();
+    double fraction = rawInterval / pow(10, exponent);
+    double niceFraction;
+    if (fraction < 1.5) { niceFraction = 1.0; }
+    else if (fraction < 3.0) { niceFraction = 2.0; }
+    else if (fraction < 7.0) { niceFraction = 5.0; }
+    else { niceFraction = 10.0; }
+    double yInterval = niceFraction * pow(10, exponent);
+
+    // 2. Align yMin and yMax to this interval for clean labels
+    double yMin = (minVal / yInterval).floorToDouble() * yInterval;
+    double yMax = (maxVal / yInterval).ceilToDouble() * yInterval;
+
+    // Add one extra interval of padding if too tight
+    if (yMax - maxVal < yInterval * 0.2) yMax += yInterval;
+    if (minVal - yMin < yInterval * 0.2) yMin -= yInterval;
 
     String fmtDate(int ts) {
       final d = DateTime.fromMillisecondsSinceEpoch(ts);
@@ -2615,13 +3169,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  String _fmtNum(double val) {
-    if (val >= 1000000) return '${(val / 1000000).toStringAsFixed(2)}M';
-    if (val >= 1000) return '${(val / 1000).toStringAsFixed(2)}k';
-    if (val >= 100) return val.toStringAsFixed(2);
-    if (val >= 10) return val.toStringAsFixed(3);
-    return val.toStringAsFixed(4);
-  }
 }
 
 /// Draws Y-axis labels on a fixed-width column that stays outside the
@@ -2639,9 +3186,15 @@ class _YAxisPainter extends CustomPainter {
 
   static String _fmt(double v) {
     final abs = v.abs();
-    if (abs >= 1000000) return '\$${(v / 1000000).toStringAsFixed(1)}M';
-    if (abs >= 1000) return '\$${(v / 1000).toStringAsFixed(0)}K';
-    return '\$${v.toStringAsFixed(0)}';
+    if (abs >= 1000000) {
+      final m = v / 1000000;
+      return '\$${m.toStringAsFixed(m.truncateToDouble() == m ? 0 : 2)}M';
+    }
+    if (abs >= 1000) {
+      final k = v / 1000;
+      return '\$${k.toStringAsFixed(k.truncateToDouble() == k ? 0 : 1)}K';
+    }
+    return '\$${v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 1)}';
   }
 
   @override
@@ -2650,14 +3203,18 @@ class _YAxisPainter extends CustomPainter {
     final range = yMax - yMin;
     if (range <= 0 || interval <= 0) return;
 
-    final steps = (range / interval).round().clamp(1, 8);
+    final steps = (range / interval).floor().clamp(1, 10);
     for (int i = 0; i <= steps; i++) {
-      final value = yMax - i * interval;
-      if (value < yMin - interval * 0.1) break;
+      final value = yMin + i * interval;
+      // Skip if value exceeds yMax too much
+      if (value > yMax + (interval * 0.1)) break;
 
-      final frac = (yMax - value) / range;
+      final frac = (value - yMin) / range;
       const bottomReserve = 40.0;
-      final y = frac * (size.height - bottomReserve);
+      
+      // Calculate Y: (H - reserve) is the bottom. Subtracting (frac * height) moves it up.
+      final chartHeight = size.height - bottomReserve;
+      final y = chartHeight - (frac * chartHeight);
 
       tp.text = TextSpan(
         text: _fmt(value),
