@@ -124,16 +124,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(width: 8),
             ],
           ),
-          body: vm.isLoading && !vm.hasData
+          body: (vm.isLoading || !vm.hasData) && vm.error == null
               ? _buildPortfolioShimmer(res)
               : vm.error != null && !vm.hasData
                   ? ErrorStateWidget(
                       errorMessage: vm.error!,
                       onRetry: () => vm.fetchPortfolio(widget.walletAddress, force: true),
                     )
-                  : !vm.hasData
-                      ? const Center(child: Text('No data found', style: TextStyle(color: Colors.white)))
-                      : RefreshIndicator(
+                  : RefreshIndicator(
                           color: AppColors.brandAccent,
                           onRefresh: () => vm.fetchPortfolio(widget.walletAddress, force: true),
                           child: SingleChildScrollView(
@@ -816,7 +814,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
            Column(
              crossAxisAlignment: CrossAxisAlignment.start,
              children: [
-               Text(displayValue, style: GoogleFonts.inter(color: Colors.white, fontSize: res.value(mobile: 16, tablet: 13, desktop: 16), fontWeight: FontWeight.bold)),
+               FittedBox(
+                 fit: BoxFit.scaleDown,
+                 child: Text(displayValue, style: GoogleFonts.inter(color: Colors.white, fontSize: res.value(mobile: 16, tablet: 13, desktop: 16), fontWeight: FontWeight.bold)),
+               ),
                const SizedBox(height: 4),
                if (showProgress) ...[
                  ClipRRect(

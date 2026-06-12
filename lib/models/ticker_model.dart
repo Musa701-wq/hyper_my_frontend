@@ -171,6 +171,26 @@ class TickerModel {
     return symbol;
   }
 
+  String get displaySymbol {
+    String cleanSymbol = symbol.toUpperCase();
+    
+    // Always strip prefix like "XYZ :" if present
+    if (cleanSymbol.contains(':')) {
+      cleanSymbol = cleanSymbol.split(':').last.trim();
+    }
+
+    if (marketType == 'hip-3') return cleanSymbol;
+    
+    final suffix = marketType == 'spot' ? '/USDC' : '-USDC';
+    
+    // Avoid double suffixing
+    if (cleanSymbol.endsWith('-USDC') || cleanSymbol.endsWith('/USDC')) {
+      return cleanSymbol;
+    }
+    
+    return '$cleanSymbol$suffix';
+  }
+
   TickerModel copyWithPartial(Map<String, dynamic> p) {
     return TickerModel(
       id: id,

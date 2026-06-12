@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../utils/app_config.dart';
 import '../models/orderbook_model.dart';
 
 /// Live order book for any symbol.
@@ -25,8 +26,8 @@ class OrderBookService {
 
   OrderBookService({required this.symbol, this.dex});
 
-  String get _baseUrl => dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com';
-  String get _wsBase => dotenv.env['WS_URL'] ?? 'wss://coingecko.renderonnodes.com/ws/';
+  String get _baseUrl => AppConfig.baseUrl;
+  String get _wsBase => AppConfig.wsUrl;
 
   /// Starts live updates: REST poll + symbol-scoped WebSocket.
   Future<void> startLive({
@@ -91,7 +92,7 @@ class OrderBookService {
     final query = <String, String>{'levels': levels.toString()};
     if (dex != null && dex.isNotEmpty) query['dex'] = dex;
 
-    final String baseUrl = dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com';
+    final String baseUrl = AppConfig.baseUrl;
     final String cleanBase = baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
     final bareSymbol = symbol.contains(':') ? symbol.split(':').last : symbol;
 

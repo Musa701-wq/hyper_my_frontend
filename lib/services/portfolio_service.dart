@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../utils/app_config.dart';
 import '../models/portfolio_summary_model.dart';
 import '../models/portfolio_history_model.dart';
 
@@ -10,7 +10,7 @@ class PortfolioService {
   final String baseUrl;
 
   PortfolioService({String? url}) 
-    : baseUrl = url ?? (dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com');
+    : baseUrl = url ?? AppConfig.baseUrl;
 
   Future<PortfolioSummaryModel> getPortfolioSummary(String wallet) async {
     try {

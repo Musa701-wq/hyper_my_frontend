@@ -211,28 +211,24 @@ class _DialogHeader extends StatelessWidget {
               children: [
                 Row(children: [
                   Expanded(
-                    child: Text(
-                      title,
-                      style: GoogleFonts.jetBrainsMono(
-                        color: AppColors.textPrimary,
-                        fontSize: res.fontSize(15),
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          ticker.displaySymbol,
+                          style: GoogleFonts.jetBrainsMono(
+                            color: AppColors.textPrimary,
+                            fontSize: res.fontSize(15),
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        _buildMarketBadges(ticker, res),
+                      ],
                     ),
                   ),
-                  if (typeLabel.isNotEmpty) ...[
-                    SizedBox(width: res.spacing(8)),
-                    _BadgeChip(
-                      label: typeLabel,
-                      res: res,
-                      color: typeLabel == 'SPOT'
-                          ? const Color(0xFF7C83FD)
-                          : typeLabel == 'PERP'
-                              ? const Color(0xFFFFB74D)
-                              : AppColors.textSecondary,
-                    ),
-                  ],
                   const Spacer(),
                   GestureDetector(
                     onTap: () {
@@ -305,6 +301,121 @@ class _DialogHeader extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMarketBadges(TickerModel ticker, Responsive res) {
+    // 0. Special case for HIP-3 (Revert to original style)
+    if (ticker.marketType == 'hip-3') {
+      return Text(
+        'HYPERLIQUID • HIP-3',
+        style: GoogleFonts.jetBrainsMono(
+          color: AppColors.textSecondary.withValues(alpha: 0.6),
+          fontSize: res.fontSize(9),
+        ),
+      );
+    }
+
+    String? categoryLabel;
+
+    if (ticker.dex.isNotEmpty && ticker.dex.toLowerCase() != 'hyperliquid') {
+      categoryLabel = ticker.dex.toUpperCase();
+    } else if (ticker.cryptoCategory.isNotEmpty) {
+      final standardCategories = ['layer1', 'layer2', 'defi', 'ai', 'gaming', 'meme'];
+      if (!standardCategories.contains(ticker.cryptoCategory.toLowerCase().trim())) {
+        categoryLabel = ticker.cryptoCategory.toUpperCase();
+      }
+    }
+
+
+
+
+    final List<Widget> badges = [];
+
+    
+    // 1. Check for SPOT
+    if (ticker.marketType == 'spot') {
+      badges.add(
+        _Badge(
+          label: 'SPOT',
+          res: res,
+          bgColor: const Color(0xFF0D2D2A),
+          textColor: const Color(0xFF5EEAD4),
+        ),
+      );
+    }
+
+    // 2. Category badge (if identified above)
+    if (categoryLabel != null) {
+      if (badges.isNotEmpty) badges.add(const SizedBox(width: 4));
+      badges.add(
+        _Badge(
+          label: categoryLabel,
+          res: res,
+          bgColor: const Color(0xFF0D2D2A),
+          textColor: const Color(0xFF5EEAD4),
+        ),
+      );
+    }
+
+
+
+    // 3. Leverage Badge (for everything except SPOT, if > 0)
+    if (ticker.marketType != 'spot' && ticker.maxLeverage > 0) {
+      if (badges.isNotEmpty) badges.add(const SizedBox(width: 4));
+      badges.add(
+        _Badge(
+          label: '${ticker.maxLeverage}x',
+          res: res,
+          bgColor: const Color(0xFF0D2D2A),
+          textColor: const Color(0xFF5EEAD4),
+        ),
+      );
+    }
+
+
+
+
+
+
+    if (badges.isEmpty) return const SizedBox.shrink();
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: badges,
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final String label;
+  final Responsive res;
+  final Color bgColor;
+  final Color textColor;
+
+  const _Badge({
+    required this.label,
+    required this.res,
+    required this.bgColor,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.jetBrainsMono(
+          color: textColor,
+          fontSize: res.fontSize(9),
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

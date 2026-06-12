@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../utils/app_config.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../models/trade_model.dart';
@@ -17,7 +18,7 @@ class TradesService {
 
   TradesService({required this.symbol, this.dex});
 
-  String get _wsBase => dotenv.env['WS_URL'] ?? 'wss://coingecko.renderonnodes.com/ws/';
+  String get _wsBase => AppConfig.wsUrl;
 
   /// Starts the trade stream (Pure WebSocket Flow).
   /// The backend pushes 'trades_snapshot' immediately on connection.

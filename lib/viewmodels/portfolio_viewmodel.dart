@@ -96,7 +96,7 @@ class PortfolioViewModel extends ChangeNotifier {
   Timer? _refreshTimer;
   DateTime? _lastFetchTime;
 
-  static const _refreshInterval = Duration(seconds: 30);
+  static const _refreshInterval = Duration(minutes: 10);
 
   PortfolioSummaryModel? get summary => _summary;
   PortfolioHistoryModel? get history => _history;
@@ -186,7 +186,7 @@ class PortfolioViewModel extends ChangeNotifier {
     // If not forced, check if we fetched within the last 5 minutes
     if (!force && _lastFetchTime != null && _summary != null) {
       final difference = DateTime.now().difference(_lastFetchTime!);
-      if (difference.inMinutes < 5) {
+      if (difference.inMinutes < 10) {
         debugPrint('Using cached portfolio data (${difference.inMinutes}m old)');
         return;
       }

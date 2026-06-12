@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hyperscreener/viewmodels/leaderboard_viewmodel.dart';
 import 'package:hyperscreener/viewmodels/wallet_viewmodel.dart';
@@ -21,16 +22,13 @@ Future<void> main() async {
     debugPrint('FlutterError: ${details.exceptionAsString()}');
   };
 
-  await Future.wait([
+  final results = await Future.wait([
     Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
-    dotenv.load(fileName: ".env").then((_) {
-      debugPrint('✅ ENV: .env loaded successfully');
-      debugPrint('📡 STATS_API_URL: ${dotenv.env['STATS_API_URL']}');
-    }).catchError((e) {
-      debugPrint('❌ ENV ERROR: $e');
-      return null;
-    }),
+    SharedPreferences.getInstance(),
+    dotenv.load(fileName: ".env"),
   ]);
+
+  final prefs = results[1] as SharedPreferences;
 
   runApp(
     MultiProvider(
@@ -39,7 +37,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => SubscriptionViewModel()),
         ChangeNotifierProvider(create: (_) => PortfolioViewModel()),
         ChangeNotifierProvider(create: (_) => LeaderboardViewModel()),
-        ChangeNotifierProvider(create: (_) => WalletViewModel()),
+        ChangeNotifierProvider(create: (_) => WalletViewModel(prefs: prefs)),
       ],
       child: const MyApp(),
     ),

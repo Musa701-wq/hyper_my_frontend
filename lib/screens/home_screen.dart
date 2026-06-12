@@ -11,16 +11,16 @@ import '../viewmodels/subscription_viewmodel.dart';
 import '../viewmodels/wallet_viewmodel.dart';
 import '../viewmodels/portfolio_viewmodel.dart';
 import '../models/ticker_model.dart';
-import '../widgets/coming_soon_dialog.dart';
-import '../widgets/live_markets_drawer.dart';
 import '../widgets/error_state_widget.dart';
+import '../widgets/funding_legend_dialog.dart';
+import '../widgets/live_markets_drawer.dart' show LiveMarketsBody;
 import '../widgets/sparkline_widget.dart';
 import '../widgets/ticker_detail_dialog.dart';
-import '../widgets/funding_legend_dialog.dart';
 import 'profile_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/responsive.dart';
 import '../analytics/analytics_service.dart';
+import '../widgets/account_management_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 return GestureDetector(
                   onTap: () {
                     if (connected) {
-                      _showDisconnectDialog(context, wallet);
+                      _showAccountManagement(context, wallet);
                     } else {
                       _showConnectDialog(context, wallet);
                     }
@@ -160,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(width: 5),
                         Text(
-                          connected ? wallet.shortAddress : 'CONNECT',
+                          connected ? wallet.shortAddress : 'ADD ADDRESS',
                           style: GoogleFonts.jetBrainsMono(
                             color: connected
                                 ? AppColors.trendGreen
@@ -382,7 +382,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                   children: [
                                     SizedBox(width: res.columnWidth(30), child: Text('#', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
                                     const SizedBox(width: 4),
-                                    Expanded(child: Text('Symbol', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
+                                    _buildSortableHeader(
+                                      label: 'Symbol',
+                                      columnKey: 'symbol',
+                                      viewModel: viewModel,
+                                      width: res.columnWidth(120),
+                                      isExpanded: true,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -420,21 +426,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
                                             Text(
-                                              ticker.displayName.split(':').last,
+                                              ticker.displaySymbol,
                                               overflow: TextOverflow.ellipsis,
-                                              style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: FontWeight.bold),
-                                            ),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.brandAccent.withValues(alpha: 0.1),
-                                                borderRadius: BorderRadius.circular(2),
-                                              ),
-                                              child: Text(
-                                                viewModel.selectedTab == 'CRYPTO' ? ticker.cryptoCategory.toUpperCase() : ticker.dex.toUpperCase(), 
-                                                style: GoogleFonts.jetBrainsMono(color: AppColors.brandAccent, fontSize: res.fontSize(8))
+                                              style: GoogleFonts.jetBrainsMono(
+                                                color: viewModel.sortColumn == 'symbol' ? Colors.white : AppColors.textPrimary,
+                                                fontSize: res.fontSize(11),
+                                                fontWeight: viewModel.sortColumn == 'symbol' ? FontWeight.bold : FontWeight.normal,
                                               ),
                                             ),
+                                            const SizedBox(height: 2),
+                                            _buildMarketBadge(ticker, res),
                                           ],
                                         ),
                                       ),
@@ -459,27 +460,46 @@ class _HomeScreenState extends State<HomeScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
                                   child: Row(
                                     children: [
-                                      SizedBox(width: res.columnWidth(85), child: Text('Price', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
-                                      SizedBox(width: res.columnWidth(85), child: Text('24h Change', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
-                                      SizedBox(
+                                      _buildSortableHeader(
+                                        label: 'Price',
+                                        columnKey: 'lastPrice',
+                                        viewModel: viewModel,
                                         width: res.columnWidth(85),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Text('8h Fund', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11))),
-                                            const SizedBox(width: 4),
-                                            GestureDetector(
-                                              onTap: () => showDialog(
-                                                context: context,
-                                                builder: (context) => const FundingLegendDialog(),
-                                              ),
-                                              child: Icon(Icons.info_outline, size: 12, color: AppColors.textSecondary.withValues(alpha: 0.8)),
-                                            ),
-                                          ],
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      _buildSortableHeader(
+                                        label: '24h Change',
+                                        columnKey: 'change24hPct',
+                                        viewModel: viewModel,
+                                        width: res.columnWidth(85),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      _buildSortableHeader(
+                                        label: '8h Fund',
+                                        columnKey: 'funding8hPct',
+                                        viewModel: viewModel,
+                                        width: res.columnWidth(85),
+                                        textAlign: TextAlign.center,
+                                        hasInfo: true,
+                                        onInfoTap: () => showDialog(
+                                          context: context,
+                                          builder: (context) => const FundingLegendDialog(),
                                         ),
                                       ),
-                                      SizedBox(width: res.columnWidth(80), child: Text('Vol 24H', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
-                                      SizedBox(width: res.columnWidth(90), child: Text('Open Int.', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
+                                      _buildSortableHeader(
+                                        label: 'Vol 24H',
+                                        columnKey: 'volume24hUSD',
+                                        viewModel: viewModel,
+                                        width: res.columnWidth(80),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      _buildSortableHeader(
+                                        label: 'Open Int.',
+                                        columnKey: 'openInterestUSD',
+                                        viewModel: viewModel,
+                                        width: res.columnWidth(90),
+                                        textAlign: TextAlign.center,
+                                      ),
                                       SizedBox(width: res.columnWidth(50), child: Text('Trend', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
                                     ],
                                   ),
@@ -504,11 +524,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     child: Row(
                                       children: [
-                                        SizedBox(width: res.columnWidth(85), child: Text(ticker.lastPrice.toStringAsFixed(4), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: FontWeight.bold))),
-                                        SizedBox(width: res.columnWidth(85), child: Text(formattedChange, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: changeColor, fontSize: res.fontSize(11)))),
-                                        SizedBox(width: res.columnWidth(85), child: Text(formattedFunding, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: ticker.funding8hPct >= 0 ? AppColors.trendGreen : AppColors.trendRed, fontSize: res.fontSize(11)))),
-                                        SizedBox(width: res.columnWidth(80), child: Text(_formatVolume(ticker.volume24hUSD), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(11)))),
-                                        SizedBox(width: res.columnWidth(90), child: Text(formattedOI, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(11)))),
+                                        SizedBox(width: res.columnWidth(85), child: Text(ticker.lastPrice.toStringAsFixed(4), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: viewModel.sortColumn == 'lastPrice' ? Colors.white : AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'lastPrice' ? FontWeight.bold : FontWeight.normal))),
+                                        SizedBox(width: res.columnWidth(85), child: Text(formattedChange, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: changeColor, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'change24hPct' ? FontWeight.bold : FontWeight.normal))),
+                                        SizedBox(width: res.columnWidth(85), child: Text(formattedFunding, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: ticker.funding8hPct >= 0 ? AppColors.trendGreen : AppColors.trendRed, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'funding8hPct' ? FontWeight.bold : FontWeight.normal))),
+                                        SizedBox(width: res.columnWidth(80), child: Text(_formatVolume(ticker.volume24hUSD), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: viewModel.sortColumn == 'volume24hUSD' ? Colors.white : AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'volume24hUSD' ? FontWeight.bold : FontWeight.normal))),
+                                        SizedBox(width: res.columnWidth(90), child: Text(formattedOI, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: viewModel.sortColumn == 'openInterestUSD' ? Colors.white : AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'openInterestUSD' ? FontWeight.bold : FontWeight.normal))),
                                         SizedBox(
                                           width: res.columnWidth(50), 
                                           child: Center(
@@ -628,6 +648,78 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildMarketBadge(TickerModel ticker, Responsive res) {
+    String? categoryLabel;
+    
+    // Identify category (DEX or Crypto Category)
+    if (ticker.dex.isNotEmpty && ticker.dex.toLowerCase() != 'hyperliquid') {
+      categoryLabel = ticker.dex.toUpperCase();
+    } else if (ticker.cryptoCategory.isNotEmpty) {
+      final standardCategories = ['layer1', 'layer2', 'defi', 'ai', 'gaming', 'meme'];
+      if (!standardCategories.contains(ticker.cryptoCategory.toLowerCase().trim())) {
+        categoryLabel = ticker.cryptoCategory.toUpperCase();
+      }
+    }
+
+
+
+
+
+
+    final List<Widget> badges = [];
+    
+    // 1. Check for SPOT
+    if (ticker.marketType == 'spot') {
+      badges.add(
+        _Badge(
+          label: 'SPOT',
+          res: res,
+          bgColor: const Color(0xFF0D2D2A),
+          textColor: const Color(0xFF5EEAD4),
+        ),
+      );
+    }
+
+    // 2. Category badge (if identified above)
+    if (categoryLabel != null) {
+      if (badges.isNotEmpty) badges.add(const SizedBox(width: 4));
+      badges.add(
+        _Badge(
+          label: categoryLabel,
+          res: res,
+          bgColor: const Color(0xFF0D2D2A),
+          textColor: const Color(0xFF5EEAD4),
+        ),
+      );
+    }
+
+
+
+    // 3. Leverage Badge (for everything except SPOT, if > 0)
+    if (ticker.marketType != 'spot' && ticker.maxLeverage > 0) {
+      if (badges.isNotEmpty) badges.add(const SizedBox(width: 4));
+      badges.add(
+        _Badge(
+          label: '${ticker.maxLeverage}x',
+          res: res,
+          bgColor: const Color(0xFF0D2D2A),
+          textColor: const Color(0xFF5EEAD4),
+        ),
+      );
+    }
+
+
+
+
+
+    if (badges.isEmpty) return const SizedBox.shrink();
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: badges,
+    );
+  }
+
   Widget _buildTab(HomeViewModel viewModel, String title, Responsive res) {
     bool isActive = viewModel.selectedTab == title;
     return GestureDetector(
@@ -656,6 +748,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildPageButton(Responsive res, {String? text, IconData? icon, VoidCallback? onTap, required bool isActive, bool isEnabled = true}) {
+
     return GestureDetector(
       onTap: isEnabled ? onTap : null,
       child: Container(
@@ -679,7 +772,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ── Portfolio body (shown when wallet connected + index 3) ───────────────
   Widget _buildPortfolioBody(PortfolioViewModel vm) {
-    final wallet = context.read<WalletViewModel>();
+    final wallet = context.watch<WalletViewModel>();
+
+    if (!wallet.isInitialized) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.brandAccent),
+      );
+    }
+
     if (!wallet.isConnected) {
       // Not connected — prompt user
       return Center(
@@ -709,13 +809,24 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: ctx,
       builder: (_) => _ConnectDialog(
-        onConnect: (address) async {
-          await wallet.connect(address);
+        onConnect: (address, name) async {
+          await wallet.connect(address, name: name);
           if (!mounted) return;
           // Initialize portfolio with the address
           context.read<PortfolioViewModel>().initializePortfolio(address);
-          setState(() => _selectedIndex = 1);
+          setState(() => _selectedIndex = 3); // Go to portfolio tab
         },
+      ),
+    );
+  }
+
+  void _showAccountManagement(BuildContext ctx, WalletViewModel wallet) {
+    showModalBottomSheet(
+      context: ctx,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AccountManagementSheet(
+        onAddAccount: () => _showConnectDialog(ctx, wallet),
       ),
     );
   }
@@ -1110,6 +1221,63 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildSortableHeader({
+    required String label,
+    required String columnKey,
+    required HomeViewModel viewModel,
+    required double width,
+    TextAlign textAlign = TextAlign.start,
+    bool isExpanded = false,
+    bool hasInfo = false,
+    VoidCallback? onInfoTap,
+  }) {
+    final bool isSorted = viewModel.sortColumn == columnKey;
+    final res = Responsive(context);
+
+    Widget content = GestureDetector(
+      onTap: () => viewModel.setSortColumn(columnKey),
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: textAlign == TextAlign.center ? MainAxisAlignment.center : MainAxisAlignment.start,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              textAlign: textAlign,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.jetBrainsMono(
+                color: isSorted ? Colors.white : AppColors.textSecondary,
+                fontSize: res.fontSize(11),
+                fontWeight: isSorted ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+          if (isSorted) ...[
+            const SizedBox(width: 2),
+            Icon(
+              viewModel.isAscending ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+              size: 14,
+              color: AppColors.brandAccent,
+            ),
+          ],
+          if (hasInfo) ...[
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onInfoTap,
+              child: Icon(Icons.info_outline, size: 12, color: AppColors.textSecondary.withValues(alpha: 0.8)),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    if (isExpanded) {
+      return Expanded(child: content);
+    }
+    return SizedBox(width: width, child: content);
+  }
+
   Widget _skeletonPill(double width, double height) {
     return Container(
       width: width,
@@ -1429,11 +1597,12 @@ class _LeaderboardDrawerItemState extends State<_LeaderboardDrawerItem>
   }
 }
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Connect Wallet Dialog
 // ─────────────────────────────────────────────────────────────────────────────
 class _ConnectDialog extends StatefulWidget {
-  final Future<void> Function(String address) onConnect;
+  final Future<void> Function(String address, String name) onConnect;
   const _ConnectDialog({required this.onConnect});
 
   @override
@@ -1441,12 +1610,14 @@ class _ConnectDialog extends StatefulWidget {
 }
 
 class _ConnectDialogState extends State<_ConnectDialog> {
-  final _ctrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController();
   bool _loading = false;
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _addressCtrl.dispose();
+    _nameCtrl.dispose();
     super.dispose();
   }
 
@@ -1496,6 +1667,42 @@ class _ConnectDialogState extends State<_ConnectDialog> {
           ),
           const SizedBox(height: 16),
           Text(
+            'NICKNAME (E.G. MAIN WALLET)',
+            style: GoogleFonts.jetBrainsMono(
+              color: AppColors.textSecondary,
+              fontSize: 9,
+              letterSpacing: 1.4,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                  color: AppColors.brandAccent.withValues(alpha: 0.3)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: TextField(
+              controller: _nameCtrl,
+              textCapitalization: TextCapitalization.words,
+              style: GoogleFonts.jetBrainsMono(
+                color: AppColors.textPrimary,
+                fontSize: 12,
+              ),
+              decoration: InputDecoration(
+                hintText: 'My Wallet',
+                hintStyle: GoogleFonts.jetBrainsMono(
+                    color: AppColors.textSecondary, fontSize: 12),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
             'ADDRESS',
             style: GoogleFonts.jetBrainsMono(
               color: AppColors.textSecondary,
@@ -1513,7 +1720,7 @@ class _ConnectDialogState extends State<_ConnectDialog> {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: TextField(
-              controller: _ctrl,
+              controller: _addressCtrl,
               style: GoogleFonts.jetBrainsMono(
                 color: AppColors.textPrimary,
                 fontSize: 12,
@@ -1529,43 +1736,83 @@ class _ConnectDialogState extends State<_ConnectDialog> {
               ),
             ),
           ),
-
         ],
       ),
       actions: [
         TextButton(
-          onPressed: _loading ? null : () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(context),
           child: Text('Cancel',
               style: GoogleFonts.jetBrainsMono(
                   color: AppColors.textSecondary, fontSize: 13)),
         ),
-        TextButton(
-          onPressed: _loading
-              ? null
-              : () async {
-                  final addr = _ctrl.text.trim();
-                  if (addr.isEmpty) return;
-                  setState(() => _loading = true);
-                  Navigator.pop(context);
-                  await widget.onConnect(addr);
-                },
-          child: _loading
-              ? const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.brandAccent),
-                )
-              : Text(
-                  'Continue',
-                  style: GoogleFonts.jetBrainsMono(
-                    color: AppColors.brandAccent,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+        SizedBox(
+          width: 125,
+          child: ElevatedButton(
+            onPressed: _loading
+                ? null
+                : () async {
+                    final addr = _addressCtrl.text.trim();
+                    final name = _nameCtrl.text.trim().isEmpty 
+                        ? 'Wallet ${addr.length > 4 ? addr.substring(addr.length - 4) : ""}' 
+                        : _nameCtrl.text.trim();
+                    if (addr.length < 40) return;
+                    
+                    setState(() => _loading = true);
+                    await widget.onConnect(addr, name);
+                    if (mounted) Navigator.pop(context);
+                  },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.brandAccent,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: _loading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.black))
+                : Text('Continue',
+                    style: GoogleFonts.jetBrainsMono(
+                        fontSize: 13, fontWeight: FontWeight.bold)),
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final String label;
+  final Responsive res;
+  final Color bgColor;
+  final Color textColor;
+
+  const _Badge({
+    required this.label,
+    required this.res,
+    required this.bgColor,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.jetBrainsMono(
+          color: textColor,
+          fontSize: res.fontSize(9),
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }

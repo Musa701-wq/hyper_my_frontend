@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../utils/app_config.dart';
 import '../models/ticker_model.dart';
 import '../models/trader_distribution_model.dart';
 import '../utils/app_exceptions.dart';
@@ -33,6 +34,9 @@ class HomeViewModel extends ChangeNotifier {
   TraderDistributionModel? _volumeDist;
   TraderDistributionModel? _valueDist;
   bool _isDistLoading = false;
+  
+  String _sortColumn = 'volume24hUSD';
+  bool _isAscending = false;
 
   List<TickerModel> get tickers => _tickers;
   TraderDistributionModel? get volumeDist => _volumeDist;
@@ -90,6 +94,51 @@ class HomeViewModel extends ChangeNotifier {
       }).toList();
     }
     
+    // Sorting
+    list.sort((a, b) {
+      dynamic valA;
+      dynamic valB;
+
+      switch (_sortColumn) {
+        case 'symbol':
+          valA = a.symbol;
+          valB = b.symbol;
+          break;
+        case 'lastPrice':
+          valA = a.lastPrice;
+          valB = b.lastPrice;
+          break;
+        case 'change24hPct':
+          valA = a.change24hPct;
+          valB = b.change24hPct;
+          break;
+        case 'funding8hPct':
+          valA = a.funding8hPct;
+          valB = b.funding8hPct;
+          break;
+        case 'volume24hUSD':
+          valA = a.volume24hUSD;
+          valB = b.volume24hUSD;
+          break;
+        case 'openInterestUSD':
+          valA = a.openInterestUSD;
+          valB = b.openInterestUSD;
+          break;
+        default:
+          valA = a.volume24hUSD;
+          valB = b.volume24hUSD;
+      }
+
+      int cmp;
+      if (valA is String) {
+        cmp = valA.compareTo(valB);
+      } else {
+        cmp = (valA as num).compareTo(valB as num);
+      }
+
+      return _isAscending ? cmp : -cmp;
+    });
+
     return list;
   }
   
@@ -113,6 +162,18 @@ class HomeViewModel extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   String get selectedCryptoCategory => _selectedCryptoCategory;
   List<String> get cryptoCategories => _cryptoCategories;
+  String get sortColumn => _sortColumn;
+  bool get isAscending => _isAscending;
+
+  void setSortColumn(String column) {
+    if (_sortColumn == column) {
+      _isAscending = !_isAscending;
+    } else {
+      _sortColumn = column;
+      _isAscending = false; // Default to descending for numbers
+    }
+    notifyListeners();
+  }
 
   void setTab(String tab) {
     if (_selectedTab == tab) return;
@@ -152,8 +213,8 @@ class HomeViewModel extends ChangeNotifier {
 
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       try {
-        final baseUrl = dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com';
-        final hipBaseUrl = dotenv.env['HIP_BASE_URL'] ?? 'https://api.hyperliquid.bubblenexus.com';
+        final baseUrl = AppConfig.baseUrl;
+        final hipBaseUrl = AppConfig.hipBaseUrl;
 
         final url = _selectedTab == 'ALL'
             ? '$baseUrl/all'
@@ -228,7 +289,7 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final hipBaseUrl = dotenv.env['HIP_BASE_URL'] ?? 'https://api.hyperliquid.bubblenexus.com';
+      final hipBaseUrl = AppConfig.hipBaseUrl;
       
       // Fetch distributions independently so one failure doesn't block the other
       await Future.wait([
@@ -295,8 +356,8 @@ class HomeViewModel extends ChangeNotifier {
 
     try {
       String wsUrl = (_selectedTab == 'HIP-3')
-          ? (dotenv.env['HIP_WS_URL'] ?? 'wss://api.hyperliquid.bubblenexus.com')
-          : (dotenv.env['WS_URL'] ?? 'wss://coingecko.renderonnodes.com/ws/');
+          ? AppConfig.hipWsUrl
+          : AppConfig.wsUrl;
       if (!wsUrl.endsWith('/')) wsUrl += '/';
 
       debugPrint('Connecting to WebSocket: $wsUrl for tab $_selectedTab (attempt ${attempt + 1})');

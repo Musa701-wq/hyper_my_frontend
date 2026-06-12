@@ -44,7 +44,10 @@ class LiveMarketsBody extends StatefulWidget {
 }
 
 class _LiveMarketsBodyState extends State<LiveMarketsBody> {
-  int _selectedTabIndex = 0; // 0: Gainers, 1: Losers, 2: Active
+  int _selectedTabIndex = 1; // Default to MOST ACTIVE
+  String _performanceMode = 'Gainers'; // 'Gainers' or 'Losers'
+  String _activeMode = 'Vol'; // 'Vol' or 'OI'
+  String _fundingMode = 'Highest'; // 'Highest' or 'Lowest'
 
   @override
   void initState() {
@@ -63,14 +66,44 @@ class _LiveMarketsBodyState extends State<LiveMarketsBody> {
       return _buildShimmer(res);
     }
 
+    // Performance tickers
+    final List<TickerModel> perfTickers = _performanceMode == 'Gainers' 
+        ? viewModel.gainers 
+        : viewModel.losers;
+
+    // Active tickers
     final List<TickerModel> activeTickers = List.from(viewModel.allTickers)
-      ..sort((a, b) => b.volume24hUSD.compareTo(a.volume24hUSD));
+      ..sort((a, b) => _activeMode == 'Vol'
+          ? b.volume24hUSD.compareTo(a.volume24hUSD)
+          : b.openInterestUSD.compareTo(a.openInterestUSD));
+
+    // Funding tickers
+    final List<TickerModel> fundingTickers = List.from(viewModel.allTickers)
+      ..sort((a, b) => _fundingMode == 'Highest'
+          ? b.funding8hPct.compareTo(a.funding8hPct)
+          : a.funding8hPct.compareTo(b.funding8hPct));
+
+    // Get max value for progress bars
+    double maxValue = 1.0;
+    if (_selectedTabIndex == 1 && activeTickers.isNotEmpty) {
+      final top5 = activeTickers.take(5).toList();
+      maxValue = _activeMode == 'Vol'
+          ? top5.map((e) => e.volume24hUSD).reduce((a, b) => a > b ? a : b)
+          : top5.map((e) => e.openInterestUSD).reduce((a, b) => a > b ? a : b);
+    } else if (_selectedTabIndex == 0 && perfTickers.isNotEmpty) {
+      final top5 = perfTickers.take(5).toList();
+      maxValue = top5.map((e) => e.change24hPct.abs()).reduce((a, b) => a > b ? a : b);
+    } else if (_selectedTabIndex == 2 && fundingTickers.isNotEmpty) {
+      final top5 = fundingTickers.take(5).toList();
+      maxValue = top5.map((e) => e.funding8hPct.abs()).reduce((a, b) => a > b ? a : b);
+    }
+    if (maxValue <= 0) maxValue = 1.0;
 
     final currentTickers = _selectedTabIndex == 0
-        ? viewModel.gainers.take(5).toList()
+        ? perfTickers.take(5).toList()
         : _selectedTabIndex == 1
-            ? viewModel.losers.take(5).toList()
-            : activeTickers.take(5).toList();
+            ? activeTickers.take(5).toList()
+            : fundingTickers.take(5).toList();
 
     return RefreshIndicator(
       onRefresh: () => viewModel.fetchTickers(forceRefresh: true),
@@ -92,6 +125,8 @@ class _LiveMarketsBodyState extends State<LiveMarketsBody> {
             
             const _TableHeader(),
             
+            _buildCategoryHeader(),
+
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -100,10 +135,20 @@ class _LiveMarketsBodyState extends State<LiveMarketsBody> {
                 index: index + 1,
                 ticker: currentTickers[index],
                 res: res,
+                isMarketActive: true, // Always show metrics in this view
+                activeMode: _selectedTabIndex == 0 
+                    ? _performanceMode 
+                    : _selectedTabIndex == 1 
+                        ? _activeMode 
+                        : _fundingMode,
+                maxValue: maxValue,
+                type: _selectedTabIndex == 0 
+                    ? 'perf' 
+                    : _selectedTabIndex == 1 
+                        ? 'active' 
+                        : 'funding',
               ),
             ),
-            
-            SizedBox(height: res.spacing(32)),
             
             SizedBox(height: res.spacing(32)),
 
@@ -111,6 +156,90 @@ class _LiveMarketsBodyState extends State<LiveMarketsBody> {
             _TraderDistributionSection(viewModel: viewModel, res: res),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryHeader() {
+    String label = '';
+    List<String> options = [];
+    String currentMode = '';
+    Function(String) onToggle;
+
+    if (_selectedTabIndex == 0) {
+      label = 'PERFORMANCE';
+      options = ['Gainers', 'Losers'];
+      currentMode = _performanceMode;
+      onToggle = (m) => setState(() => _performanceMode = m);
+    } else if (_selectedTabIndex == 1) {
+      label = 'MOST ACTIVE';
+      options = ['Vol', 'OI'];
+      currentMode = _activeMode;
+      onToggle = (m) => setState(() => _activeMode = m);
+    } else {
+      label = 'FUNDING RATE';
+      options = ['Highest', 'Lowest'];
+      currentMode = _fundingMode;
+      onToggle = (m) => setState(() => _fundingMode = m);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _selectedTabIndex == 0 ? Icons.trending_up : _selectedTabIndex == 1 ? Icons.bar_chart : Icons.currency_exchange,
+                color: AppColors.brandAccent,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: GoogleFonts.jetBrainsMono(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            height: 28,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceBright.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: AppColors.surfaceBright, width: 0.5),
+            ),
+            child: Row(
+              children: options.map((opt) {
+                final bool isSelected = currentMode == opt;
+                return GestureDetector(
+                  onTap: () => onToggle(opt),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.brandAccent : Colors.transparent,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Text(
+                      opt,
+                      style: GoogleFonts.jetBrainsMono(
+                        color: isSelected ? Colors.black : AppColors.textSecondary,
+                        fontSize: 10,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -172,9 +301,9 @@ class _TabSelector extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _tabItem('GAINERS', 0),
-          _tabItem('LOSERS', 1),
-          _tabItem('ACTIVE', 2),
+          _tabItem('PERFORMANCE', 0),
+          _tabItem('ACTIVITY', 1),
+          _tabItem('FUNDING', 2),
         ],
       ),
     );
@@ -236,8 +365,20 @@ class _RankedAssetListItem extends StatelessWidget {
   final int index;
   final TickerModel ticker;
   final Responsive res;
+  final bool isMarketActive;
+  final String activeMode;
+  final double maxValue;
+  final String type; // 'perf', 'active', 'funding'
 
-  const _RankedAssetListItem({required this.index, required this.ticker, required this.res});
+  const _RankedAssetListItem({
+    required this.index,
+    required this.ticker,
+    required this.res,
+    this.isMarketActive = false,
+    this.activeMode = 'Vol',
+    this.maxValue = 1.0,
+    required this.type,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -290,33 +431,128 @@ class _RankedAssetListItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  ticker.symbol.split(':').last.replaceAll('USDT', ''),
-                  style: GoogleFonts.jetBrainsMono(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      ticker.symbol.split(':').last.replaceAll('USDT', ''),
+                      style: GoogleFonts.jetBrainsMono(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (!isMarketActive)
+                      Text(
+                        '${isPositive ? '+' : ''}${ticker.change24hPct.toStringAsFixed(2)}%',
+                        style: GoogleFonts.jetBrainsMono(
+                          color: color,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    else 
+                      Text(
+                        type == 'active' 
+                          ? (activeMode == 'Vol' ? _formatValue(ticker.volume24hUSD) : _formatValue(ticker.openInterestUSD))
+                          : type == 'perf'
+                            ? '${isPositive ? '+' : ''}${ticker.change24hPct.toStringAsFixed(2)}%'
+                            : '${ticker.funding8hPct > 0 ? '+' : ''}${(ticker.funding8hPct * 100).toStringAsFixed(4)}%',
+                        style: GoogleFonts.jetBrainsMono(
+                          color: type == 'perf' 
+                            ? color 
+                            : type == 'funding'
+                              ? (ticker.funding8hPct >= 0 ? AppColors.trendRed : AppColors.trendGreen)
+                              : Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  ],
                 ),
-                Text(
-                  '\$${ticker.lastPrice.toStringAsFixed(ticker.lastPrice < 1 ? 6 : 2)}',
-                  style: GoogleFonts.jetBrainsMono(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                  ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                      Text(
+                        '\$${ticker.lastPrice.toStringAsFixed(ticker.lastPrice < 1 ? 6 : 2)}',
+                        style: GoogleFonts.jetBrainsMono(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                      ),
+                    if (isMarketActive)
+                      Text(
+                        type == 'active'
+                          ? '${isPositive ? '+' : ''}${ticker.change24hPct.toStringAsFixed(2)}%'
+                          : type == 'perf'
+                            ? (ticker.volume24hUSD > 0 ? _formatValue(ticker.volume24hUSD) : '')
+                            : '${ticker.funding8hPct * 3 * 365 * 100 >= 0 ? '+' : ''}${(ticker.funding8hPct * 3 * 365 * 100).toStringAsFixed(1)}% APR',
+                        style: GoogleFonts.jetBrainsMono(
+                          color: (type == 'active' || type == 'perf') ? (type == 'active' ? color : AppColors.textSecondary) : (ticker.funding8hPct >= 0 ? AppColors.trendRed : AppColors.trendGreen),
+                          fontSize: 10,
+                        ),
+                      ),
+                  ],
                 ),
+                if (isMarketActive) ...[
+                  const SizedBox(height: 8),
+                  _buildAnimatedProgressBar(),
+                ],
               ],
             ),
           ),
-          Text(
-            '${isPositive ? '+' : ''}${ticker.change24hPct.toStringAsFixed(2)}%',
-            style: GoogleFonts.jetBrainsMono(
-              color: color,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
         ],
+      ),
+    );
+  }
+
+  String _formatValue(double v) {
+    if (v >= 1e9) return '\$${(v / 1e9).toStringAsFixed(1)}B';
+    if (v >= 1e6) return '\$${(v / 1e6).toStringAsFixed(1)}M';
+    if (v >= 1e3) return '\$${(v / 1e3).toStringAsFixed(1)}K';
+    return '\$${v.toStringAsFixed(0)}';
+  }
+
+  Widget _buildAnimatedProgressBar() {
+    double value = 1.0;
+    if (type == 'active') {
+      value = activeMode == 'Vol' ? ticker.volume24hUSD : ticker.openInterestUSD;
+    } else if (type == 'perf') {
+      value = ticker.change24hPct.abs();
+    } else if (type == 'funding') {
+      value = ticker.funding8hPct.abs();
+    }
+    
+    final double ratio = (value / maxValue).clamp(0.1, 1.0); // 0.1 min for visibility
+    
+    return Container(
+      height: 3,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBright.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(2),
+      ),
+      child: FractionallySizedBox(
+        alignment: Alignment.centerLeft,
+        widthFactor: 1.0, // Parent takes full width
+        child: Stack(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOutCirc,
+              width: (res.width - res.spacing(16) * 2 - 32 - 12 - 24 - 12) * ratio, // Apprx width calc
+              decoration: BoxDecoration(
+                color: type == 'perf' 
+                  ? (ticker.change24hPct >= 0 ? AppColors.trendGreen : AppColors.trendRed).withValues(alpha: 0.6)
+                  : type == 'funding'
+                    ? (ticker.funding8hPct >= 0 ? AppColors.trendRed : AppColors.trendGreen).withValues(alpha: 0.6)
+                    : AppColors.brandAccent.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -751,7 +987,7 @@ class _DistributionCardState extends State<_DistributionCard> {
           PieChart(
             PieChartData(
               sectionsSpace: 0,
-              centerSpaceRadius: widget.res.width * 0.16, // Inner radius 48% area roughly
+              centerSpaceRadius: widget.res.width * 0.16,
               startDegreeOffset: -90,
               sections: visibleSegments.map((s) {
                 final double value = _getMetricValue(s);
@@ -759,32 +995,38 @@ class _DistributionCardState extends State<_DistributionCard> {
                   color: _getSegmentColor(s.key),
                   value: value > 0 ? value : 0.001,
                   title: '',
-                  radius: 24, // Outer radius control
+                  radius: 24,
                   badgeWidget: null,
                 );
               }).toList(),
             ),
+            swapAnimationDuration: const Duration(milliseconds: 800),
+            swapAnimationCurve: Curves.easeInOutExpo,
           ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '${centerPct.toStringAsFixed(0)}%',
-                style: GoogleFonts.jetBrainsMono(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 400),
+            child: Column(
+              key: ValueKey('${topSegment?.key}_$_activeMetricIndex'),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${centerPct.toStringAsFixed(0)}%',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              Text(
-                centerLabel,
-                style: GoogleFonts.jetBrainsMono(
-                  color: AppColors.textSecondary,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
+                Text(
+                  centerLabel,
+                  style: GoogleFonts.jetBrainsMono(
+                    color: AppColors.textSecondary,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

@@ -426,12 +426,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   // Single CustomScrollView approach — no extra divider between columns,
   // no extra spacing. Header is a SliverPersistentHeader (sticky).
   Widget _buildTable(Responsive res, LeaderboardViewModel vm) {
-    final double leftW  = res.isMobile ? 150.0 : 180.0;
-    const double wAcc   = 110.0;
-    const double wPnl   = 105.0;
-    const double wRoi   =  95.0;
-    const double wVol   = 110.0;
-    const double rightW = wAcc + wPnl + wRoi + wVol;
+    final double leftW  = res.columnWidth(155.0);
+    final double wAcc   = res.columnWidth(95.0);
+    final double wPnl   = res.columnWidth(95.0);
+    final double wRoi   = res.columnWidth(85.0);
+    final double wVol   = res.columnWidth(95.0);
+    final double rightW = wAcc + wPnl + wRoi + wVol;
 
     final traders = vm.topTraders;
 
@@ -481,17 +481,17 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       child: Row(
         children: [
           SizedBox(
-            width: 30,
+            width: res.columnWidth(30),
             child: Text('#',
                 style: GoogleFonts.jetBrainsMono(
                     color: AppColors.textSecondary,
-                    fontSize: res.fontSize(11))),
+                    fontSize: res.fontSize(14))),
           ),
           const SizedBox(width: 4),
           Text('Trader',
               style: GoogleFonts.jetBrainsMono(
                   color: AppColors.textSecondary,
-                  fontSize: res.fontSize(11))),
+                  fontSize: res.fontSize(14))),
         ],
       ),
     );
@@ -535,7 +535,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 label,
                 style: GoogleFonts.jetBrainsMono(
                   color: active ? AppColors.brandAccent : AppColors.textSecondary,
-                  fontSize: res.fontSize(11),
+                  fontSize: res.fontSize(14),
                   fontWeight: active ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -568,7 +568,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     : AppColors.textSecondary;
 
     return Container(
-      height: 56,
+      height: 64,
       padding: const EdgeInsets.only(left: 8, right: 4),
       decoration: const BoxDecoration(
         border: Border(
@@ -577,11 +577,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       child: Row(
         children: [
           SizedBox(
-            width: 30,
+            width: res.columnWidth(30),
             child: Text('$rank',
                 style: GoogleFonts.jetBrainsMono(
                   color: rankColor,
-                  fontSize: res.fontSize(10),
+                  fontSize: res.fontSize(13),
                   fontWeight: rank <= 3 ? FontWeight.bold : FontWeight.normal,
                 )),
           ),
@@ -594,14 +594,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 Text(name,
                     style: GoogleFonts.jetBrainsMono(
                       color: AppColors.textPrimary,
-                      fontSize: res.fontSize(11),
+                      fontSize: res.fontSize(15),
                       fontWeight: FontWeight.bold,
                     ),
                     overflow: TextOverflow.ellipsis),
                 Text('${addr.substring(0, 8)}...',
                     style: GoogleFonts.jetBrainsMono(
                       color: AppColors.textSecondary,
-                      fontSize: res.fontSize(8),
+                      fontSize: res.fontSize(11),
                     )),
               ],
             ),
@@ -615,7 +615,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Widget _rightRow(Trader t, Responsive res,
       double wAcc, double wPnl, double wRoi, double wVol) {
     return Container(
-      height: 56,
+      height: 64,
       decoration: const BoxDecoration(
         border: Border(
             bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
@@ -648,7 +648,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             textAlign: TextAlign.center,
             style: GoogleFonts.jetBrainsMono(
               color: color ?? AppColors.textPrimary,
-              fontSize: res.fontSize(11),
+              fontSize: res.fontSize(14),
               fontWeight: FontWeight.w500,
             )),
       ),
