@@ -173,14 +173,20 @@ class _LiveMarketsBodyState extends State<LiveMarketsBody> {
       onToggle = (m) => setState(() => _performanceMode = m);
     } else if (_selectedTabIndex == 1) {
       label = 'MOST ACTIVE';
-      options = ['Vol', 'OI'];
+      options = ['Vol'/*, 'OI'*/]; // Commented out 'OI'
       currentMode = _activeMode;
       onToggle = (m) => setState(() => _activeMode = m);
     } else {
+      /*
       label = 'FUNDING RATE';
       options = ['Highest', 'Lowest'];
       currentMode = _fundingMode;
       onToggle = (m) => setState(() => _fundingMode = m);
+      */
+      // REDACTED: Funding rates hidden
+      label = '';
+      options = [];
+      onToggle = (m) {};
     }
 
     return Container(
@@ -303,7 +309,7 @@ class _TabSelector extends StatelessWidget {
         children: [
           _tabItem('PERFORMANCE', 0),
           _tabItem('ACTIVITY', 1),
-          _tabItem('FUNDING', 2),
+          // _tabItem('FUNDING', 2),
         ],
       ),
     );

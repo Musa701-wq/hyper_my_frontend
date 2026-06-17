@@ -35,10 +35,10 @@ class AnalyticsService {
     );
   }
 
-  // Log Recent Trades Access
-  static Future<void> logRecentTradesAccess(String symbol) async {
+  // Log Recent Activity Access for Ticker Details
+  static Future<void> logTickerRecentActivity(String symbol) async {
     await _analytics.logEvent(
-      name: 'recent_trades_access',
+      name: 'ticker_recent_activity_access',
       parameters: {'symbol': symbol},
     );
   }

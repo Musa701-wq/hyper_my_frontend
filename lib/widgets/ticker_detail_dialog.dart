@@ -232,7 +232,7 @@ class _DialogHeader extends StatelessWidget {
                   const Spacer(),
                   GestureDetector(
                     onTap: () {
-                      AnalyticsService.logRecentTradesAccess(ticker.symbol);
+                      AnalyticsService.logTickerRecentActivity(ticker.symbol);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -264,7 +264,7 @@ class _DialogHeader extends StatelessWidget {
                           ),
                           SizedBox(width: res.spacing(4)),
                           Text(
-                            'TRADES',
+                            'RECENTS',
                             style: GoogleFonts.jetBrainsMono(
                               color: AppColors.brandAccent,
                               fontSize: res.fontSize(9),
@@ -361,6 +361,7 @@ class _DialogHeader extends StatelessWidget {
 
 
 
+    /*
     // 3. Leverage Badge (for everything except SPOT, if > 0)
     if (ticker.marketType != 'spot' && ticker.maxLeverage > 0) {
       if (badges.isNotEmpty) badges.add(const SizedBox(width: 4));
@@ -373,6 +374,7 @@ class _DialogHeader extends StatelessWidget {
         ),
       );
     }
+    */
 
 
 

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hyperscreener/viewmodels/leaderboard_viewmodel.dart';
 import 'package:hyperscreener/viewmodels/wallet_viewmodel.dart';
+import 'package:hyperscreener/viewmodels/defillama_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'utils/app_colors.dart';
 import 'screens/splash_screen.dart';
@@ -37,6 +38,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => SubscriptionViewModel()),
         ChangeNotifierProvider(create: (_) => PortfolioViewModel()),
         ChangeNotifierProvider(create: (_) => LeaderboardViewModel()),
+        ChangeNotifierProvider(create: (_) => DefiLlamaViewModel()),
         ChangeNotifierProvider(create: (_) => WalletViewModel(prefs: prefs)),
       ],
       child: const MyApp(),

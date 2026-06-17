@@ -13,13 +13,45 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   bool _attRequested = false;
+  late AnimationController _mainController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    _mainController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _mainController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
+    );
+
+    _scaleAnimation = CurvedAnimation(
+      parent: _mainController,
+      curve: const Interval(0.0, 0.8, curve: Curves.easeOutBack),
+    );
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _mainController.forward();
+    
     WidgetsBinding.instance.addPostFrameCallback((_) => _requestAtt());
     _startSplashTimer();
   }
@@ -27,6 +59,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _mainController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -52,7 +86,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     try {
       raw = await _attChannel.invokeMethod('requestAtt');
     } catch (_) {
-      // fallback to plugin if native channel fails
       final fallback = await AppTrackingTransparency.requestTrackingAuthorization();
       debugPrint("📱 ATT: Authorization complete → $fallback.");
       if (fallback == TrackingStatus.notDetermined) _attRequested = false;
@@ -79,162 +112,155 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Container(
-        decoration: BoxDecoration(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
           gradient: RadialGradient(
-            center: const Alignment(0, -0.2),
-            radius: 1.2,
+            center: Alignment(0, -0.3),
+            radius: 1.5,
             colors: [
-              const Color(0xFF1A1F2B),
+              Color(0xFF1E2328),
               AppColors.background,
             ],
           ),
         ),
         child: Stack(
+          alignment: Alignment.center,
           children: [
-            // Background Glow
-            Positioned(
-              top: MediaQuery.of(context).size.height * 0.2,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  width: 200,
-                  height: 200,
+            // Subtle background glow
+            AnimatedBuilder(
+              animation: _pulseAnimation,
+              builder: (context, child) {
+                return Container(
+                  width: 250 * _pulseAnimation.value,
+                  height: 250 * _pulseAnimation.value,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.brandAccent.withValues(alpha: 0.05),
-                        blurRadius: 100,
-                        spreadRadius: 50,
-                      ),
-                    ],
+                    gradient: RadialGradient(
+                      colors: [
+                        AppColors.brandAccent.withOpacity(0.04 * _pulseAnimation.value),
+                        Colors.transparent,
+                      ],
+                    ),
                   ),
+                );
+              },
+            ),
+
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Spacer(flex: 7),
+                    // Logo with breathing effect
+                    AnimatedBuilder(
+                      animation: _pulseAnimation,
+                      builder: (context, child) {
+                        return Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.brandAccent.withOpacity(0.12 * _pulseAnimation.value),
+                                blurRadius: 35 * _pulseAnimation.value,
+                                spreadRadius: 4 * _pulseAnimation.value,
+                              ),
+                            ],
+                          ),
+                          child: child,
+                        );
+                      },
+                      child: Container(
+                        width: 90,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.brandAccent.withOpacity(0.15),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/LOGO.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 38),
+                    
+                    // Text branding
+                    Text(
+                      'HyperScreener',
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 27,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.4,
+                        height: 1.0,
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 10),
+                    
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.brandAccent.withOpacity(0.2), width: 0.5),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'INSTITUTIONAL GRADE',
+                        style: GoogleFonts.jetBrainsMono(
+                          color: AppColors.brandAccent.withOpacity(0.7),
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 2.2,
+                        ),
+                      ),
+                    ),
+                    const Spacer(flex: 10),
+                  ],
                 ),
               ),
             ),
             
-            Column(
-              children: [
-                const Spacer(flex: 6),
-                
-                // Top Branding Area
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+            // Bottom loading/status
+            Positioned(
+              bottom: 64,
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Column(
                   children: [
-                    // Premium Logo Treatment
-                    Container(
-                      width: 140,
-                      height: 140,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.brandAccent.withValues(alpha: 0.15),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.brandAccent.withValues(alpha: 0.1),
-                            blurRadius: 30,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: 90,
-                          height: 90,
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Image.asset(
-                            'assets/LOGO.png',
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.contain,
-                          ),
+                    SizedBox(
+                      width: 100,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: const LinearProgressIndicator(
+                          backgroundColor: Colors.white10,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.brandAccent),
+                          minHeight: 1.2,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 16),
                     Text(
-                      'HyperScreener',
-                      style: GoogleFonts.jetBrainsMono(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 4,
-                        shadows: [
-                          Shadow(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            blurRadius: 20,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'INSTITUTIONAL SCREENER',
-                      style: GoogleFonts.jetBrainsMono(
-                        color: AppColors.textSecondary.withValues(alpha: 0.6),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 4,
+                      'Initializing markets...',
+                      style: GoogleFonts.inter(
+                        color: Colors.white24,
+                        fontSize: 9,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
                 ),
-                
-                const Spacer(flex: 5),
-                
-                // Bottom Integrated GIF
-                Container(
-                  width: double.infinity,
-                  height: MediaQuery.of(context).size.height * 0.22,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // GIF with Soft Edge blending
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 40),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: Image.asset(
-                            'assets/Trading.gif',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                      
-                      // Bottom gradient to blend into floor
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        height: 50,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                AppColors.background.withValues(alpha: 0.8),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 32),
-              ],
+              ),
             ),
           ],
         ),

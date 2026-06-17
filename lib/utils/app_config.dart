@@ -3,11 +3,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConfig {
   static String get baseUrl {
-    return dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com';
+    return dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com'; // Production fallback
   }
 
   static String get wsUrl {
-    return dotenv.env['WS_URL'] ?? 'wss://coingecko.renderonnodes.com/ws/';
+    return dotenv.env['WS_URL'] ?? 'wss://coingecko.renderonnodes.com/ws/'; // Production fallback
   }
 
   static String get hipBaseUrl {
@@ -16,5 +16,9 @@ class AppConfig {
 
   static String get hipWsUrl {
     return dotenv.env['HIP_WS_URL'] ?? 'wss://api.hyperliquid.bubblenexus.com';
+  }
+
+  static String get defillamaUrl {
+    return dotenv.env['DEFILLAMA_API_URL'] ?? 'http://localhost:4000';
   }
 }
