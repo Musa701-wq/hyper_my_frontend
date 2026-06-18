@@ -22,6 +22,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/responsive.dart';
 import '../analytics/analytics_service.dart';
 import '../widgets/account_management_sheet.dart';
+import '../widgets/hip4_markets_panel.dart';
+import '../viewmodels/hip4_viewmodel.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -258,6 +261,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: TextField(
                             onChanged: (value) {
                               viewModel.setSearchQuery(value);
+                              try {
+                                context.read<Hip4ViewModel>().setSearchQuery(value);
+                              } catch (_) {}
                               AnalyticsService.logSearch(value);
                             },
                             style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(14)),
@@ -296,6 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildTab(viewModel, 'SPOT', res),
                           _buildTab(viewModel, 'CRYPTO', res),
                           _buildTab(viewModel, 'HIP-3', res),
+                          _buildTab(viewModel, 'HIP-4', res),
                         ],
                       ),
                     ),
@@ -317,55 +324,72 @@ class _HomeScreenState extends State<HomeScreen> {
                     )
                   else ...[
                     // Horizontal Filters Row
-                    if (viewModel.selectedTab == 'HIP-3' || viewModel.selectedTab == 'CRYPTO')
-                      SizedBox(
-                        height: 32,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: (viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'HIP-3' ? viewModel.cryptoCategories : viewModel.availableDexes).length,
-                          separatorBuilder: (context, index) => const SizedBox(width: 8),
-                          itemBuilder: (context, index) {
-                            final isCategoryMode = viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'HIP-3';
-                            final items = isCategoryMode ? viewModel.cryptoCategories : viewModel.availableDexes;
-                            final item = items[index];
-                            final isSelected = isCategoryMode 
-                              ? viewModel.selectedCryptoCategory == item 
-                              : viewModel.selectedDex == item;
-                            
-                            return GestureDetector(
-                              onTap: () {
-                                if (isCategoryMode) {
-                                  viewModel.setSelectedCryptoCategory(item);
-                                  AnalyticsService.logCategoryClick(item);
-                                } else {
-                                  viewModel.setSelectedDex(item);
-                                  AnalyticsService.logFeatureClick('Dex: $item');
-                                }
-                              },
-                              child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: res.spacing(12)),
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: isSelected ? AppColors.brandAccent.withValues(alpha: 0.1) : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(
-                                    color: isSelected ? AppColors.brandAccent : AppColors.surfaceBright,
-                                    width: isSelected ? 1 : 0.5,
+                    if (viewModel.selectedTab == 'HIP-3' || viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'HIP-4')
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: SizedBox(
+                          height: 32,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: viewModel.selectedTab == 'HIP-4' 
+                              ? context.watch<Hip4ViewModel>().categories.length
+                              : (viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'HIP-3' ? viewModel.cryptoCategories : viewModel.availableDexes).length,
+                            separatorBuilder: (context, index) => const SizedBox(width: 8),
+                            itemBuilder: (context, index) {
+                              final isCategoryMode = viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'HIP-3';
+                              final items = viewModel.selectedTab == 'HIP-4'
+                                ? context.read<Hip4ViewModel>().categories
+                                : (isCategoryMode ? viewModel.cryptoCategories : viewModel.availableDexes);
+                              final item = items[index];
+                              final isSelected = viewModel.selectedTab == 'HIP-4'
+                                ? context.watch<Hip4ViewModel>().selectedCategory == item
+                                : (isCategoryMode 
+                                  ? viewModel.selectedCryptoCategory == item 
+                                  : viewModel.selectedDex == item);
+                              
+                              return GestureDetector(
+                                onTap: () {
+                                  if (viewModel.selectedTab == 'HIP-4') {
+                                    final hip4Vm = context.read<Hip4ViewModel>();
+                                    hip4Vm.setCategory(item);
+                                    AnalyticsService.logCategoryClick(item);
+                                  } else if (isCategoryMode) {
+                                    viewModel.setSelectedCryptoCategory(item);
+                                    AnalyticsService.logCategoryClick(item);
+                                  } else {
+                                    viewModel.setSelectedDex(item);
+                                    AnalyticsService.logFeatureClick('Dex: $item');
+                                  }
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(horizontal: res.spacing(12)),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? AppColors.brandAccent.withValues(alpha: 0.1) : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: isSelected ? AppColors.brandAccent : AppColors.surfaceBright,
+                                      width: isSelected ? 1 : 0.5,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    item == 'All' ? 'All' : item.toLowerCase(),
+                                    style: GoogleFonts.jetBrainsMono(
+                                      color: isSelected ? AppColors.brandAccent : AppColors.textSecondary,
+                                      fontSize: res.fontSize(12),
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    ),
                                   ),
                                 ),
-                                child: Text(
-                                  item == 'All' ? 'All' : item.toLowerCase(),
-                                  style: GoogleFonts.jetBrainsMono(
-                                    color: isSelected ? AppColors.brandAccent : AppColors.textSecondary,
-                                    fontSize: res.fontSize(12),
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
                       ),
+                    
+                    if (viewModel.selectedTab == 'HIP-4')
+                      const Hip4MarketsPanel()
+                    else ...[
                     SizedBox(height: res.spacing(16)),
                     
                     Row(
@@ -608,7 +632,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ],
-              ),
+              ],
+            ),
             ),
           ),
         );

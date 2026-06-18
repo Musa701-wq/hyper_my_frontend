@@ -12,6 +12,7 @@ import 'screens/splash_screen.dart';
 import 'viewmodels/home_viewmodel.dart';
 import 'viewmodels/subscription_viewmodel.dart';
 import 'viewmodels/portfolio_viewmodel.dart';
+import 'viewmodels/hip4_viewmodel.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'firebase_options.dart';
@@ -39,6 +40,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => PortfolioViewModel()),
         ChangeNotifierProvider(create: (_) => LeaderboardViewModel()),
         ChangeNotifierProvider(create: (_) => DefiLlamaViewModel()),
+        ChangeNotifierProvider(create: (_) => Hip4ViewModel()),
         ChangeNotifierProvider(create: (_) => WalletViewModel(prefs: prefs)),
       ],
       child: const MyApp(),
