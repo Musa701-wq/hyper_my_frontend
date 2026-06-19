@@ -672,8 +672,8 @@ class _StatsContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Marquee Headline ───────────────────────────────────────────
-          // const _HeadlineMarquee(),
-          // const SizedBox(height: 12),
+          const _HeadlineMarquee(),
+          const SizedBox(height: 12),
 
           // ── Section 1 ──────────────────────────────────────────────────
            _SectionHeader(
@@ -705,17 +705,14 @@ class _StatsContent extends StatelessWidget {
           ),
 
           // ── Section 2 ──────────────────────────────────────────────────
-          /*
           _SectionHeader(
             icon: Icons.bolt_rounded,
             title: 'Performance Pulse',
             subtitle: 'Market momentum',
           ),
           const SizedBox(height: 10),
-          _StatsGrid(cards: perfCards, res: res),
+          _CardGrid(cards: perfCards),
           const SizedBox(height: 32),
-          */
-          // _CardGrid(cards: perfCards),
 
           // ── Divider ────────────────────────────────────────────────────
           Padding(

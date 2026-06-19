@@ -110,6 +110,14 @@ class PortfolioViewModel extends ChangeNotifier {
   List<TraderSnapshot> _snapshots = [];
   List<TraderSnapshot> get snapshots => _snapshots;
 
+  List<OhlcSnapshot> _ohlcSnapshots = [];
+  List<OhlcSnapshot> get ohlcSnapshots => _ohlcSnapshots;
+
+  bool _snapshotsLoading = false;
+  bool get snapshotsLoading => _snapshotsLoading;
+
+  String? _currentWallet;
+
   // Processed snapshot chart series
   List<double> _snapshotValueSeries = [];
   List<int> _snapshotTimestamps = [];
@@ -147,6 +155,34 @@ class PortfolioViewModel extends ChangeNotifier {
 
   /// Cache-first load, then network refresh + 30s auto-refresh.
   Future<void> initializePortfolio(String wallet) async {
+    // New wallet — clear previous data so stale data is never shown
+    if (_currentWallet != null && _currentWallet != wallet) {
+      _summary = null;
+      _history = null;
+      _snapshots = [];
+      _ohlcSnapshots = [];
+      _snapshotValueSeries = [];
+      _snapshotTimestamps = [];
+      _combinedPnlSeries = [];
+      _perpPnlSeries = [];
+      _accountValueSeries = [];
+      _historyTimestamps = [];
+      _historyFills = [];
+      _symbolSummaries = [];
+      _assetComposition = [];
+      _performanceMetrics = PerformanceMetrics();
+      _riskMetrics = RiskMetrics();
+      _lastFetchTime = null;
+      _lastSortedFills = null;
+      _lastProcessedHistory = null;
+      _lastProcessedRange = null;
+      _error = null;
+      _isLoading = false;
+      _isRefreshing = false;
+      notifyListeners();
+    }
+    _currentWallet = wallet;
+
     await _loadFromCache(wallet);
     await fetchPortfolio(wallet);
     // Auto-retry once if first fetch failed and no cached data
@@ -203,6 +239,12 @@ class PortfolioViewModel extends ChangeNotifier {
       notifyListeners();
     }
 
+    // Start snapshot fetch in parallel with portfolio data
+    _snapshotsLoading = true;
+    notifyListeners();
+    final snapshotFuture = _leaderboardService.getTraderOhlcSnapshots(wallet);
+    final legacyFuture = _leaderboardService.getTraderSnapshots(wallet);
+
     try {
       final results = await Future.wait([
         _service.getPortfolioSummary(wallet),
@@ -255,8 +297,19 @@ class PortfolioViewModel extends ChangeNotifier {
       notifyListeners();
     }
 
-    // Fetch snapshots separately (non-blocking for portfolio)
-    _fetchSnapshots(wallet);
+    // Wait for snapshot results (started in parallel above)
+    try {
+      final snapshots = await Future.wait([snapshotFuture, legacyFuture]);
+      _ohlcSnapshots = snapshots[0] as List<OhlcSnapshot>;
+      _snapshots = snapshots[1] as List<TraderSnapshot>;
+      _ohlcSnapshots.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      _processSnapshots();
+    } catch (e) {
+      debugPrint('📊 [PortfolioVM] Snapshots fetch failed (non-fatal): $e');
+    } finally {
+      _snapshotsLoading = false;
+      notifyListeners();
+    }
   }
 
   List<TradeFill>? _lastSortedFills;
@@ -545,18 +598,6 @@ class PortfolioViewModel extends ChangeNotifier {
     }
 
     _assetComposition = items;
-  }
-
-  Future<void> _fetchSnapshots(String wallet) async {
-    debugPrint('📊 [PortfolioVM] Fetching snapshots for $wallet');
-    try {
-      _snapshots = await _leaderboardService.getTraderSnapshots(wallet);
-      debugPrint('📊 [PortfolioVM] Snapshots received: ${_snapshots.length} entries');
-      _processSnapshots();
-      notifyListeners();
-    } catch (e) {
-      debugPrint('📊 [PortfolioVM] Snapshots fetch failed (non-fatal): $e');
-    }
   }
 
   void _processSnapshots() {

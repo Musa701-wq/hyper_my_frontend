@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hyperscreener/screens/subscription_screen.dart';
 import 'package:hyperscreener/screens/leaderboard_stats_screen.dart';
+import 'package:hyperscreener/screens/leaderboard_screen.dart';
 import 'package:hyperscreener/screens/defillama_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -199,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
             BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), label: 'Markets'),
-            // BottomNavigationBarItem(icon: Icon(Icons.leaderboard_outlined), label: 'Leaderboard'),
+            BottomNavigationBarItem(icon: Icon(Icons.leaderboard_outlined), label: 'Leaderboard'),
             // BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Portfolio'),
           ],
         ),
@@ -213,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 1:
         return const LiveMarketsBody();
       case 2:
-        return const LeaderboardStatsBody(showTopBar: false);
+        return const LeaderboardScreen();
       case 3:
         return Consumer<PortfolioViewModel>(
           builder: (context, portfolioVm, _) => _buildPortfolioBody(portfolioVm),
@@ -1114,6 +1115,21 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const DefiLlamaScreen()),
+                );
+              },
+            ),
+            isActive: false,
+          ),
+
+          _DrawerNavItem(
+            data: _DrawerItemData(
+              icon: Icons.bar_chart_rounded,
+              label: 'Stats',
+              subtitle: 'Market overview',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (_) => const LeaderboardStatsScreen()),
                 );
               },
             ),

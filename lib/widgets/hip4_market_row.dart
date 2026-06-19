@@ -1,123 +1,76 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../models/hip4_model.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
-import 'hip4_probability_bar.dart';
-import 'hip4_detail_dialog.dart';
 
-class Hip4MarketRow extends StatelessWidget {
+// Shared coin icon used by both the old row and the new panel cells
+class Hip4CoinIcon extends StatelessWidget {
   final Hip4Market market;
-  final int index;
+  final double size;
 
-  const Hip4MarketRow({super.key, required this.market, required this.index});
+  const Hip4CoinIcon({super.key, required this.market, required this.size});
 
   @override
   Widget build(BuildContext context) {
-    final res = Responsive(context);
-    final expiryStr = market.expiry != null 
-        ? DateFormat('MMM dd, yyyy, HH:mm').format(market.expiry!.toLocal()) + ' UTC'
-        : '--';
+    final url = market.underlying != null && market.marketClass != 'question'
+        ? 'https://app.hyperliquid.xyz/coins/${market.underlying}.svg'
+        : null;
 
-    return GestureDetector(
-      onTap: () => showDialog(
-        context: context,
-        builder: (context) => Hip4DetailDialog(market: market),
+    if (url == null) return _fallback();
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceBright,
+        shape: BoxShape.circle,
       ),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // # Rank
-            SizedBox(
-              width: 28,
-              child: Text(
-                '${index + 1}',
-                style: GoogleFonts.jetBrainsMono(
-                  color: AppColors.textSecondary.withValues(alpha: 0.4),
-                  fontSize: res.fontSize(10),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Market Name + Description — NO ICON, full width
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    market.name,
-                    style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textPrimary,
-                      fontSize: res.fontSize(12),
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    market.description,
-                    style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textSecondary.withValues(alpha: 0.5),
-                      fontSize: res.fontSize(9),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 20),
-
-            // Class Badge
-            SizedBox(
-              width: 100,
-              child: Center(child: _buildClassBadge(market.marketClass, res)),
-            ),
-            const SizedBox(width: 20),
-
-            // Probability Bar (biggest column)
-            Expanded(
-              flex: 6,
-              child: Hip4ProbabilityBar(outcomes: market.outcomes, height: 10),
-            ),
-            const SizedBox(width: 20),
-
-            // Expiry
-            SizedBox(
-              width: 150,
-              child: Text(
-                expiryStr,
-                textAlign: TextAlign.right,
-                style: GoogleFonts.jetBrainsMono(
-                  color: AppColors.textSecondary.withValues(alpha: 0.7),
-                  fontSize: res.fontSize(9),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.chevron_right,
-              size: 16,
-              color: AppColors.textSecondary.withValues(alpha: 0.4),
-            ),
-          ],
+      child: ClipOval(
+        child: SvgPicture.network(
+          url,
+          fit: BoxFit.cover,
+          placeholderBuilder: (_) => _fallback(),
+          errorBuilder: (_, _, _) => _fallback(),
         ),
       ),
     );
   }
 
-  Widget _buildClassBadge(String marketClass, Responsive res) {
+  Widget _fallback() {
+    final iconChar = market.marketClass == 'question' ? 'Q' : '?';
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceBright,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        iconChar,
+        style: GoogleFonts.jetBrainsMono(
+          fontSize: size * 0.4,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+// Shared class badge used by both the old row and the new panel cells
+class Hip4ClassBadge extends StatelessWidget {
+  final String marketClass;
+  final Responsive res;
+
+  const Hip4ClassBadge({super.key, required this.marketClass, required this.res});
+
+  @override
+  Widget build(BuildContext context) {
     Color textColor;
     Color borderColor;
-    String label = marketClass;
 
     switch (marketClass) {
       case 'priceBinary':
@@ -145,8 +98,7 @@ class Hip4MarketRow extends StatelessWidget {
         border: Border.all(color: borderColor.withValues(alpha: 0.7), width: 1),
       ),
       child: Text(
-        label,
-        textAlign: TextAlign.center,
+        marketClass,
         style: GoogleFonts.jetBrainsMono(
           color: textColor,
           fontSize: res.fontSize(8),
@@ -154,5 +106,19 @@ class Hip4MarketRow extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// Keep Hip4MarketRow for any legacy usage
+class Hip4MarketRow extends StatelessWidget {
+  final Hip4Market market;
+  final int index;
+
+  const Hip4MarketRow({super.key, required this.market, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    // No longer used directly — layout is handled by Hip4MarketsPanel
+    return const SizedBox.shrink();
   }
 }

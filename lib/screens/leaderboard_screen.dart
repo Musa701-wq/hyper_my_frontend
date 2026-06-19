@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hyperscreener/widgets/error_state_widget.dart';
 import 'package:provider/provider.dart';
@@ -10,9 +11,11 @@ import '../utils/common_widgets.dart';
 import '../viewmodels/leaderboard_viewmodel.dart';
 import '../models/leaderboard_model.dart';
 import 'home_screen.dart';
+import 'profile_screen.dart';
 
 class LeaderboardScreen extends StatefulWidget {
-  const LeaderboardScreen({super.key});
+  final bool showTopBar;
+  const LeaderboardScreen({super.key, this.showTopBar = false});
 
   @override
   State<LeaderboardScreen> createState() => _LeaderboardScreenState();
@@ -73,6 +76,29 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   @override
   Widget build(BuildContext context) {
     final res = Responsive(context);
+
+    // Embedded in tab — no nested Scaffold/AppBackground needed
+    if (!widget.showTopBar) {
+      return Consumer<LeaderboardViewModel>(
+        builder: (context, vm, _) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSearchBar(vm, res),
+              const SizedBox(height: 8),
+              _buildPeriodTabs(vm, res),
+              const SizedBox(height: 8),
+              _buildRowsPerPage(vm, res),
+              const SizedBox(height: 6),
+              Expanded(child: _buildBody(res, vm)),
+              _buildPagination(vm, res),
+            ],
+          );
+        },
+      );
+    }
+
+    // Standalone screen — full Scaffold
     return AppBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -349,65 +375,67 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   // ── Shimmer skeleton ───────────────────────────────────────────────────────
   Widget _buildShimmer(Responsive res) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Shimmer.fromColors(
-        baseColor: const Color(0xFF1E222D),
-        highlightColor: const Color(0xFF2E3340),
-        period: const Duration(milliseconds: 1400),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header row skeleton
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Row(
-                children: [
-                  _sPill(24, 10),
-                  const SizedBox(width: 10),
-                  _sPill(80, 10),
-                  const Spacer(),
-                  Flexible(child: _sPill(65, 10)),
-                  const SizedBox(width: 12),
-                  Flexible(child: _sPill(55, 10)),
-                  const SizedBox(width: 12),
-                  Flexible(child: _sPill(45, 10)),
-                  const SizedBox(width: 12),
-                  Flexible(child: _sPill(60, 10)),
-                ],
+    return ClipRect(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: Shimmer.fromColors(
+          baseColor: const Color(0xFF1E222D),
+          highlightColor: const Color(0xFF2E3340),
+          period: const Duration(milliseconds: 1400),
+          child: ListView(
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              // Header row skeleton
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Row(
+                  children: [
+                    _sPill(24, 10),
+                    const SizedBox(width: 10),
+                    _sPill(80, 10),
+                    const Spacer(),
+                    Flexible(child: _sPill(65, 10)),
+                    const SizedBox(width: 12),
+                    Flexible(child: _sPill(55, 10)),
+                    const SizedBox(width: 12),
+                    Flexible(child: _sPill(45, 10)),
+                    const SizedBox(width: 12),
+                    Flexible(child: _sPill(60, 10)),
+                  ],
+                ),
               ),
-            ),
-            Container(height: 0.5, color: Colors.white12),
-            const SizedBox(height: 4),
-            ...List.generate(14, (index) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Row(
-                children: [
-                  _sPill(22, 10),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _sPill(double.infinity, 11),
-                        const SizedBox(height: 5),
-                        _sPill(70, 8),
-                      ],
+              Container(height: 0.5, color: Colors.white12),
+              const SizedBox(height: 4),
+              ...List.generate(14, (index) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    _sPill(22, 10),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _sPill(double.infinity, 11),
+                          const SizedBox(height: 5),
+                          _sPill(70, 8),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(child: _sPill(65, 11)),
-                  const SizedBox(width: 8),
-                  Flexible(child: _sPill(55, 11)),
-                  const SizedBox(width: 8),
-                  Flexible(child: _sPill(45, 11)),
-                  const SizedBox(width: 8),
-                  Flexible(child: _sPill(60, 11)),
-                ],
-              ),
-            )),
-          ],
+                    const SizedBox(width: 8),
+                    Flexible(child: _sPill(65, 11)),
+                    const SizedBox(width: 8),
+                    Flexible(child: _sPill(55, 11)),
+                    const SizedBox(width: 8),
+                    Flexible(child: _sPill(45, 11)),
+                    const SizedBox(width: 8),
+                    Flexible(child: _sPill(60, 11)),
+                  ],
+                ),
+              )),
+            ],
+          ),
         ),
       ),
     );
@@ -426,11 +454,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   // Single CustomScrollView approach — no extra divider between columns,
   // no extra spacing. Header is a SliverPersistentHeader (sticky).
   Widget _buildTable(Responsive res, LeaderboardViewModel vm) {
-    final double leftW  = res.columnWidth(155.0);
-    final double wAcc   = res.columnWidth(95.0);
-    final double wPnl   = res.columnWidth(95.0);
-    final double wRoi   = res.columnWidth(85.0);
-    final double wVol   = res.columnWidth(95.0);
+    final double leftW  = res.columnWidth(150.0);
+    final double wAcc   = res.columnWidth(85.0);
+    final double wPnl   = res.columnWidth(85.0);
+    final double wRoi   = res.columnWidth(80.0);
+    final double wVol   = res.columnWidth(90.0);
     final double rightW = wAcc + wPnl + wRoi + wVol;
 
     final traders = vm.topTraders;
@@ -475,9 +503,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   // Left sticky header
   Widget _leftHeader(Responsive res) {
     return Container(
-      height: 44,
+      height: 48,
       color: Colors.black,
-      padding: const EdgeInsets.only(left: 12),
+      padding: const EdgeInsets.only(left: 8),
       child: Row(
         children: [
           SizedBox(
@@ -485,13 +513,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             child: Text('#',
                 style: GoogleFonts.jetBrainsMono(
                     color: AppColors.textSecondary,
-                    fontSize: res.fontSize(14))),
+                    fontSize: res.fontSize(11))),
           ),
           const SizedBox(width: 4),
           Text('Trader',
               style: GoogleFonts.jetBrainsMono(
                   color: AppColors.textSecondary,
-                  fontSize: res.fontSize(14))),
+                  fontSize: res.fontSize(11))),
         ],
       ),
     );
@@ -501,7 +529,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Widget _rightHeader(Responsive res, LeaderboardViewModel vm,
       double wAcc, double wPnl, double wRoi, double wVol) {
     return Container(
-      height: 44,
+      height: 48,
       color: Colors.black,
       child: Row(
         children: [
@@ -535,7 +563,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 label,
                 style: GoogleFonts.jetBrainsMono(
                   color: active ? AppColors.brandAccent : AppColors.textSecondary,
-                  fontSize: res.fontSize(14),
+                  fontSize: res.fontSize(11),
                   fontWeight: active ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -567,46 +595,62 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     ? AppColors.brandAccent
                     : AppColors.textSecondary;
 
-    return Container(
-      height: 64,
-      padding: const EdgeInsets.only(left: 8, right: 4),
-      decoration: const BoxDecoration(
-        border: Border(
-            bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => ProfileScreen(walletAddress: addr),
+          transitionsBuilder: (_, animation, __, child) => SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+            child: child,
+          ),
+          transitionDuration: const Duration(milliseconds: 250),
+        ),
       ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: res.columnWidth(30),
-            child: Text('$rank',
-                style: GoogleFonts.jetBrainsMono(
-                  color: rankColor,
-                  fontSize: res.fontSize(13),
-                  fontWeight: rank <= 3 ? FontWeight.bold : FontWeight.normal,
-                )),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(name,
-                    style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textPrimary,
-                      fontSize: res.fontSize(15),
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis),
-                Text('${addr.substring(0, 8)}...',
-                    style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textSecondary,
-                      fontSize: res.fontSize(11),
-                    )),
-              ],
+      child: Container(
+        height: res.value(mobile: 56.0, tablet: 64.0),
+        padding: const EdgeInsets.only(left: 8, right: 4, top: 10, bottom: 10),
+        decoration: const BoxDecoration(
+          border: Border(
+              bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: res.columnWidth(30),
+              child: Text('$rank',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: rankColor,
+                    fontSize: res.fontSize(10),
+                    fontWeight: rank <= 3 ? FontWeight.bold : FontWeight.normal,
+                  )),
             ),
-          ),
-        ],
+            const SizedBox(width: 4),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(name,
+                      style: GoogleFonts.jetBrainsMono(
+                        color: AppColors.textPrimary,
+                        fontSize: res.fontSize(11),
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis),
+                  Text('${addr.substring(0, 8)}...',
+                      style: GoogleFonts.jetBrainsMono(
+                        color: AppColors.textSecondary,
+                        fontSize: res.fontSize(10),
+                      )),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -614,27 +658,43 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   // Right data row
   Widget _rightRow(Trader t, Responsive res,
       double wAcc, double wPnl, double wRoi, double wVol) {
-    return Container(
-      height: 64,
-      decoration: const BoxDecoration(
-        border: Border(
-            bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => ProfileScreen(walletAddress: t.ethAddress),
+          transitionsBuilder: (_, animation, __, child) => SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+            child: child,
+          ),
+          transitionDuration: const Duration(milliseconds: 250),
+        ),
       ),
-      child: Row(
-        children: [
-          _dCell(_fmt(t.accountValue, isCurrency: true),
-              width: wAcc, res: res),
-          _dCell(_fmt(t.pnl, isCurrency: true),
-              width: wPnl,
-              res: res,
-              color: t.pnl >= 0 ? AppColors.trendGreen : AppColors.trendRed),
-          _dCell(_fmt(t.roi, isPct: true),
-              width: wRoi,
-              res: res,
-              color: t.roi >= 0 ? AppColors.trendGreen : AppColors.trendRed),
-          _dCell(_fmt(t.volume, isCurrency: true),
-              width: wVol, res: res),
-        ],
+      child: Container(
+        height: res.value(mobile: 56.0, tablet: 64.0),
+        decoration: const BoxDecoration(
+          border: Border(
+              bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+        ),
+        child: Row(
+          children: [
+            _dCell(_fmt(t.accountValue, isCurrency: true),
+                width: wAcc, res: res),
+            _dCell(_fmt(t.pnl, isCurrency: true),
+                width: wPnl,
+                res: res,
+                color: t.pnl >= 0 ? AppColors.trendGreen : AppColors.trendRed),
+            _dCell(_fmt(t.roi, isPct: true),
+                width: wRoi,
+                res: res,
+                color: t.roi >= 0 ? AppColors.trendGreen : AppColors.trendRed),
+            _dCell(_fmt(t.volume, isCurrency: true),
+                width: wVol, res: res),
+          ],
+        ),
       ),
     );
   }
@@ -648,7 +708,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             textAlign: TextAlign.center,
             style: GoogleFonts.jetBrainsMono(
               color: color ?? AppColors.textPrimary,
-              fontSize: res.fontSize(14),
+              fontSize: res.fontSize(11),
               fontWeight: FontWeight.w500,
             )),
       ),
@@ -763,7 +823,7 @@ class _StickyTable extends StatelessWidget {
                 Container(height: 0.5, color: AppColors.surfaceBright),
               ],
             ),
-            height: 44.5,
+            height: 48.5,
           ),
         ),
         // Data rows

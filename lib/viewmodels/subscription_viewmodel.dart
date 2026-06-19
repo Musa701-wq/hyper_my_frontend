@@ -74,7 +74,7 @@ class SubscriptionViewModel extends ChangeNotifier {
       
     } catch (e) {
       debugPrint("IAP DEBUG: Exception in loadProducts: $e");
-      _errorMessage = "Failed to load products: $e";
+      _errorMessage = "Failed to load products. Please try again.";
     } finally {
       _isProcessing = false;
       notifyListeners();
@@ -130,7 +130,7 @@ class SubscriptionViewModel extends ChangeNotifier {
       debugPrint("IAP DEBUG: restorePurchases call completed. (Listen to stream for updates)");
     } catch (e) {
       debugPrint("IAP DEBUG: restorePurchases exception: $e");
-      _errorMessage = "Failed to restore purchases: $e";
+      _errorMessage = "Failed to restore purchases. Please try again.";
     } finally {
       _isProcessing = false;
       notifyListeners();

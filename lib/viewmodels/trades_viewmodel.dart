@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/trade_model.dart';
 import '../services/trades_service.dart';
+import '../utils/app_exceptions.dart';
 
 class TradesViewModel extends ChangeNotifier {
   final String symbol;
@@ -84,7 +85,7 @@ class TradesViewModel extends ChangeNotifier {
         notifyListeners();
       },
       onError: (e) {
-        _error = e.toString();
+        _error = AppException.fromError(e).message;
         _isLoading = false;
         notifyListeners();
       },

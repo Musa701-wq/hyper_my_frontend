@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/leaderboard_model.dart';
 import '../services/leaderboard_service.dart';
+import '../utils/app_exceptions.dart';
 
 class LeaderboardViewModel extends ChangeNotifier {
   final LeaderboardService _service = LeaderboardService();
@@ -50,11 +51,7 @@ class LeaderboardViewModel extends ChangeNotifier {
       debugPrint('LeaderboardViewModel: Data successfully fetched');
     } catch (e) {
       debugPrint('LeaderboardViewModel Aggregate Error: $e');
-      if (e.toString().contains('TimeoutException') || e.toString().contains('timeout')) {
-        _error = "Connection timeout. The local server is taking too long to respond.";
-      } else {
-        _error = e.toString();
-      }
+      _error = AppException.fromError(e).message;
     } finally {
       _isLoading = false;
       notifyListeners();

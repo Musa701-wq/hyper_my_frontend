@@ -161,6 +161,41 @@ class TraderSnapshot {
   }
 }
 
+class OhlcSnapshot {
+  final int timestamp;
+  final double open;
+  final double high;
+  final double low;
+  final double close;
+  final int count;
+
+  OhlcSnapshot({
+    required this.timestamp,
+    required this.open,
+    required this.high,
+    required this.low,
+    required this.close,
+    required this.count,
+  });
+
+  factory OhlcSnapshot.fromJson(Map<String, dynamic> json) {
+    int ts;
+    if (json['timestamp'] is String) {
+      ts = DateTime.parse(json['timestamp']).millisecondsSinceEpoch;
+    } else {
+      ts = (json['timestamp'] ?? 0).toInt();
+    }
+    return OhlcSnapshot(
+      timestamp: ts,
+      open: (json['open'] ?? 0).toDouble(),
+      high: (json['high'] ?? 0).toDouble(),
+      low: (json['low'] ?? 0).toDouble(),
+      close: (json['close'] ?? 0).toDouble(),
+      count: (json['count'] ?? 0).toInt(),
+    );
+  }
+}
+
 class HeadlineResponse {
   final String period;
   final List<Trader> gainers;

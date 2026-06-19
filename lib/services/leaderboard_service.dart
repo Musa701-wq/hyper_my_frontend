@@ -113,11 +113,8 @@ class LeaderboardService {
       debugPrint('🌐 [LeaderboardService] GET Snapshots: $url');
       final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
       debugPrint('📥 [LeaderboardService] Snapshots response (${response.statusCode}): ${response.body.length} chars');
-      debugPrint('📥 [LeaderboardService] Snapshots body preview: ${response.body.substring(0, response.body.length > 400 ? 400 : response.body.length)}');
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-        debugPrint('📥 [LeaderboardService] decoded type: ${decoded.runtimeType}');
-        // Try multiple response shapes
         List raw;
         if (decoded is List) {
           raw = decoded;
@@ -128,16 +125,39 @@ class LeaderboardService {
         } else if (decoded['snapshots'] is List) {
           raw = decoded['snapshots'];
         } else {
-          debugPrint('📥 [LeaderboardService] Unknown response shape: $decoded');
           raw = [];
         }
-        debugPrint('📥 [LeaderboardService] Parsed ${raw.length} snapshots');
         return raw.map((s) => TraderSnapshot.fromJson(s)).toList();
       } else {
         throw Exception('Failed to load trader snapshots');
       }
     } catch (e) {
       debugPrint('API Exception (snapshots): $e');
+      rethrow;
+    }
+  }
+
+  Future<List<OhlcSnapshot>> getTraderOhlcSnapshots(String address) async {
+    final url = '$baseUrl/leaderboard/traders/$address/snapshots';
+    try {
+      debugPrint('🌐 [LeaderboardService] GET OHLC Snapshots: $url');
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        List raw;
+        if (decoded['data'] is Map && decoded['data']['ohlc'] is List) {
+          raw = decoded['data']['ohlc'];
+        } else if (decoded['ohlc'] is List) {
+          raw = decoded['ohlc'];
+        } else {
+          raw = [];
+        }
+        return raw.map((s) => OhlcSnapshot.fromJson(s)).toList();
+      } else {
+        throw Exception('Failed to load trader snapshots');
+      }
+    } catch (e) {
+      debugPrint('API Exception (OHLC snapshots): $e');
       rethrow;
     }
   }

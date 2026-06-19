@@ -19,7 +19,7 @@ class Hip4ViewModel extends ChangeNotifier {
   String _sortColumn = 'probability';
   bool _sortAscending = false;
 
-  final List<String> categories = ['All', 'Crypto (1d)', 'Sports', 'Custom'];
+  final List<String> categories = ['All', 'Crypto', 'Sports', 'Custom'];
 
   String get sortColumn => _sortColumn;
   bool get sortAscending => _sortAscending;
@@ -41,16 +41,38 @@ class Hip4ViewModel extends ChangeNotifier {
   String get searchQuery => _searchQuery;
 
   List<Hip4Market> get filteredMarkets {
-    return _markets.where((m) {
+    var list = _markets.where((m) {
       final matchesCategory = _selectedCategory == 'All' || 
-          m.category.toLowerCase() == _selectedCategory.toLowerCase() ||
-          (_selectedCategory == 'Crypto (1d)' && m.category.toLowerCase() == 'crypto');
+          m.category.toLowerCase() == _selectedCategory.toLowerCase();
       final matchesSearch = _searchQuery.isEmpty || 
           m.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           m.description.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           m.id.toString().contains(_searchQuery);
       return matchesCategory && matchesSearch;
     }).toList();
+
+    // Apply sort
+    list.sort((a, b) {
+      int cmp;
+      switch (_sortColumn) {
+        case 'probability':
+          // Sort by highest single outcome probability
+          final aMax = a.outcomes.isEmpty ? 0.0 : a.outcomes.map((o) => o.probability).reduce((x, y) => x > y ? x : y);
+          final bMax = b.outcomes.isEmpty ? 0.0 : b.outcomes.map((o) => o.probability).reduce((x, y) => x > y ? x : y);
+          cmp = aMax.compareTo(bMax);
+          break;
+        case 'expiry':
+          final aT = a.expiry?.millisecondsSinceEpoch ?? 0;
+          final bT = b.expiry?.millisecondsSinceEpoch ?? 0;
+          cmp = aT.compareTo(bT);
+          break;
+        default:
+          cmp = a.name.compareTo(b.name);
+      }
+      return _sortAscending ? cmp : -cmp;
+    });
+
+    return list;
   }
 
   Future<void> init() async {

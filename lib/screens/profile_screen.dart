@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../viewmodels/portfolio_viewmodel.dart';
+import '../models/leaderboard_model.dart';
 import '../utils/app_colors.dart';
 import '../viewmodels/wallet_viewmodel.dart';
 
@@ -25,13 +26,16 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _hideValue = false;
-  int _selectedChartTabIndex = 0;
+  int _selectedChartTabIndex = 2; // only Acct Value (0/1 Combined/Perp commented out)
+  int _selectedOhlcChartType = 0; // 0: candlestick, 1: bar, 2: area
   int _selectedDetailedTabIndex = 0;
   int _positionsPage = 1;
   int _recentPage = 1;
   int _fillsPage = 1;
   int _ordersPage = 1;
   int _spotPage = 1;
+  OhlcSnapshot? _selectedCandle;
+  final TransformationController _chartTransformCtrl = TransformationController();
   static const int _positionsPerPage = 5;
   static const int _recentPerPage = 10;
   static const int _fillsPerPage = 10;
@@ -161,7 +165,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   const SizedBox(height: 16),
                                 ],
                                 _buildSummaryCards(res, vm.summary!),
-                                const SizedBox(height: 32),
+                                const Divider(color: Colors.white10, height: 1, thickness: 0.5),
+                                const SizedBox(height: 8),
                                 _buildChartsSection(res, vm.summary!, vm),
                                 const SizedBox(height: 24),
                                 _buildStatsCards(res, vm.summary!, vm),
@@ -366,6 +371,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildPerformanceAnalyticsSection(Responsive res, PortfolioViewModel vm) {
     final m = vm.performanceMetrics;
 
+    // No trade data — hide entire section
+    if (m.totalTrades == 0) return const SizedBox.shrink();
+
+    final bool hasRecentActivity = vm.historyFills.isNotEmpty;
+    final bool hasTradingActivity = m.totalTrades > 0;
+    final bool hasRiskData = vm.summary != null && vm.summary!.totalBalance > 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -439,20 +451,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 24),
         
         if (res.isMobile) ...[
-          _buildRecentActivitySection(res, vm),
-          const SizedBox(height: 24),
-          _buildTradingActivityDashboard(res, vm),
-          const SizedBox(height: 24),
-          _buildRiskOverviewDashboard(res, vm),
+          if (hasRecentActivity) ...[
+            _buildRecentActivitySection(res, vm),
+            const SizedBox(height: 24),
+          ],
+          if (hasTradingActivity) ...[
+            _buildTradingActivityDashboard(res, vm),
+            const SizedBox(height: 24),
+          ],
+          if (hasRiskData)
+            _buildRiskOverviewDashboard(res, vm),
         ] else ...[
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _buildRecentActivitySection(res, vm)),
-              const SizedBox(width: 16),
-              Expanded(child: _buildTradingActivityDashboard(res, vm)),
-              const SizedBox(width: 16),
-              Expanded(child: _buildRiskOverviewDashboard(res, vm)),
+              if (hasRecentActivity) ...[
+                Expanded(child: _buildRecentActivitySection(res, vm)),
+                const SizedBox(width: 16),
+              ],
+              if (hasTradingActivity) ...[
+                Expanded(child: _buildTradingActivityDashboard(res, vm)),
+                const SizedBox(width: 16),
+              ],
+              if (hasRiskData)
+                Expanded(child: _buildRiskOverviewDashboard(res, vm)),
             ],
           ),
         ],
@@ -1102,22 +1124,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildChartsSection(Responsive res, dynamic s, PortfolioViewModel vm) {
-    debugPrint('📊 [ProfileScreen] _buildChartsSection — snapshots.length: ${vm.snapshots.length}, valueSeries: ${vm.snapshotValueSeries.length}');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (vm.snapshots.isNotEmpty) ...[
-          _buildSnapshotChart(vm),
+        if (vm.ohlcSnapshots.isNotEmpty) ...[
+          _buildOhlcChart(vm),
+          const SizedBox(height: 24),
+        ] else if (vm.snapshotsLoading) ...[
+          _buildChartShimmer(),
           const SizedBox(height: 24),
         ],
-        _buildFullPnLChart(res, s, vm),
-        const SizedBox(height: 24),
+        // _buildFullPnLChart(res, s, vm), // commented out — only OHLC chart is shown
+        // const SizedBox(height: 24),
         _buildAssetTreemap(vm),
       ],
     );
   }
 
+  Widget _buildChartShimmer() {
+    return ShimmerSkeleton(
+      child: Container(
+        height: 320,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceBright.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ShimmerSkeleton.pill(140, 14),
+              const SizedBox(height: 16),
+              ShimmerSkeleton.box(double.infinity, 200, radius: 12),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: List.generate(3, (_) => ShimmerSkeleton.pill(80, 12)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPortfolioTabsSection(Responsive res, dynamic s, PortfolioViewModel vm) {
+    // Build tab data with original indices
+    final allTabs = [
+      {'label': 'Asset Positions', 'count': (s.positions as List).length, 'index': 0},
+      {'label': 'Open Orders',     'count': (s.openOrders as List).length, 'index': 1},
+      {'label': 'Recent Fills',    'count': vm.historyFills.length,         'index': 2},
+      {'label': 'Spot Balances',   'count': (s.spotBalances as List).length,'index': 3},
+    ];
+
+    // Only show tabs that have data
+    final visibleTabs = allTabs.where((t) => (t['count'] as int) > 0).toList();
+
+    // If current selected tab is now hidden, jump to first visible
+    final visibleIndices = visibleTabs.map((t) => t['index'] as int).toList();
+    if (visibleIndices.isNotEmpty &&
+        !visibleIndices.contains(_selectedDetailedTabIndex)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _selectedDetailedTabIndex = visibleIndices.first;
+          });
+        }
+      });
+    }
+
+    if (visibleTabs.isEmpty) return const SizedBox.shrink();
+
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -1129,7 +1208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildDetailTabs(s, vm),
+          _buildDetailTabs(s, vm, visibleTabs),
           const Divider(color: Colors.white10, height: 1),
           _buildSelectedTable(res, s, vm),
         ],
@@ -1137,57 +1216,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildDetailTabs(dynamic s, PortfolioViewModel vm) {
-    final tabs = [
-      {'label': 'Asset Positions', 'count': '${(s.positions as List).length}'},
-      {'label': 'Open Orders', 'count': '${(s.openOrders as List).length}'},
-      {'label': 'Recent Fills', 'count': '${vm.historyFills.length}'},
-      {'label': 'Spot Balances', 'count': '${(s.spotBalances as List).length}'},
-      {'label': 'Staking', 'count': '0'},
-      {'label': 'Compared Trades', 'count': null},
-    ];
-
+  Widget _buildDetailTabs(dynamic s, PortfolioViewModel vm, List<Map<String, dynamic>> visibleTabs) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
-        children: tabs.asMap().entries.map((entry) {
-          final isSelected = _selectedDetailedTabIndex == entry.key;
+        children: visibleTabs.map((tab) {
+          final originalIndex = tab['index'] as int;
+          final isSelected = _selectedDetailedTabIndex == originalIndex;
+          final count = tab['count'] as int;
+
           return GestureDetector(
             onTap: () => setState(() {
-              _selectedDetailedTabIndex = entry.key;
-              _positionsPage = 1; // reset on tab switch
+              _selectedDetailedTabIndex = originalIndex;
+              _positionsPage = 1;
             }),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: isSelected ? AppColors.brandAccent : Colors.transparent, width: 2)),
+                border: Border(bottom: BorderSide(
+                  color: isSelected ? AppColors.brandAccent : Colors.transparent,
+                  width: 2,
+                )),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    entry.value['label']!,
+                    tab['label'] as String,
                     style: GoogleFonts.inter(
                       color: isSelected ? Colors.white : Colors.white54,
                       fontSize: 13,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
-                  if (entry.value['count'] != null) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.06),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        entry.value['count']!,
-                        style: GoogleFonts.jetBrainsMono(color: Colors.white38, fontSize: 10),
-                      ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
+                    child: Text(
+                      '$count',
+                      style: GoogleFonts.jetBrainsMono(
+                          color: Colors.white38, fontSize: 10),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1207,17 +1282,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Widget _buildSnapshotChart(PortfolioViewModel vm) {
-    final series = vm.snapshotValueSeries;
-    final timestamps = vm.snapshotTimestamps;
-    debugPrint('📊 [ProfileScreen] _buildSnapshotChart called — series: ${series.length}, timestamps: ${timestamps.length}');
-    if (series.isEmpty) {
-      debugPrint('📊 [ProfileScreen] Series empty, snapshot chart hidden');
-      return const SizedBox.shrink();
-    }
+  Widget _buildOhlcChart(PortfolioViewModel vm) {
+    final ohlc = vm.ohlcSnapshots;
+    if (ohlc.isEmpty) return const SizedBox.shrink();
 
-    final isPos = series.last >= series.first;
-    final themeColor = isPos ? AppColors.trendGreen : AppColors.trendRed;
+    final firstClose = ohlc.first.close;
+    final lastClose = ohlc.last.close;
+    final isPos = lastClose >= firstClose;
 
     return Container(
       decoration: BoxDecoration(
@@ -1230,36 +1301,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Text('Account Value History',
-                style: GoogleFonts.inter(
-                    color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Account Value',
+                    style: GoogleFonts.inter(
+                        color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                Text('OHLC 1h',
+                    style: GoogleFonts.inter(
+                        color: AppColors.textSecondary, fontSize: 10)),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          _buildOhlcTabs(),
+          const SizedBox(height: 8),
           SizedBox(
-            height: 200,
-            child: series.length < 2
+            height: 240,
+            child: ohlc.length < 2
                 ? Center(
                     child: Text('Not enough data',
-                        style: GoogleFonts.jetBrainsMono(
-                            color: Colors.white24, fontSize: 12)),
+                        style: GoogleFonts.jetBrainsMono(color: Colors.white24, fontSize: 12)),
                   )
-                : _buildSnapshotBarChart(series, timestamps, themeColor),
+                : _buildOhlcChartBody(ohlc),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _chartMetric('START',
-                    '\$${_fmtNum(series.first)}'),
-                _chartMetric('CURRENT',
-                    '\$${_fmtNum(series.last)}'),
+                _chartMetric('START', '\$${_fmtNum(firstClose)}'),
+                _chartMetric('CURRENT', '\$${_fmtNum(lastClose)}'),
                 _chartMetric(
                   'CHANGE',
-                  '${(series.last - series.first) >= 0 ? '+' : ''}\$${_fmtNum(series.last - series.first)}',
-                  color: (series.last - series.first) >= 0
-                      ? AppColors.trendGreen
-                      : AppColors.trendRed,
+                  '${(lastClose - firstClose) >= 0 ? '+' : ''}\$${_fmtNum(lastClose - firstClose)}',
+                  color: isPos ? AppColors.trendGreen : AppColors.trendRed,
                 ),
               ],
             ),
@@ -1269,48 +1345,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSnapshotBarChart(List<double> data, List<int> timestamps, Color themeColor) {
-    final n = data.length;
-    final double minVal = data.reduce((a, b) => a < b ? a : b);
-    final double maxVal = data.reduce((a, b) => a > b ? a : b);
-    final double dataRange = maxVal - minVal;
-    
-    // 1. Calculate a "nice" interval
-    double rawInterval = (dataRange / 5).abs().clamp(0.01, double.infinity);
-    double exponent = (log(rawInterval) / ln10).floorToDouble();
-    double fraction = rawInterval / pow(10, exponent);
-    double niceFraction;
-    if (fraction < 1.5) { niceFraction = 1.0; }
-    else if (fraction < 3.0) { niceFraction = 2.0; }
-    else if (fraction < 7.0) { niceFraction = 5.0; }
-    else { niceFraction = 10.0; }
-    double yInterval = niceFraction * pow(10, exponent);
+  Widget _buildOhlcTabs() {
+    const labels = ['Candlestick', 'Bar', 'Area'];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Container(
+        height: 32,
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: AppColors.surfaceBright),
+        ),
+        child: Row(
+          children: List.generate(3, (i) {
+            final isActive = _selectedOhlcChartType == i;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedOhlcChartType = i),
+                child: Container(
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isActive ? AppColors.surfaceBright : Colors.transparent,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(
+                    labels[i],
+                    style: GoogleFonts.jetBrainsMono(
+                      color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
 
-    // 2. Align yMin and yMax to this interval
+  Widget _buildOhlcChartBody(List<OhlcSnapshot> ohlc) {
+    switch (_selectedOhlcChartType) {
+      case 0: return _buildCandlestickChart(ohlc);
+      case 1: return _buildOhlcBarChart(ohlc);
+      case 2: return _buildOhlcAreaChart(ohlc);
+      default: return _buildCandlestickChart(ohlc);
+    }
+  }
+
+  List<double> _ohlcCloseValues(List<OhlcSnapshot> ohlc) {
+    return ohlc.map((s) => s.close).toList();
+  }
+
+  List<int> _ohlcTimestamps(List<OhlcSnapshot> ohlc) {
+    return ohlc.map((s) => s.timestamp).toList();
+  }
+
+  Widget _buildCandlestickChart(List<OhlcSnapshot> ohlc) {
+    final n = ohlc.length;
+    final double minVal = ohlc.map((s) => s.low).reduce((a, b) => a < b ? a : b);
+    final double maxVal = ohlc.map((s) => s.high).reduce((a, b) => a > b ? a : b);
+    final double dataRange = maxVal - minVal;
+    final double yInterval = _calcNiceInterval(dataRange);
     double yMin = (minVal / yInterval).floorToDouble() * yInterval;
     double yMax = (maxVal / yInterval).ceilToDouble() * yInterval;
-
-    // Add padding if too tight
     if (yMax - maxVal < yInterval * 0.2) yMax += yInterval;
     if (minVal - yMin < yInterval * 0.2) yMin -= yInterval;
-    if (yMin < 0) yMin = 0; // Don't go negative for account value
-
-    String fmtDate(int ts) {
-      final d = DateTime.fromMillisecondsSinceEpoch(ts);
-      final month = _getMonthName(d.month);
-      final day = d.day.toString().padLeft(2, '0');
-      final hh = d.hour.toString().padLeft(2, '0');
-      final mm = d.minute.toString().padLeft(2, '0');
-      return '$month $day\n$hh:$mm';
-    }
+    if (yMin < 0) yMin = 0;
 
     const double yAxisW = 60.0;
-    final barWidth = n > 15 ? 8.0 : 20.0;
-    final double chartW = n * (barWidth + 12) + 40;
 
     return LayoutBuilder(builder: (ctx, box) {
       final availW = box.maxWidth - yAxisW - 16;
-      final double finalW = chartW < availW ? availW : chartW;
+      final candleW = ((availW - 60) / n - 4).clamp(2.0, 24.0);
+      final totalW = n * (candleW + 4) + 60;
+      final initialW = totalW < availW ? availW : totalW;
+      final chartH = 236.0;
+      final totalDataW = n * (candleW + 4);
+      final startX = (initialW - totalDataW) / 2;
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 4),
@@ -1319,6 +1432,141 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             SizedBox(
               width: yAxisW,
+              child: CustomPaint(
+                painter: _YAxisPainter(yMin: yMin, yMax: yMax, interval: yInterval),
+              ),
+            ),
+            Expanded(
+              child: ClipRect(
+                child: Stack(
+                  children: [
+                    GestureDetector(
+                      onTapUp: (details) {
+                        final matrix = _chartTransformCtrl.value;
+                        final inverse = Matrix4.inverted(matrix);
+                        final chartPos = MatrixUtils.transformPoint(inverse, details.localPosition);
+
+                        for (int i = 0; i < n; i++) {
+                          final cx = startX + i * (candleW + 4);
+                          if (chartPos.dx >= cx && chartPos.dx <= cx + candleW) {
+                            setState(() {
+                              _selectedCandle = ohlc[i];
+                            });
+                            return;
+                          }
+                        }
+                        setState(() {
+                          _selectedCandle = null;
+                        });
+                      },
+                      child: InteractiveViewer(
+                        transformationController: _chartTransformCtrl,
+                        constrained: false,
+                        minScale: 1.0,
+                        maxScale: 6.0,
+                        boundaryMargin: const EdgeInsets.all(40),
+                        child: SizedBox(
+                          width: initialW,
+                          height: chartH,
+                          child: CustomPaint(
+                            painter: _CandlestickChartPainter(
+                              data: ohlc,
+                              yMin: yMin,
+                              yMax: yMax,
+                              candleWidth: candleW,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_selectedCandle != null)
+                      Positioned(
+                        left: 8,
+                        top: 8,
+                        child: _buildCandleTooltip(_selectedCandle!),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildCandleTooltip(OhlcSnapshot c) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            _fmtTimestamp(c.timestamp),
+            style: const TextStyle(color: Colors.white54, fontSize: 10),
+          ),
+          const SizedBox(height: 4),
+          _tooltipRow('O', c.open, Colors.white70),
+          _tooltipRow('H', c.high, const Color(0xFF22C55E)),
+          _tooltipRow('L', c.low, const Color(0xFFEF4444)),
+          _tooltipRow('C', c.close, c.close >= c.open
+              ? const Color(0xFF22C55E)
+              : const Color(0xFFEF4444)),
+          _tooltipRow('Vol', c.count.toDouble(), Colors.white54),
+        ],
+      ),
+    );
+  }
+
+  Widget _tooltipRow(String label, double value, Color valueColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('$label  ',
+            style: const TextStyle(color: Colors.white38, fontSize: 11)),
+          Text(_fmtNum(value),
+            style: TextStyle(color: valueColor, fontSize: 11, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOhlcBarChart(List<OhlcSnapshot> ohlc) {
+    final series = _ohlcCloseValues(ohlc);
+    final timestamps = _ohlcTimestamps(ohlc);
+    final n = series.length;
+    final double minVal = series.reduce((a, b) => a < b ? a : b);
+    final double maxVal = series.reduce((a, b) => a > b ? a : b);
+    final double dataRange = maxVal - minVal;
+    final double yInterval = _calcNiceInterval(dataRange);
+    double yMin = (minVal / yInterval).floorToDouble() * yInterval;
+    double yMax = (maxVal / yInterval).ceilToDouble() * yInterval;
+    if (yMax - maxVal < yInterval * 0.2) yMax += yInterval;
+    if (minVal - yMin < yInterval * 0.2) yMin -= yInterval;
+    if (yMin < 0) yMin = 0;
+
+    final barWidth = n > 15 ? 8.0 : 20.0;
+    final double chartW = n * (barWidth + 12) + 40;
+
+    return LayoutBuilder(builder: (ctx, box) {
+      final availW = box.maxWidth - 60 - 16;
+      final double finalW = chartW < availW ? availW : chartW;
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 60,
               child: CustomPaint(
                 painter: _YAxisPainter(yMin: yMin, yMax: yMax, interval: yInterval),
               ),
@@ -1335,12 +1583,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       maxY: yMax,
                       alignment: BarChartAlignment.spaceAround,
                       barGroups: List.generate(n, (i) {
-                        final barColor = data[i] >= data[0] ? AppColors.trendGreen : AppColors.trendRed;
+                        final barColor = series[i] >= series[0] ? AppColors.trendGreen : AppColors.trendRed;
                         return BarChartGroupData(
                           x: i,
                           barRods: [
                             BarChartRodData(
-                              toY: data[i],
+                              toY: series[i],
                               color: barColor.withOpacity(0.8),
                               width: barWidth,
                               borderRadius: const BorderRadius.only(
@@ -1363,52 +1611,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                         rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                         leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 40,
-                            getTitlesWidget: (value, meta) {
-                              final idx = value.toInt();
-                              if (idx < 0 || idx >= timestamps.length) return const SizedBox();
-                              final labelEvery = n <= 10 ? 1 : (n / 10).ceil();
-                              if (idx % labelEvery != 0) return const SizedBox();
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 6),
-                                child: Text(
-                                  fmtDate(timestamps[idx]),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 2,
-                                  style: GoogleFonts.jetBrainsMono(
-                                      color: Colors.white.withOpacity(0.5), fontSize: 9, fontWeight: FontWeight.w500),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                        bottomTitles: _ohlcBottomTitles(timestamps, n),
                       ),
                       barTouchData: BarTouchData(
                         touchTooltipData: BarTouchTooltipData(
                           getTooltipColor: (_) => AppColors.surfaceBright,
                           getTooltipItem: (group, groupIndex, rod, rodIndex) {
                             final abs = rod.toY.abs();
-                            String yLabel;
-                            if (abs >= 1000000) {
-                              yLabel = '\$${(rod.toY / 1000000).toStringAsFixed(2)}M';
-                            } else if (abs >= 1000) {
-                              yLabel = '\$${(rod.toY / 1000).toStringAsFixed(1)}K';
-                            } else {
-                              yLabel = '\$${rod.toY.toStringAsFixed(2)}';
-                            }
+                            final yLabel = abs >= 1000000
+                                ? '\$${(rod.toY / 1000000).toStringAsFixed(2)}M'
+                                : (abs >= 1000
+                                    ? '\$${(rod.toY / 1000).toStringAsFixed(1)}K'
+                                    : '\$${rod.toY.toStringAsFixed(2)}');
                             final idx = group.x.toInt();
                             final dateLabel = (idx >= 0 && idx < timestamps.length)
-                                ? fmtDate(timestamps[idx])
+                                ? _fmtTimestamp(timestamps[idx])
                                 : '';
                             return BarTooltipItem(
                               '$yLabel\n$dateLabel',
                               GoogleFonts.jetBrainsMono(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold),
+                                  color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                             );
                           },
                         ),
@@ -1426,9 +1648,177 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  Widget _buildOhlcAreaChart(List<OhlcSnapshot> ohlc) {
+    final series = _ohlcCloseValues(ohlc);
+    final timestamps = _ohlcTimestamps(ohlc);
+    final n = series.length;
+    final double minVal = series.reduce((a, b) => a < b ? a : b);
+    final double maxVal = series.reduce((a, b) => a > b ? a : b);
+    final double range = (maxVal - minVal).abs();
+    final double yInterval = _calcNiceInterval(range);
+    double yMin = (minVal / yInterval).floorToDouble() * yInterval;
+    double yMax = (maxVal / yInterval).ceilToDouble() * yInterval;
+    if (yMax - maxVal < yInterval * 0.2) yMax += yInterval;
+    if (minVal - yMin < yInterval * 0.2) yMin -= yInterval;
+
+    final spots = List<FlSpot>.generate(n, (i) => FlSpot(i.toDouble(), series[i]));
+
+    return LayoutBuilder(builder: (ctx, box) {
+      final availW = box.maxWidth - 60 - 16;
+      final chartW = n <= 20 ? n * 55.0 : n * 8.0;
+      final double finalW = chartW < availW ? availW : chartW;
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 60,
+              child: CustomPaint(
+                painter: _YAxisPainter(yMin: yMin, yMax: yMax, interval: yInterval),
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: SizedBox(
+                  width: finalW,
+                  child: LineChart(
+                    LineChartData(
+                      minY: yMin,
+                      maxY: yMax,
+                      minX: 0,
+                      maxX: (n - 1).toDouble(),
+                      clipData: const FlClipData.all(),
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: yInterval,
+                        getDrawingHorizontalLine: (_) => FlLine(
+                            color: Colors.white.withOpacity(0.04), strokeWidth: 1),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: _ohlcBottomTitles(timestamps, n),
+                      ),
+                      lineTouchData: LineTouchData(
+                        touchTooltipData: LineTouchTooltipData(
+                          getTooltipColor: (_) => AppColors.surfaceBright,
+                          getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
+                            final abs = s.y.abs();
+                            final yLabel = abs >= 1000000
+                                ? '\$${(s.y / 1000000).toStringAsFixed(2)}M'
+                                : (abs >= 1000
+                                    ? '\$${(s.y / 1000).toStringAsFixed(1)}K'
+                                    : '\$${s.y.toStringAsFixed(2)}');
+                            final idx = s.x.toInt();
+                            final dateLabel = (idx >= 0 && idx < timestamps.length)
+                                ? _fmtTimestamp(timestamps[idx])
+                                : '';
+                            return LineTooltipItem(
+                              '$yLabel  $dateLabel',
+                              GoogleFonts.jetBrainsMono(
+                                  color: AppColors.brandAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: spots,
+                          isCurved: true,
+                          curveSmoothness: 0.3,
+                          color: AppColors.brandAccent,
+                          barWidth: 2,
+                          isStrokeCapRound: true,
+                          dotData: const FlDotData(show: false),
+                          belowBarData: BarAreaData(
+                            show: true,
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                AppColors.brandAccent.withOpacity(0.18),
+                                AppColors.brandAccent.withOpacity(0.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  AxisTitles _ohlcBottomTitles(List<int> timestamps, int n) {
+    return AxisTitles(
+      sideTitles: SideTitles(
+        showTitles: true,
+        reservedSize: 40,
+        getTitlesWidget: (value, meta) {
+          final idx = value.toInt();
+          if (idx < 0 || idx >= timestamps.length) return const SizedBox();
+          final labelEvery = n <= 10 ? 1 : (n / 10).ceil();
+          if (idx % labelEvery != 0) return const SizedBox();
+          return Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              _fmtTimestamp(timestamps[idx]),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              style: GoogleFonts.jetBrainsMono(
+                  color: Colors.white.withOpacity(0.5), fontSize: 9, fontWeight: FontWeight.w500),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _fmtTimestamp(int ts) {
+    final d = DateTime.fromMillisecondsSinceEpoch(ts);
+    final month = _getMonthName(d.month);
+    final day = d.day.toString().padLeft(2, '0');
+    final hh = d.hour.toString().padLeft(2, '0');
+    final mm = d.minute.toString().padLeft(2, '0');
+    return '$month $day\n$hh:$mm';
+  }
+
+  double _calcNiceInterval(double range) {
+    if (range <= 0) return 1;
+    final rawInterval = (range / 5).abs().clamp(0.01, double.infinity);
+    final exponent = (log(rawInterval) / ln10).floorToDouble();
+    final fraction = rawInterval / pow(10, exponent);
+    double niceFraction;
+    if (fraction < 1.5) {
+      niceFraction = 1.0;
+    } else if (fraction < 3.0) {
+      niceFraction = 2.0;
+    } else if (fraction < 7.0) {
+      niceFraction = 5.0;
+    } else {
+      niceFraction = 10.0;
+    }
+    return niceFraction * pow(10, exponent);
+  }
+
   Widget _buildFullPnLChart(Responsive res, dynamic s, PortfolioViewModel vm) {
     final series     = _getSelectedSeries(vm);
     final timestamps = vm.historyTimestamps;
+    final bool hasData = series.length >= 2;
     final bool isAccountValue = _selectedChartTabIndex == 2;
     final bool isPos  = series.isNotEmpty && series.last >= series.first;
     final Color themeColor = isAccountValue
@@ -1448,59 +1838,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header: tabs + dropdown
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 10, 12, 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.surfaceBright),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.all(4),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _chartTabHome('Combined PnL', 0),
-                              _chartTabHome('Perp PnL',     1),
-                              _chartTabHome('Acct Value',   2),
-                            ],
+              // Header: tabs + dropdown — only show if there's data
+              if (hasData) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 10, 12, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.surfaceBright),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.all(4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // _chartTabHome('Combined PnL', 0),
+                                // _chartTabHome('Perp PnL',     1),
+                                _chartTabHome('Acct Value',   2),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    _buildRangeDropdown(vm),
-                  ],
+                      const SizedBox(width: 10),
+                      _buildRangeDropdown(vm),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-              // ── Chart — full width, no horizontal padding ──
-              SizedBox(
-                height: 240,
-                child: series.length < 2
-                    ? Center(
-                        child: Text(
-                          'No data for this range',
-                          style: GoogleFonts.jetBrainsMono(
-                              color: Colors.white24, fontSize: 12),
-                        ),
-                      )
-                    : _buildMainLineChart(series, timestamps, themeColor),
-              ),
+                // ── Chart — full width, no horizontal padding ──
+                SizedBox(
+                  height: 240,
+                  child: _buildMainLineChart(series, timestamps, themeColor),
+                ),
+              ],
 
-              // Bottom stats
+              // Bottom stats — always show
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+                padding: EdgeInsets.fromLTRB(20, hasData ? 12 : 18, 20, 18),
                 child: Column(children: [
                   const Divider(color: Colors.white10),
                   const SizedBox(height: 10),
@@ -2054,22 +2438,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildRecentlyTradedSection(Responsive res, PortfolioViewModel vm) {
     final all = vm.symbolSummaries; // already sorted by volume desc
 
-    if (all.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceBright.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
-        ),
-        child: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Text('No trade history', style: TextStyle(color: Colors.white24)),
-          ),
-        ),
-      );
-    }
+    if (all.isEmpty) return const SizedBox.shrink();
 
     final int totalPages = (all.length / _recentPerPage).ceil();
     final int start = (_recentPage - 1) * _recentPerPage;
@@ -3234,4 +3603,112 @@ class _YAxisPainter extends CustomPainter {
   @override
   bool shouldRepaint(_YAxisPainter old) =>
       old.yMin != yMin || old.yMax != yMax || old.interval != interval;
+}
+
+class _CandlestickChartPainter extends CustomPainter {
+  final List<OhlcSnapshot> data;
+  final double yMin;
+  final double yMax;
+  final double candleWidth;
+
+  _CandlestickChartPainter({
+    required this.data,
+    required this.yMin,
+    required this.yMax,
+    required this.candleWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final range = yMax - yMin;
+    if (range <= 0 || data.isEmpty) return;
+
+    const dateLabelH = 24.0;
+    const topPad = 4.0;
+    final chartHeight = size.height - dateLabelH - topPad;
+    final n = data.length;
+    final double totalWidth = n * (candleWidth + 4);
+    final double startX = (size.width - totalWidth) / 2;
+
+    for (int i = 0; i < n; i++) {
+      final s = data[i];
+      final x = startX + i * (candleWidth + 4) + candleWidth / 2;
+
+      double yPrice(double price) {
+        final frac = (price - yMin) / range;
+        return chartHeight - (frac * chartHeight) + topPad;
+      }
+
+      final yHigh = yPrice(s.high);
+      final yLow = yPrice(s.low);
+      final yOpen = yPrice(s.open);
+      final yClose = yPrice(s.close);
+
+      final isBull = s.close >= s.open;
+      final bodyColor = isBull
+          ? const Color(0xFF22C55E)
+          : const Color(0xFFEF4444);
+
+      // Draw wick
+      canvas.drawLine(
+        Offset(x, yHigh),
+        Offset(x, yLow),
+        Paint()
+          ..color = bodyColor.withOpacity(0.8)
+          ..strokeWidth = 1.2,
+      );
+
+      // Draw body
+      final bodyTop = isBull ? yClose : yOpen;
+      final bodyBottom = isBull ? yOpen : yClose;
+      final bodyHeight = (bodyBottom - bodyTop).clamp(1.0, double.infinity);
+
+      canvas.drawRect(
+        Rect.fromLTRB(
+          x - candleWidth / 2 + 1,
+          bodyTop,
+          x + candleWidth / 2 - 1,
+          bodyTop + bodyHeight,
+        ),
+        Paint()..color = bodyColor,
+      );
+    }
+
+    // Grid lines
+    final gridPaint = Paint()
+      ..color = Colors.white.withOpacity(0.04)
+      ..strokeWidth = 1;
+    for (int i = 0; i <= 5; i++) {
+      final y = chartHeight * (1 - i / 5) + topPad;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    // Date labels
+    final labelStep = n <= 10 ? 1 : (n / 7).ceil();
+    final textPainter = TextPainter(
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    );
+    for (int i = 0; i < n; i += labelStep) {
+      final d = DateTime.fromMillisecondsSinceEpoch(data[i].timestamp);
+      final label = '${d.day}/${d.month}';
+      final x = startX + i * (candleWidth + 4) + candleWidth / 2;
+      textPainter.text = TextSpan(
+        text: label,
+        style: const TextStyle(
+          color: Colors.white38,
+          fontSize: 10,
+        ),
+      );
+      textPainter.layout();
+      textPainter.paint(
+        canvas,
+        Offset(x - textPainter.width / 2, chartHeight + topPad + 4),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CandlestickChartPainter old) =>
+      old.data != data || old.yMin != yMin || old.yMax != yMax;
 }
