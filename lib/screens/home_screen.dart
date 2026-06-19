@@ -4,6 +4,7 @@ import 'package:hyperscreener/screens/subscription_screen.dart';
 import 'package:hyperscreener/screens/leaderboard_stats_screen.dart';
 import 'package:hyperscreener/screens/leaderboard_screen.dart';
 import 'package:hyperscreener/screens/defillama_screen.dart';
+import 'package:hyperscreener/screens/protocols_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import '../utils/app_colors.dart';
@@ -1145,6 +1146,20 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const DexVolumePage()),
+                );
+              },
+            ),
+            isActive: false,
+          ),
+
+          _DrawerNavItem(
+            data: _DrawerItemData(
+              icon: Icons.account_balance_wallet_rounded,
+              label: 'TVL',
+              subtitle: 'Protocol liquidity',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ProtocolsScreen()),
                 );
               },
             ),
