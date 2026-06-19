@@ -62,10 +62,10 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
           ),
           title: Consumer<DefiLlamaViewModel>(
             builder: (_, vm, __) => Text(
-              'Hyperliquid ${vm.tabLabel}',
+              'Fees & Revenue: ${vm.tabLabel}',
               style: GoogleFonts.jetBrainsMono(
                 color: AppColors.brandAccent,
-                fontSize: res.fontSize(17),
+                fontSize: res.fontSize(16),
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.1,
               ),

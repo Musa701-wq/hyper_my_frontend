@@ -1111,8 +1111,8 @@ class _HomeScreenState extends State<HomeScreen> {
           _DrawerNavItem(
             data: _DrawerItemData(
               icon: Icons.analytics_rounded,
-              label: 'DefiLlama',
-              subtitle: 'Fees & revenue',
+              label: 'Fees & Revenue',
+              subtitle: 'Protocol earnings',
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const DefiLlamaScreen()),

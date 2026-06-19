@@ -80,14 +80,24 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
           const SizedBox(height: 24),
           SizedBox(
             height: 200,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: (displayTrend.length * 30.0).clamp(MediaQuery.of(context).size.width - 64, 2000.0),
-                child: _style == 'Bar' 
-                  ? BarChart(_buildBarData(displayTrend))
-                  : LineChart(_buildLineData(displayTrend)),
-              ),
+            child: Row(
+              children: [
+                _buildFixedYAxis(displayTrend),
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: (displayTrend.length * 45.0).clamp(MediaQuery.of(context).size.width - 64, 2000.0),
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 20),
+                        child: _style == 'Bar' 
+                          ? BarChart(_buildBarData(displayTrend))
+                          : LineChart(_buildLineData(displayTrend)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -141,8 +151,8 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
             BarChartRodData(
               toY: entry.value.volume,
               color: widget.color,
-              width: 12.0, // Reduced from 16 to ensure space
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+              width: 18.0, // Increased for a more solid, premium look
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(5)),
             ),
           ],
         );
@@ -150,6 +160,9 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
       barTouchData: BarTouchData(
         touchTooltipData: BarTouchTooltipData(
           getTooltipColor: (_) => const Color(0xFF16191E),
+          fitInsideVertically: true, // Ensure tooltip doesn't hide at the top
+          fitInsideHorizontally: true,
+          tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           getTooltipItem: (group, groupIndex, rod, rodIndex) {
             return BarTooltipItem(
               '${trend[group.x.toInt()].label}\n${_formatPrice(rod.toY)}',
@@ -189,6 +202,8 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
       lineTouchData: LineTouchData(
         touchTooltipData: LineTouchTooltipData(
           getTooltipColor: (_) => const Color(0xFF16191E),
+          fitInsideVertically: true,
+          fitInsideHorizontally: true,
           getTooltipItems: (touchedSpots) {
             return touchedSpots.map((spot) {
               return LineTooltipItem(
@@ -202,24 +217,52 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
     );
   }
 
+  Widget _buildFixedYAxis(List<TrendItem> trend) {
+    if (trend.isEmpty) return const SizedBox.shrink();
+    double maxVal = trend.map((e) => e.volume).reduce((a, b) => a > b ? a : b);
+    if (maxVal == 0) maxVal = 1e6;
+    maxVal = maxVal * 1.15; // Add 15% headroom for tooltips
+    
+    return Container(
+      width: 45,
+      padding: const EdgeInsets.only(bottom: 24, top: 0),
+      child: LineChart(
+        LineChartData(
+          minY: 0,
+          maxY: maxVal,
+          gridData: const FlGridData(show: false),
+          borderData: FlBorderData(show: false),
+          titlesData: FlTitlesData(
+            show: true,
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 45,
+                getTitlesWidget: (value, meta) {
+                  if (value >= meta.max * 0.98 || value <= meta.min) return const SizedBox.shrink();
+                  return Text(
+                    _formatPrice(value),
+                    style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 7),
+                  );
+                },
+              ),
+            ),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            bottomTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          lineBarsData: [LineChartBarData(spots: [], show: false)],
+        ),
+      ),
+    );
+  }
+
   FlTitlesData _titlesData(List<TrendItem> trend) {
     return FlTitlesData(
       show: true,
-      rightTitles: AxisTitles(
-        sideTitles: SideTitles(
-          showTitles: true,
-          reservedSize: 40,
-          getTitlesWidget: (value, meta) {
-            if (value == meta.min || value == meta.max) return const SizedBox.shrink();
-            return Text(
-              _formatPrice(value),
-              style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 8),
-            );
-          },
-        ),
-      ),
-      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       bottomTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,

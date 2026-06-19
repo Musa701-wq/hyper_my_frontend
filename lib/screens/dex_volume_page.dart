@@ -219,16 +219,6 @@ class _DexVolumePageState extends State<DexVolumePage> {
       children: [
         _buildToggleGroup(
           [
-            _ToggleItem(label: 'All', value: 'all'),
-            _ToggleItem(label: 'Perps', value: 'perps'),
-            _ToggleItem(label: 'Spot', value: 'spot'),
-          ],
-          vm.selectedScope,
-          (val) => vm.setScope(val),
-        ),
-        const SizedBox(height: 8),
-        _buildToggleGroup(
-          [
             _ToggleItem(label: 'All', value: 'All'),
             _ToggleItem(label: 'D', value: 'D'),
             _ToggleItem(label: 'W', value: 'W'),
@@ -243,42 +233,39 @@ class _DexVolumePageState extends State<DexVolumePage> {
   }
 
   Widget _buildToggleGroup(List<_ToggleItem> items, String currentValue, Function(String) onChanged) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: items.map((item) {
-                final bool isActive = currentValue == item.value;
-                return GestureDetector(
-                  onTap: () => onChanged(item.value),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isActive ? const Color(0xFF10B981) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      item.label,
-                      style: GoogleFonts.jetBrainsMono(
-                        color: isActive ? Colors.black : AppColors.textSecondary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
+        children: items.map((item) {
+          final bool isActive = currentValue == item.value;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(item.value),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: isActive ? const Color(0xFF10B981) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    item.label,
+                    style: GoogleFonts.jetBrainsMono(
+                      color: isActive ? Colors.black : AppColors.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                );
-              }).toList(),
+                ),
+              ),
             ),
-          ),
-        ],
+          );
+        }).toList(),
       ),
     );
   }

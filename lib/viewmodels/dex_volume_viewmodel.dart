@@ -13,7 +13,7 @@ class DexVolumeViewModel extends ChangeNotifier {
   
   bool _isLoading = false;
   String _errorMessage = '';
-  String _selectedScope = 'all'; // all, spot, perps
+  String _selectedScope = 'spot'; // all, spot, perps
   String _selectedTimeRange = 'All'; // All, D, W, M, Y
   String _selectedChartType = 'Area'; // Area, Bar
 

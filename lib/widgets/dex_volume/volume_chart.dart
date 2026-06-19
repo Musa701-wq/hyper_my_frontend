@@ -34,9 +34,9 @@ class VolumeChartWidget extends StatelessWidget {
     
     // Balanced zoom multipliers
     double pointWidth = 5.0;
-    if (selectedTimeRange == 'D') pointWidth = 20.0;
-    if (selectedTimeRange == 'W') pointWidth = 15.0;
-    if (selectedTimeRange == 'M') pointWidth = 10.0;
+    if (selectedTimeRange == 'D') pointWidth = 25.0;
+    if (selectedTimeRange == 'W') pointWidth = 20.0;
+    if (selectedTimeRange == 'M') pointWidth = 15.0;
     
     final double chartContentWidth = (data.length * pointWidth).clamp(baseWidth, 2000.0);
     final double effectivePointWidth = chartContentWidth / data.length;
@@ -77,7 +77,7 @@ class VolumeChartWidget extends StatelessWidget {
                         padding: const EdgeInsets.only(left: 40, right: 20),
                         child: selectedChartType == 'Bar' 
                           ? BarChart(_buildBarData(effectivePointWidth))
-                          : LineChart(_buildLineData()),
+                          : LineChart(_buildLineData(effectivePointWidth)),
                       ),
                     ),
                   ),
@@ -168,7 +168,7 @@ class VolumeChartWidget extends StatelessWidget {
                 showTitles: true,
                 reservedSize: 50,
                 getTitlesWidget: (value, meta) {
-                  if (value == meta.min || value == meta.max) return const SizedBox.shrink();
+                  if (value >= meta.max * 0.98 || value <= meta.min) return const SizedBox.shrink();
                   return Padding(
                     padding: const EdgeInsets.only(left: 4),
                     child: Text(
@@ -189,7 +189,7 @@ class VolumeChartWidget extends StatelessWidget {
     );
   }
 
-  LineChartData _buildLineData() {
+  LineChartData _buildLineData(double effectivePointWidth) {
     return LineChartData(
       gridData: FlGridData(
         show: true,
@@ -200,7 +200,7 @@ class VolumeChartWidget extends StatelessWidget {
           strokeWidth: 1,
         ),
       ),
-      titlesData: _titlesData(),
+      titlesData: _titlesData(effectivePointWidth),
       borderData: FlBorderData(show: false),
       minY: 0,
       lineBarsData: [
@@ -252,7 +252,7 @@ class VolumeChartWidget extends StatelessWidget {
           strokeWidth: 1,
         ),
       ),
-      titlesData: _titlesData(),
+      titlesData: _titlesData(effectivePointWidth),
       borderData: FlBorderData(show: false),
       minY: 0,
       barGroups: data.asMap().entries.map((entry) {
@@ -288,7 +288,7 @@ class VolumeChartWidget extends StatelessWidget {
     );
   }
 
-  FlTitlesData _titlesData() {
+  FlTitlesData _titlesData(double effectivePointWidth) {
     return FlTitlesData(
       show: true,
       leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -308,6 +308,41 @@ class VolumeChartWidget extends StatelessWidget {
             // Logic for showing labels
             bool shouldShow = false;
             
+            if (selectedTimeRange == 'M') {
+              // Show month abbreviation, and year only on first month of year
+              final bool isFirstPoint = index == 0;
+              final bool isYearTransition = index > 0 && data[index - 1].timestamp.year != date.year;
+              
+              // Skip logic: only show if year transition, first point, or every 2nd month
+              // This prevents overlap when squeezed, but shows all if user scrolls/zooms
+              final bool skipThis = !isFirstPoint && !isYearTransition && (index % 2 != 0);
+              if (skipThis && effectivePointWidth < 30) return const SizedBox.shrink();
+              
+              return Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      DateFormat('MMM').format(date),
+                      style: GoogleFonts.jetBrainsMono(
+                        color: AppColors.textSecondary,
+                        fontSize: 8,
+                      ),
+                    ),
+                    if (isFirstPoint || isYearTransition)
+                      Text(
+                        DateFormat('yyyy').format(date),
+                        style: GoogleFonts.jetBrainsMono(
+                          color: AppColors.textSecondary.withOpacity(0.5),
+                          fontSize: 7,
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }
+
             if (selectedTimeRange == 'D' || selectedTimeRange == 'W' || (selectedTimeRange == 'All' && data.length > 50)) {
               // Show only on month transitions or the very first point
               final bool isFirstPoint = index == 0;
