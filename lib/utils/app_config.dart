@@ -21,4 +21,8 @@ class AppConfig {
   static String get defillamaUrl {
     return dotenv.env['DEFILLAMA_API_URL'] ?? 'http://localhost:4000';
   }
+
+  static String get dexVolumeUrl {
+    return dotenv.env['DEX_VOLUME_API_URL'] ?? 'http://localhost:4001';
+  }
 }

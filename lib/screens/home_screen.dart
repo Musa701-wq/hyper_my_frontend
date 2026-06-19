@@ -25,6 +25,7 @@ import '../analytics/analytics_service.dart';
 import '../widgets/account_management_sheet.dart';
 import '../widgets/hip4_markets_panel.dart';
 import '../viewmodels/hip4_viewmodel.dart';
+import 'dex_volume_page.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -1130,6 +1131,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                       builder: (_) => const LeaderboardStatsScreen()),
+                );
+              },
+            ),
+            isActive: false,
+          ),
+
+          _DrawerNavItem(
+            data: _DrawerItemData(
+              icon: Icons.pie_chart_rounded,
+              label: 'DEX Volume',
+              subtitle: 'Protocol analytics',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const DexVolumePage()),
                 );
               },
             ),
