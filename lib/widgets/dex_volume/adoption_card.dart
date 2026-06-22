@@ -27,9 +27,9 @@ class AdoptionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withValues(alpha: 0.1),
+        color: AppColors.surfaceBright.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,7 +56,7 @@ class AdoptionCard extends StatelessWidget {
           Text(
              subtitle,
             style: GoogleFonts.jetBrainsMono(
-              color: AppColors.textSecondary.withValues(alpha: 0.7),
+              color: AppColors.textSecondary.withOpacity(0.7),
               fontSize: 10,
             ),
           ),

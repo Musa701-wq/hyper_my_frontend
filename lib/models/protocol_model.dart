@@ -147,3 +147,52 @@ class ProtocolDetail {
 
   double? get mcapTvlRatio => (mcap != null && tvl > 0) ? mcap! / tvl : null;
 }
+
+class CategoryDistribution {
+  final String category;
+  final double tvl;
+  final double percentage;
+
+  CategoryDistribution({
+    required this.category,
+    required this.tvl,
+    required this.percentage,
+  });
+
+  factory CategoryDistribution.fromJson(Map<String, dynamic> json, {double? totalTvl}) {
+    final tvl = (json['tvl'] as num? ?? 0).toDouble();
+    return CategoryDistribution(
+      category: json['category'] as String? ?? 'Unknown',
+      tvl: tvl,
+      percentage: (totalTvl != null && totalTvl > 0) ? (tvl / totalTvl) * 100 : 0.0,
+    );
+  }
+
+  String get formattedTvl {
+    if (tvl >= 1e9) return '\$${(tvl / 1e9).toStringAsFixed(2)}B';
+    if (tvl >= 1e6) return '\$${(tvl / 1e6).toStringAsFixed(2)}M';
+    if (tvl >= 1e3) return '\$${(tvl / 1e3).toStringAsFixed(2)}K';
+    return '\$${tvl.toStringAsFixed(0)}';
+  }
+}
+
+class ChainTvl {
+  final String chain;
+  final double tvl;
+
+  ChainTvl({required this.chain, required this.tvl});
+
+  factory ChainTvl.fromJson(Map<String, dynamic> json) {
+    return ChainTvl(
+      chain: json['chain'] as String? ?? 'Unknown',
+      tvl: (json['tvl'] as num? ?? 0).toDouble(),
+    );
+  }
+
+  String get formattedTvl {
+    if (tvl >= 1e9) return '\$${(tvl / 1e9).toStringAsFixed(2)}B';
+    if (tvl >= 1e6) return '\$${(tvl / 1e6).toStringAsFixed(2)}M';
+    if (tvl >= 1e3) return '\$${(tvl / 1e3).toStringAsFixed(2)}K';
+    return '\$${tvl.toStringAsFixed(0)}';
+  }
+}

@@ -50,10 +50,10 @@ class _LiveMarketsDrawerItemState extends State<LiveMarketsDrawerItem>
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.brandAccent.withValues(alpha: _bg.value * 0.07),
+              color: AppColors.brandAccent.withOpacity(_bg.value * 0.07),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: AppColors.surfaceBright.withValues(alpha: 0.3),
+                color: AppColors.surfaceBright.withOpacity(0.3),
                 width: 0.8,
               ),
             ),
@@ -65,7 +65,7 @@ class _LiveMarketsDrawerItemState extends State<LiveMarketsDrawerItem>
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceBright.withValues(alpha: 0.6),
+                    color: AppColors.surfaceBright.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(Icons.bar_chart_rounded,
@@ -81,7 +81,7 @@ class _LiveMarketsDrawerItemState extends State<LiveMarketsDrawerItem>
                               color: AppColors.textPrimary, fontSize: 13)),
                       Text('Gainers • Losers • Active',
                           style: GoogleFonts.jetBrainsMono(
-                              color: AppColors.textSecondary.withValues(alpha: 0.55),
+                              color: AppColors.textSecondary.withOpacity(0.55),
                               fontSize: 9.5)),
                     ],
                   ),
@@ -156,9 +156,9 @@ class LiveMarketsScreen extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(colors: [
-                  AppColors.brandAccent.withValues(alpha: 0.0),
-                  AppColors.brandAccent.withValues(alpha: 0.5),
-                  AppColors.brandAccent.withValues(alpha: 0.0),
+                  AppColors.brandAccent.withOpacity(0.0),
+                  AppColors.brandAccent.withOpacity(0.5),
+                  AppColors.brandAccent.withOpacity(0.0),
                 ]),
               ),
             ),
@@ -237,7 +237,7 @@ class LiveMarketsScreen extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Icon(icon, size: 16, color: c.withValues(alpha: 0.7)),
+          Icon(icon, size: 16, color: c.withOpacity(0.7)),
           const SizedBox(height: 4),
           Text(value,
               style: GoogleFonts.jetBrainsMono(

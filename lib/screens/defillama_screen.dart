@@ -140,7 +140,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
   Widget _sectionLabel(String text) => Text(
     text,
     style: GoogleFonts.jetBrainsMono(
-      color: AppColors.textSecondary.withValues(alpha: 0.45),
+      color: AppColors.textSecondary.withOpacity(0.45),
       fontSize: 9,
       letterSpacing: 1.8,
     ),
@@ -270,22 +270,22 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: AppColors.brandAccent.withValues(alpha: 0.25),
+          color: AppColors.brandAccent.withOpacity(0.25),
           width: 1,
         ),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.brandAccent.withValues(alpha: 0.13),
-            AppColors.brandAccent.withValues(alpha: 0.04),
+            AppColors.brandAccent.withOpacity(0.13),
+            AppColors.brandAccent.withOpacity(0.04),
             AppColors.background,
           ],
           stops: const [0.0, 0.45, 1.0],
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.brandAccent.withValues(alpha: 0.06),
+            color: AppColors.brandAccent.withOpacity(0.06),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -297,7 +297,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
         children: [
           Text(c.label,
             style: GoogleFonts.jetBrainsMono(
-              color: AppColors.brandAccent.withValues(alpha: 0.7),
+              color: AppColors.brandAccent.withOpacity(0.7),
               fontSize: res.fontSize(9),
               letterSpacing: 0.6,
               fontWeight: FontWeight.w500,
@@ -317,13 +317,13 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
               decoration: BoxDecoration(
                 color: c.badgeUp
-                    ? AppColors.trendGreen.withValues(alpha: 0.18)
-                    : AppColors.trendRed.withValues(alpha: 0.18),
+                    ? AppColors.trendGreen.withOpacity(0.18)
+                    : AppColors.trendRed.withOpacity(0.18),
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
                   color: c.badgeUp
-                      ? AppColors.trendGreen.withValues(alpha: 0.3)
-                      : AppColors.trendRed.withValues(alpha: 0.3),
+                      ? AppColors.trendGreen.withOpacity(0.3)
+                      : AppColors.trendRed.withOpacity(0.3),
                   width: 0.5,
                 ),
               ),
@@ -366,10 +366,10 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
                   duration: const Duration(milliseconds: 180),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: active ? color.withValues(alpha: 0.18) : Colors.transparent,
+                    color: active ? color.withOpacity(0.18) : Colors.transparent,
                     borderRadius: BorderRadius.circular(6),
                     border: active
-                        ? Border.all(color: color.withValues(alpha: 0.5), width: 1)
+                        ? Border.all(color: color.withOpacity(0.5), width: 1)
                         : null,
                   ),
                   child: Text(s.label,
@@ -538,7 +538,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
                   child: Text(_fmtY(v),
                     textAlign: TextAlign.right,
                     style: GoogleFonts.jetBrainsMono(
-                      color: Colors.white.withValues(alpha: 0.4),
+                      color: Colors.white.withOpacity(0.4),
                       fontSize: 8.5,
                     )),
                 );
@@ -576,7 +576,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
           show: true, drawVerticalLine: false,
           horizontalInterval: interval,
           getDrawingHorizontalLine: (_) =>
-              FlLine(color: Colors.white.withValues(alpha: 0.06), strokeWidth: 1),
+              FlLine(color: Colors.white.withOpacity(0.06), strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         titlesData: _axisTitles(n, dates, labelEvery, hideLeft: true),
@@ -604,7 +604,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
               show: true,
               gradient: LinearGradient(
                 begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                colors: [color.withValues(alpha: 0.22), color.withValues(alpha: 0.0)],
+                colors: [color.withOpacity(0.22), color.withOpacity(0.0)],
               ),
             ),
           ),
@@ -642,7 +642,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
           show: true, drawVerticalLine: false,
           horizontalInterval: interval,
           getDrawingHorizontalLine: (_) =>
-              FlLine(color: Colors.white.withValues(alpha: 0.06), strokeWidth: 1),
+              FlLine(color: Colors.white.withOpacity(0.06), strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         titlesData: _axisTitles(n, dates, labelEvery, hideLeft: true),
@@ -712,7 +712,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
               padding: const EdgeInsets.only(top: 4),
               child: Text(label,
                 style: GoogleFonts.jetBrainsMono(
-                  color: Colors.white.withValues(alpha: 0.38), fontSize: 8,
+                  color: Colors.white.withOpacity(0.38), fontSize: 8,
                 )),
             );
           },
@@ -1092,7 +1092,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
       horizontal: inset > 0 ? res.spacing(inset) : 0,
     ),
     decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.03),
+      color: Colors.white.withOpacity(0.03),
       borderRadius: BorderRadius.circular(6),
     ),
   );

@@ -15,7 +15,7 @@ class GrowthBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isNegative = growth < 0;
     final Color color = isNegative ? const Color(0xFFF43F5E) : const Color(0xFF10B981);
-    final Color bgColor = isNegative ? const Color(0xFFF43F5E).withValues(alpha: 0.1) : const Color(0xFF10B981).withValues(alpha: 0.1);
+    final Color bgColor = isNegative ? const Color(0xFFF43F5E).withOpacity(0.1) : const Color(0xFF10B981).withOpacity(0.1);
 
     return Container(
       width: double.infinity,
@@ -23,7 +23,7 @@ class GrowthBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,7 +31,7 @@ class GrowthBanner extends StatelessWidget {
           Text(
             title.toUpperCase(),
             style: GoogleFonts.jetBrainsMono(
-              color: color.withValues(alpha: 0.7),
+              color: color.withOpacity(0.7),
               fontSize: 10,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.2,
@@ -60,7 +60,7 @@ class GrowthBanner extends StatelessWidget {
           Text(
             isNegative ? 'Declining vs prior period' : 'Growing vs prior period',
             style: GoogleFonts.jetBrainsMono(
-              color: color.withValues(alpha: 0.5),
+              color: color.withOpacity(0.5),
               fontSize: 10,
             ),
           ),

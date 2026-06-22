@@ -76,13 +76,13 @@ class AccountManagementSheet extends StatelessWidget {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppColors.brandAccent.withValues(alpha: 0.1)
-                            : AppColors.surfaceBright.withValues(alpha: 0.2),
+                            ? AppColors.brandAccent.withOpacity(0.1)
+                            : AppColors.surfaceBright.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isSelected
                               ? AppColors.brandAccent
-                              : AppColors.surfaceBright.withValues(alpha: 0.5),
+                              : AppColors.surfaceBright.withOpacity(0.5),
                         ),
                       ),
                       child: Row(
@@ -93,7 +93,7 @@ class AccountManagementSheet extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? AppColors.brandAccent
-                                  : AppColors.textSecondary.withValues(alpha: 0.2),
+                                  : AppColors.textSecondary.withOpacity(0.2),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -181,7 +181,7 @@ class AccountManagementSheet extends StatelessWidget {
         backgroundColor: const Color(0xFF16191E),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: AppColors.surfaceBright.withValues(alpha: 0.5)),
+          side: BorderSide(color: AppColors.surfaceBright.withOpacity(0.5)),
         ),
         title: Text('Remove Account',
             style: GoogleFonts.jetBrainsMono(
@@ -200,7 +200,7 @@ class AccountManagementSheet extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.surfaceBright.withValues(alpha: 0.1),
+                color: AppColors.surfaceBright.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Column(

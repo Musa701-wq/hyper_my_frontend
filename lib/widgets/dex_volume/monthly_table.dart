@@ -33,9 +33,9 @@ class MonthlyVolumeTable extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withValues(alpha: 0.1),
+        color: AppColors.surfaceBright.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -97,9 +97,9 @@ class MonthlyVolumeTable extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: isCurrentMonth 
-                      ? const Color(0xFF10B981).withValues(alpha: 0.05) 
-                      : isATH ? Colors.amber.withValues(alpha: 0.05) : null,
-                  border: Border(bottom: BorderSide(color: AppColors.surfaceBright.withValues(alpha: 0.3))),
+                      ? const Color(0xFF10B981).withOpacity(0.05) 
+                      : isATH ? Colors.amber.withOpacity(0.05) : null,
+                  border: Border(bottom: BorderSide(color: AppColors.surfaceBright.withOpacity(0.3))),
                 ),
                 child: Row(
                   children: [
@@ -161,7 +161,7 @@ class MonthlyVolumeTable extends StatelessWidget {
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Colors.black.withValues(alpha: 0.2),
+      color: Colors.black.withOpacity(0.2),
       child: Row(
         children: [
           Expanded(flex: 2, child: Text('MONTH', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 9, fontWeight: FontWeight.bold))),

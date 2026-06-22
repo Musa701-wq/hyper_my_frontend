@@ -31,9 +31,9 @@ class MetricCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withValues(alpha: 0.1),
+        color: AppColors.surfaceBright.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

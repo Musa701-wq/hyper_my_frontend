@@ -28,9 +28,9 @@ class PaywallWidget extends StatelessWidget {
               width: double.infinity,
               height: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.5),
+                color: Colors.black.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
               ),
             ),
           ),
@@ -55,7 +55,7 @@ class PaywallWidget extends StatelessWidget {
                     letterSpacing: 2,
                     shadows: [
                       Shadow(
-                        color: AppColors.brandAccent.withValues(alpha: 0.5),
+                        color: AppColors.brandAccent.withOpacity(0.5),
                         blurRadius: 10,
                       ),
                     ],
@@ -68,7 +68,7 @@ class PaywallWidget extends StatelessWidget {
                     description,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textSecondary.withValues(alpha: 0.8),
+                      color: AppColors.textSecondary.withOpacity(0.8),
                       fontSize: 12,
                       height: 1.5,
                     ),
@@ -89,12 +89,12 @@ class PaywallWidget extends StatelessWidget {
       width: 80,
       height: 80,
       decoration: BoxDecoration(
-        color: AppColors.brandAccent.withValues(alpha: 0.1),
+        color: AppColors.brandAccent.withOpacity(0.1),
         shape: BoxShape.circle,
-        border: Border.all(color: AppColors.brandAccent.withValues(alpha: 0.2)),
+        border: Border.all(color: AppColors.brandAccent.withOpacity(0.2)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.brandAccent.withValues(alpha: 0.05),
+            color: AppColors.brandAccent.withOpacity(0.05),
             blurRadius: 20,
             spreadRadius: 5,
           ),
@@ -116,7 +116,7 @@ class PaywallWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: AppColors.brandAccent.withValues(alpha: 0.2),
+            color: AppColors.brandAccent.withOpacity(0.2),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),

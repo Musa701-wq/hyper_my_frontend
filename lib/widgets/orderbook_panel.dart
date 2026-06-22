@@ -290,9 +290,9 @@ class _SpreadRow extends StatelessWidget {
       margin: EdgeInsets.symmetric(vertical: res.spacing(8)),
       padding: EdgeInsets.symmetric(horizontal: res.spacing(12), vertical: res.spacing(10)),
       decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withValues(alpha: 0.15),
+        color: AppColors.surfaceBright.withOpacity(0.15),
         border: Border.symmetric(
-          horizontal: BorderSide(color: AppColors.surfaceBright.withValues(alpha: 0.2), width: 1),
+          horizontal: BorderSide(color: AppColors.surfaceBright.withOpacity(0.2), width: 1),
         ),
       ),
       child: Row(
@@ -321,7 +321,7 @@ class _SpreadRow extends StatelessWidget {
               Text(
                 'MID PRICE',
                 style: GoogleFonts.jetBrainsMono(
-                  color: AppColors.textSecondary.withValues(alpha: 0.6),
+                  color: AppColors.textSecondary.withOpacity(0.6),
                   fontSize: res.fontSize(8),
                   fontWeight: FontWeight.w600,
                 ),
@@ -333,7 +333,7 @@ class _SpreadRow extends StatelessWidget {
               pct,
               textAlign: TextAlign.end,
               style: GoogleFonts.jetBrainsMono(
-                color: AppColors.textPrimary.withValues(alpha: 0.8),
+                color: AppColors.textPrimary.withOpacity(0.8),
                 fontSize: res.fontSize(10),
                 fontWeight: FontWeight.w600,
               ),
@@ -388,7 +388,7 @@ class _BookRow extends StatelessWidget {
               child: Container(
                 height: res.spacing(24),
                 decoration: BoxDecoration(
-                  color: priceColor.withValues(alpha: 0.08),
+                  color: priceColor.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(1),
                 ),
               ),
@@ -401,9 +401,9 @@ class _BookRow extends StatelessWidget {
               child: Container(
                 height: res.spacing(20),
                 decoration: BoxDecoration(
-                  color: priceColor.withValues(alpha: 0.15),
+                  color: priceColor.withOpacity(0.15),
                   border: Border(
-                    right: BorderSide(color: priceColor.withValues(alpha: 0.3), width: 2),
+                    right: BorderSide(color: priceColor.withOpacity(0.3), width: 2),
                   ),
                 ),
               ),
@@ -433,7 +433,7 @@ class _BookRow extends StatelessWidget {
                     child: Text(
                       _fmtNum(level.size),
                       style: textStyle.copyWith(
-                          color: AppColors.textPrimary.withValues(alpha: 0.9)),
+                          color: AppColors.textPrimary.withOpacity(0.9)),
                     ),
                   ),
                 ),
@@ -442,7 +442,7 @@ class _BookRow extends StatelessWidget {
                     child: Text(
                       _fmtNum(level.cumulative),
                       style: textStyle.copyWith(
-                          color: AppColors.textPrimary.withValues(alpha: 0.75)),
+                          color: AppColors.textPrimary.withOpacity(0.75)),
                     ),
                   ),
                 ),
@@ -466,7 +466,7 @@ class _DepthChartHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = GoogleFonts.jetBrainsMono(
-      color: AppColors.textPrimary.withValues(alpha: 0.8),
+      color: AppColors.textPrimary.withOpacity(0.8),
       fontSize: res.fontSize(9),
       fontWeight: FontWeight.bold,
       letterSpacing: 0.5,
@@ -483,7 +483,7 @@ class _DepthChartHeader extends StatelessWidget {
                 width: 2,
                 height: res.spacing(10),
                 decoration: BoxDecoration(
-                  color: AppColors.trendGreen.withValues(alpha: 0.8),
+                  color: AppColors.trendGreen.withOpacity(0.8),
                   borderRadius: BorderRadius.circular(1),
                 ),
               ),
@@ -499,7 +499,7 @@ class _DepthChartHeader extends StatelessWidget {
                 width: 2,
                 height: res.spacing(10),
                 decoration: BoxDecoration(
-                  color: AppColors.trendRed.withValues(alpha: 0.8),
+                  color: AppColors.trendRed.withOpacity(0.8),
                   borderRadius: BorderRadius.circular(1),
                 ),
               ),
@@ -537,9 +537,9 @@ class _DepthChart extends StatelessWidget {
         res.spacing(8)
       ),
       decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withValues(alpha: 0.06),
+        color: AppColors.surfaceBright.withOpacity(0.06),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.12)),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.12)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -559,7 +559,7 @@ class _DepthChart extends StatelessWidget {
             child: Text(
               'Sum: ${_fmtVol(maxBidCum)}',
               style: GoogleFonts.jetBrainsMono(
-                color: AppColors.textSecondary.withValues(alpha: 0.6),
+                color: AppColors.textSecondary.withOpacity(0.6),
                 fontSize: res.fontSize(8),
                 fontWeight: FontWeight.w600,
               ),
@@ -571,7 +571,7 @@ class _DepthChart extends StatelessWidget {
             child: Text(
               'Sum: ${_fmtVol(maxAskCum)}',
               style: GoogleFonts.jetBrainsMono(
-                color: AppColors.textSecondary.withValues(alpha: 0.6),
+                color: AppColors.textSecondary.withOpacity(0.6),
                 fontSize: res.fontSize(8),
                 fontWeight: FontWeight.w600,
               ),
@@ -622,11 +622,11 @@ class _DepthChartPainter extends CustomPainter {
     bidPath.close();
     
     final bidPaint = Paint()
-      ..color = AppColors.trendGreen.withValues(alpha: 0.25)
+      ..color = AppColors.trendGreen.withOpacity(0.25)
       ..style = PaintingStyle.fill;
     
     final bidStrokePaint = Paint()
-      ..color = AppColors.trendGreen.withValues(alpha: 0.6)
+      ..color = AppColors.trendGreen.withOpacity(0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.25;
 
@@ -650,11 +650,11 @@ class _DepthChartPainter extends CustomPainter {
     askPath.close();
     
     final askPaint = Paint()
-      ..color = AppColors.trendRed.withValues(alpha: 0.25)
+      ..color = AppColors.trendRed.withOpacity(0.25)
       ..style = PaintingStyle.fill;
 
     final askStrokePaint = Paint()
-      ..color = AppColors.trendRed.withValues(alpha: 0.6)
+      ..color = AppColors.trendRed.withOpacity(0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.25;
 
@@ -663,7 +663,7 @@ class _DepthChartPainter extends CustomPainter {
     
     // Draw Center Divider Line
     final centerPaint = Paint()
-      ..color = AppColors.surfaceBright.withValues(alpha: 0.2)
+      ..color = AppColors.surfaceBright.withOpacity(0.2)
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
     canvas.drawLine(Offset(midIndex, 0), Offset(midIndex, size.height), centerPaint);

@@ -62,10 +62,10 @@ class _PulseDotState extends State<PulseDot>
         height: 6,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: widget.color.withValues(alpha: _a.value),
+          color: widget.color.withOpacity(_a.value),
           boxShadow: [
             BoxShadow(
-              color: widget.color.withValues(alpha: _a.value * 0.5),
+              color: widget.color.withOpacity(_a.value * 0.5),
               blurRadius: 5,
               spreadRadius: 1,
             ),
@@ -94,8 +94,8 @@ class AppBackground extends StatelessWidget {
                 center: const Alignment(0, 1.0), // Start from bottom center
                 radius: 0.8, // Make it subtle and stay in the lower half
                 colors: [
-                  AppColors.brandAccent.withValues(alpha: 0.1), // Greenish glow
-                  AppColors.background.withValues(alpha: 0.0), // Fade out
+                  AppColors.brandAccent.withOpacity(0.1), // Greenish glow
+                  AppColors.background.withOpacity(0.0), // Fade out
                 ],
                 stops: const [0.0, 1.0],
               ),
@@ -106,7 +106,7 @@ class AppBackground extends StatelessWidget {
         Positioned.fill(
           child: CustomPaint(
             painter: DotGridPainter(
-              dotColor: AppColors.surfaceBright.withValues(alpha: 0.5),
+              dotColor: AppColors.surfaceBright.withOpacity(0.5),
               spacing: 35.0,
             ),
           ),

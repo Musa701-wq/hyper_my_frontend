@@ -2884,7 +2884,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             pos.liqPx <= 0 ? '—' : '\$${_fmtNum(pos.liqPx)}',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.jetBrainsMono(
-                              color: pos.liqPx > 0 ? AppColors.trendRed.withValues(alpha: 0.8) : AppColors.textSecondary,
+                              color: pos.liqPx > 0 ? AppColors.trendRed.withOpacity(0.8) : AppColors.textSecondary,
                               fontSize: 11,
                             ),
                           )),
@@ -2899,7 +2899,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 Text('${pnlPos ? '+' : ''}${pos.unrealizedPnlPct.toStringAsFixed(2)}%',
                                   textAlign: TextAlign.center,
-                                  style: GoogleFonts.jetBrainsMono(color: pnlColor.withValues(alpha: 0.7), fontSize: 9),
+                                  style: GoogleFonts.jetBrainsMono(color: pnlColor.withOpacity(0.7), fontSize: 9),
                                 ),
                               ],
                             ),
@@ -3045,13 +3045,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(color: sideColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(color: sideColor.withOpacity(0.12), borderRadius: BorderRadius.circular(2)),
                 child: Text(pos.side.toUpperCase(), style: GoogleFonts.jetBrainsMono(color: sideColor, fontSize: 7, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(width: 3),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(color: AppColors.brandAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(color: AppColors.brandAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(2)),
                 child: Text('${pos.leverage.toInt()}x', style: GoogleFonts.jetBrainsMono(color: AppColors.brandAccent, fontSize: 7, fontWeight: FontWeight.bold)),
               ),
             ],
@@ -3130,7 +3130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Row(children: [
                           SizedBox(width: 80, child: Center(child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(color: sideColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(2)),
+                            decoration: BoxDecoration(color: sideColor.withOpacity(0.12), borderRadius: BorderRadius.circular(2)),
                             child: Text(sideLabel, style: GoogleFonts.jetBrainsMono(color: sideColor, fontSize: 9, fontWeight: FontWeight.bold)),
                           ))),
                           SizedBox(width: 110, child: Text('\$${_fmtNum(f.px)}', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11))),
@@ -3271,7 +3271,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 3),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                            decoration: BoxDecoration(color: sideColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(2)),
+                            decoration: BoxDecoration(color: sideColor.withOpacity(0.12), borderRadius: BorderRadius.circular(2)),
                             child: Text(o.side.toUpperCase(), style: GoogleFonts.jetBrainsMono(color: sideColor, fontSize: 7, fontWeight: FontWeight.bold)),
                           ),
                         ],
@@ -3533,9 +3533,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Text(text, style: GoogleFonts.inter(color: color, fontSize: 9, fontWeight: FontWeight.bold)),
     );

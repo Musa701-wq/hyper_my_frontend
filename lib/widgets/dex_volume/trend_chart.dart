@@ -40,9 +40,9 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withValues(alpha: 0.1),
+        color: AppColors.surfaceBright.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,7 +109,7 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.3),
+        color: Colors.black.withOpacity(0.3),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -192,8 +192,8 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                widget.color.withValues(alpha: 0.3),
-                widget.color.withValues(alpha: 0.0),
+                widget.color.withOpacity(0.3),
+                widget.color.withOpacity(0.0),
               ],
             ),
           ),

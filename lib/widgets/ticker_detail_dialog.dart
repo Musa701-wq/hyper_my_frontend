@@ -127,7 +127,7 @@ class _TickerDetailDialogState extends State<TickerDetailDialog> with SingleTick
         decoration: BoxDecoration(
           color: const Color(0xFF161A22),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.6)),
+          border: Border.all(color: AppColors.surfaceBright.withOpacity(0.6)),
         ),
 
         child: Column(
@@ -147,7 +147,7 @@ class _TickerDetailDialogState extends State<TickerDetailDialog> with SingleTick
               unselectedLabelStyle: GoogleFonts.jetBrainsMono(
                 fontSize: res.fontSize(12)
               ),
-              dividerColor: AppColors.surfaceBright.withValues(alpha: 0.4),
+              dividerColor: AppColors.surfaceBright.withOpacity(0.4),
               tabs: const [
                 Tab(text: 'Info'),
                 Tab(text: 'Order Book'),
@@ -250,9 +250,9 @@ class _DialogHeader extends StatelessWidget {
                         vertical: res.spacing(4),
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.brandAccent.withValues(alpha: 0.1),
+                        color: AppColors.brandAccent.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: AppColors.brandAccent.withValues(alpha: 0.5)),
+                        border: Border.all(color: AppColors.brandAccent.withOpacity(0.5)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -311,7 +311,7 @@ class _DialogHeader extends StatelessWidget {
       return Text(
         'HYPERLIQUID • HIP-3',
         style: GoogleFonts.jetBrainsMono(
-          color: AppColors.textSecondary.withValues(alpha: 0.6),
+          color: AppColors.textSecondary.withOpacity(0.6),
           fontSize: res.fontSize(9),
         ),
       );
@@ -478,9 +478,9 @@ class _BadgeChip extends StatelessWidget {
         vertical: res.spacing(2)
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
+        border: Border.all(color: color.withOpacity(0.4)),
       ),
       child: Text(
         label,

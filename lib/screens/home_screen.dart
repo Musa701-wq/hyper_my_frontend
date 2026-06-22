@@ -144,8 +144,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: connected
-                          ? AppColors.trendGreen.withValues(alpha: 0.1)
-                          : AppColors.brandAccent.withValues(alpha: 0.1),
+                          ? AppColors.trendGreen.withOpacity(0.1)
+                          : AppColors.brandAccent.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
                         color: connected
@@ -188,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         body: _buildTabBody(res),
         bottomNavigationBar: BottomNavigationBar(
-          backgroundColor: AppColors.background.withValues(alpha: 0.85),
+          backgroundColor: AppColors.background.withOpacity(0.85),
           elevation: 0,
           type: BottomNavigationBarType.fixed,
           currentIndex: _selectedIndex,
@@ -368,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   padding: EdgeInsets.symmetric(horizontal: res.spacing(12)),
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    color: isSelected ? AppColors.brandAccent.withValues(alpha: 0.1) : Colors.transparent,
+                                    color: isSelected ? AppColors.brandAccent.withOpacity(0.1) : Colors.transparent,
                                     borderRadius: BorderRadius.circular(4),
                                     border: Border.all(
                                       color: isSelected ? AppColors.brandAccent : AppColors.surfaceBright,
@@ -672,7 +672,7 @@ class _HomeScreenState extends State<HomeScreen> {
               errorBuilder: (context, error, stackTrace) => Icon(Icons.star_border, size: size * 0.7, color: AppColors.textSecondary),
               loadingBuilder: (context, child, loadingProgress) {
                 if (loadingProgress == null) return child;
-                return Center(child: CircularProgressIndicator(strokeWidth: 1, valueColor: AlwaysStoppedAnimation<Color>(AppColors.brandAccent.withValues(alpha: 0.3))));
+                return Center(child: CircularProgressIndicator(strokeWidth: 1, valueColor: AlwaysStoppedAnimation<Color>(AppColors.brandAccent.withOpacity(0.3))));
               },
             ),
       ),
@@ -818,7 +818,7 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.account_balance_wallet_outlined,
-                size: 52, color: AppColors.textSecondary.withValues(alpha: 0.4)),
+                size: 52, color: AppColors.textSecondary.withOpacity(0.4)),
             const SizedBox(height: 16),
             Text('No wallet connected',
                 style: GoogleFonts.jetBrainsMono(
@@ -826,7 +826,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 8),
             Text('Tap CONNECT in the top bar to get started',
                 style: GoogleFonts.jetBrainsMono(
-                    color: AppColors.textSecondary.withValues(alpha: 0.5),
+                    color: AppColors.textSecondary.withOpacity(0.5),
                     fontSize: 11)),
           ],
         ),
@@ -870,7 +870,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFF16191E),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: AppColors.surfaceBright.withValues(alpha: 0.5)),
+          side: BorderSide(color: AppColors.surfaceBright.withOpacity(0.5)),
         ),
         title: Text('Disconnect Wallet',
             style: GoogleFonts.jetBrainsMono(
@@ -888,7 +888,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.surfaceBright.withValues(alpha: 0.3),
+                color: AppColors.surfaceBright.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -993,13 +993,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  AppColors.brandAccent.withValues(alpha: 0.12),
+                  AppColors.brandAccent.withOpacity(0.12),
                   const Color(0xFF0D1014),
                 ],
               ),
               border: Border(
                 bottom: BorderSide(
-                  color: AppColors.brandAccent.withValues(alpha: 0.15),
+                  color: AppColors.brandAccent.withOpacity(0.15),
                 ),
               ),
             ),
@@ -1019,10 +1019,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: AppColors.brandAccent.withValues(alpha: 0.15),
+                            color: AppColors.brandAccent.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                                color: AppColors.brandAccent.withValues(alpha: 0.4)),
+                                color: AppColors.brandAccent.withOpacity(0.4)),
                           ),
                           child: const Icon(Icons.candlestick_chart_rounded,
                               color: AppColors.brandAccent, size: 20),
@@ -1050,12 +1050,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                       horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(colors: [
-                                      AppColors.brandAccent.withValues(alpha: 0.25),
-                                      AppColors.brandAccent.withValues(alpha: 0.08),
+                                      AppColors.brandAccent.withOpacity(0.25),
+                                      AppColors.brandAccent.withOpacity(0.08),
                                     ]),
                                     borderRadius: BorderRadius.circular(4),
                                     border: Border.all(
-                                      color: AppColors.brandAccent.withValues(alpha: 0.5),
+                                      color: AppColors.brandAccent.withOpacity(0.5),
                                       width: 0.5,
                                     ),
                                   ),
@@ -1174,7 +1174,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
             height: 0.5,
-            color: AppColors.surfaceBright.withValues(alpha: 0.3),
+            color: AppColors.surfaceBright.withOpacity(0.3),
           ),
 /*
           if (wallet.isNotEmpty)
@@ -1182,10 +1182,10 @@ class _HomeScreenState extends State<HomeScreen> {
               margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.surfaceBright.withValues(alpha: 0.2),
+                color: AppColors.surfaceBright.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.surfaceBright.withValues(alpha: 0.3),
+                  color: AppColors.surfaceBright.withOpacity(0.3),
                   width: 0.8,
                 ),
               ),
@@ -1195,7 +1195,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: AppColors.brandAccent.withValues(alpha: 0.15),
+                      color: AppColors.brandAccent.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Icon(Icons.account_balance_wallet_rounded,
@@ -1258,7 +1258,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             label,
             style: GoogleFonts.jetBrainsMono(
-              color: AppColors.textSecondary.withValues(alpha: 0.5),
+              color: AppColors.textSecondary.withOpacity(0.5),
               fontSize: 9,
               letterSpacing: 1.8,
             ),
@@ -1267,7 +1267,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Container(
               height: 0.5,
-              color: AppColors.surfaceBright.withValues(alpha: 0.4),
+              color: AppColors.surfaceBright.withOpacity(0.4),
             ),
           ),
         ],
@@ -1359,7 +1359,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 4),
             GestureDetector(
               onTap: onInfoTap,
-              child: Icon(Icons.info_outline, size: 12, color: AppColors.textSecondary.withValues(alpha: 0.8)),
+              child: Icon(Icons.info_outline, size: 12, color: AppColors.textSecondary.withOpacity(0.8)),
             ),
           ],
         ],
@@ -1449,25 +1449,25 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                       colors: [
-                        AppColors.brandAccent.withValues(alpha: 0.15),
-                        AppColors.brandAccent.withValues(alpha: 0.04),
+                        AppColors.brandAccent.withOpacity(0.15),
+                        AppColors.brandAccent.withOpacity(0.04),
                       ],
                     )
                   : null,
               color: widget.isActive
                   ? null
-                  : AppColors.brandAccent.withValues(alpha: _bg.value * 0.07),
+                  : AppColors.brandAccent.withOpacity(_bg.value * 0.07),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: widget.isActive
-                    ? AppColors.brandAccent.withValues(alpha: 0.3)
-                    : AppColors.surfaceBright.withValues(alpha: 0.3),
+                    ? AppColors.brandAccent.withOpacity(0.3)
+                    : AppColors.surfaceBright.withOpacity(0.3),
                 width: widget.isActive ? 0.8 : 0.8,
               ),
               boxShadow: widget.isActive
                   ? [
                       BoxShadow(
-                        color: AppColors.brandAccent.withValues(alpha: 0.08),
+                        color: AppColors.brandAccent.withOpacity(0.08),
                         blurRadius: 12,
                         offset: const Offset(0, 2),
                       ),
@@ -1487,7 +1487,7 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
                             end: Alignment.bottomCenter,
                             colors: [
                               AppColors.brandAccent,
-                              AppColors.brandAccent.withValues(alpha: 0.3),
+                              AppColors.brandAccent.withOpacity(0.3),
                             ],
                           )
                         : null,
@@ -1508,18 +1508,18 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              AppColors.brandAccent.withValues(alpha: 0.2),
-                              AppColors.brandAccent.withValues(alpha: 0.08),
+                              AppColors.brandAccent.withOpacity(0.2),
+                              AppColors.brandAccent.withOpacity(0.08),
                             ],
                           )
                         : null,
                     color: widget.isActive
                         ? null
-                        : AppColors.surfaceBright.withValues(alpha: 0.6),
+                        : AppColors.surfaceBright.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(8),
                     border: widget.isActive
                         ? Border.all(
-                            color: AppColors.brandAccent.withValues(alpha: 0.2),
+                            color: AppColors.brandAccent.withOpacity(0.2),
                             width: 0.5,
                           )
                         : null,
@@ -1551,8 +1551,8 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
                         widget.data.subtitle,
                         style: GoogleFonts.jetBrainsMono(
                           color: widget.isActive
-                              ? AppColors.brandAccent.withValues(alpha: 0.6)
-                              : AppColors.textSecondary.withValues(alpha: 0.55),
+                              ? AppColors.brandAccent.withOpacity(0.6)
+                              : AppColors.textSecondary.withOpacity(0.55),
                           fontSize: 9.5,
                         ),
                       ),
@@ -1564,7 +1564,7 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
                   height: 22,
                   decoration: widget.isActive
                       ? BoxDecoration(
-                          color: AppColors.brandAccent.withValues(alpha: 0.1),
+                          color: AppColors.brandAccent.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
                         )
                       : null,
@@ -1629,10 +1629,10 @@ class _LeaderboardDrawerItemState extends State<_LeaderboardDrawerItem>
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.brandAccent.withValues(alpha: _bg.value * 0.07),
+              color: AppColors.brandAccent.withOpacity(_bg.value * 0.07),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: AppColors.surfaceBright.withValues(alpha: 0.3),
+                color: AppColors.surfaceBright.withOpacity(0.3),
                 width: 0.8,
               ),
             ),
@@ -1651,7 +1651,7 @@ class _LeaderboardDrawerItemState extends State<_LeaderboardDrawerItem>
                 Container(
                   width: 34, height: 34,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceBright.withValues(alpha: 0.6),
+                    color: AppColors.surfaceBright.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
@@ -1673,7 +1673,7 @@ class _LeaderboardDrawerItemState extends State<_LeaderboardDrawerItem>
                           )),
                       Text('Stats & rankings',
                           style: GoogleFonts.jetBrainsMono(
-                            color: AppColors.textSecondary.withValues(alpha: 0.55),
+                            color: AppColors.textSecondary.withOpacity(0.55),
                             fontSize: 9.5,
                           )),
                     ],
@@ -1722,7 +1722,7 @@ class _ConnectDialogState extends State<_ConnectDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(
-            color: AppColors.brandAccent.withValues(alpha: 0.3)),
+            color: AppColors.brandAccent.withOpacity(0.3)),
       ),
       title: Row(
         children: [
@@ -1730,7 +1730,7 @@ class _ConnectDialogState extends State<_ConnectDialog> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.brandAccent.withValues(alpha: 0.12),
+              color: AppColors.brandAccent.withOpacity(0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.account_balance_wallet_rounded,
@@ -1774,7 +1774,7 @@ class _ConnectDialogState extends State<_ConnectDialog> {
               color: AppColors.background,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                  color: AppColors.brandAccent.withValues(alpha: 0.3)),
+                  color: AppColors.brandAccent.withOpacity(0.3)),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: TextField(
@@ -1810,7 +1810,7 @@ class _ConnectDialogState extends State<_ConnectDialog> {
               color: AppColors.background,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                  color: AppColors.brandAccent.withValues(alpha: 0.3)),
+                  color: AppColors.brandAccent.withOpacity(0.3)),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: TextField(

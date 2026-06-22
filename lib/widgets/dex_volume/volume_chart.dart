@@ -44,9 +44,9 @@ class VolumeChartWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withValues(alpha: 0.1),
+        color: AppColors.surfaceBright.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.15)),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,7 +118,7 @@ class VolumeChartWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.3),
+        color: Colors.black.withOpacity(0.3),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -196,7 +196,7 @@ class VolumeChartWidget extends StatelessWidget {
         drawVerticalLine: false,
         horizontalInterval: _calculateInterval(),
         getDrawingHorizontalLine: (value) => FlLine(
-          color: AppColors.surfaceBright.withValues(alpha: 0.05),
+          color: AppColors.surfaceBright.withOpacity(0.05),
           strokeWidth: 1,
         ),
       ),
@@ -217,8 +217,8 @@ class VolumeChartWidget extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                const Color(0xFF10B981).withValues(alpha: 0.15),
-                const Color(0xFF10B981).withValues(alpha: 0.0),
+                const Color(0xFF10B981).withOpacity(0.15),
+                const Color(0xFF10B981).withOpacity(0.0),
               ],
             ),
           ),
@@ -226,7 +226,7 @@ class VolumeChartWidget extends StatelessWidget {
       ],
       lineTouchData: LineTouchData(
         touchTooltipData: LineTouchTooltipData(
-          getTooltipColor: (_) => const Color(0xFF16191E).withValues(alpha: 0.95),
+          getTooltipColor: (_) => const Color(0xFF16191E).withOpacity(0.95),
           getTooltipItems: (touchedSpots) {
             return touchedSpots.map((spot) {
               final date = data[spot.x.toInt()].timestamp;
@@ -248,7 +248,7 @@ class VolumeChartWidget extends StatelessWidget {
         drawVerticalLine: false,
         horizontalInterval: _calculateInterval(),
         getDrawingHorizontalLine: (value) => FlLine(
-          color: AppColors.surfaceBright.withValues(alpha: 0.05),
+          color: AppColors.surfaceBright.withOpacity(0.05),
           strokeWidth: 1,
         ),
       ),
@@ -271,7 +271,7 @@ class VolumeChartWidget extends StatelessWidget {
       barTouchData: BarTouchData(
         enabled: true,
         touchTooltipData: BarTouchTooltipData(
-           getTooltipColor: (_) => const Color(0xFF16191E).withValues(alpha: 0.95),
+           getTooltipColor: (_) => const Color(0xFF16191E).withOpacity(0.95),
            tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
            tooltipMargin: 8,
            getTooltipItem: (group, groupIndex, rod, rodIndex) {

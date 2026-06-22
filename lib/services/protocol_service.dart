@@ -61,4 +61,20 @@ class ProtocolService {
       rethrow;
     }
   }
+
+  Future<List<Map<String, dynamic>>> getTopChains({int limit = 10}) async {
+    try {
+      final queryParams = {'limit': limit.toString()};
+      final uri = Uri.parse('$_baseUrl/protocols/top-by-chain').replace(queryParameters: queryParams);
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      } else {
+        throw Exception('Failed to load top chains');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
