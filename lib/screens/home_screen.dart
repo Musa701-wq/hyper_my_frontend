@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<HomeViewModel>().fetchTickers();
     });
   }
-  
+
   void _showTickerDetail(TickerModel ticker) {
     AnalyticsService.logTickerClick(ticker.symbol);
     showDialog(
@@ -73,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final res = Responsive(context);
-    
+
     return AppBackground(
       child: Scaffold(
         key: _scaffoldKey,
@@ -247,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   SizedBox(height: res.spacing(16)),
-                  
+
                   // Search Bar
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: res.spacing(12)),
@@ -283,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   SizedBox(height: res.spacing(12)),
-                  
+
                   Container(
                     height: 38,
                     decoration: BoxDecoration(
@@ -334,7 +334,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           height: 32,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
-                            itemCount: viewModel.selectedTab == 'HIP-4' 
+                            itemCount: viewModel.selectedTab == 'HIP-4'
                               ? context.watch<Hip4ViewModel>().categories.length
                               : (viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'HIP-3' ? viewModel.cryptoCategories : viewModel.availableDexes).length,
                             separatorBuilder: (context, index) => const SizedBox(width: 8),
@@ -346,10 +346,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               final item = items[index];
                               final isSelected = viewModel.selectedTab == 'HIP-4'
                                 ? context.watch<Hip4ViewModel>().selectedCategory == item
-                                : (isCategoryMode 
-                                  ? viewModel.selectedCryptoCategory == item 
+                                : (isCategoryMode
+                                  ? viewModel.selectedCryptoCategory == item
                                   : viewModel.selectedDex == item);
-                              
+
                               return GestureDetector(
                                 onTap: () {
                                   if (viewModel.selectedTab == 'HIP-4') {
@@ -389,12 +389,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
-                    
+
                     if (viewModel.selectedTab == 'HIP-4')
                       const Hip4MarketsPanel()
                     else ...[
                     SizedBox(height: res.spacing(16)),
-                    
+
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -428,7 +428,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 final index = entry.key;
                                 final ticker = entry.value;
                                 final rank = (viewModel.currentPage - 1) * viewModel.rowsPerPage + (index + 1);
-                                
+
                                 return GestureDetector(
                                   onTap: () => _showTickerDetail(ticker),
                                   behavior: HitTestBehavior.opaque,
@@ -441,7 +441,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: Row(
                                     children: [
                                       SizedBox(
-                                        width: res.columnWidth(30), 
+                                        width: res.columnWidth(30),
                                         child: Text(rank.toString(), style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(10)))
                                       ),
                                       const SizedBox(width: 4),
@@ -560,7 +560,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         SizedBox(width: res.columnWidth(80), child: Text(_formatVolume(ticker.volume24hUSD), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: viewModel.sortColumn == 'volume24hUSD' ? Colors.white : AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'volume24hUSD' ? FontWeight.bold : FontWeight.normal))),
                                         SizedBox(width: res.columnWidth(90), child: Text(formattedOI, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: viewModel.sortColumn == 'openInterestUSD' ? Colors.white : AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'openInterestUSD' ? FontWeight.bold : FontWeight.normal))),
                                         SizedBox(
-                                          width: res.columnWidth(50), 
+                                          width: res.columnWidth(50),
                                           child: Center(
                                             child: SparklineWidget(
                                               color: changeColor,
@@ -650,7 +650,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final bool isSvg = iconUrl.toLowerCase().contains('.svg');
-    
+
     return Container(
       width: size,
       height: size,
@@ -659,7 +659,7 @@ class _HomeScreenState extends State<HomeScreen> {
         shape: BoxShape.circle,
       ),
       child: ClipOval(
-        child: isSvg 
+        child: isSvg
           ? SvgPicture.network(
               iconUrl,
               fit: BoxFit.cover,
@@ -681,7 +681,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildMarketBadge(TickerModel ticker, Responsive res) {
     String? categoryLabel;
-    
+
     // Identify category (DEX or Crypto Category)
     if (ticker.dex.isNotEmpty && ticker.dex.toLowerCase() != 'hyperliquid') {
       categoryLabel = ticker.dex.toUpperCase();
@@ -698,7 +698,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
     final List<Widget> badges = [];
-    
+
     // 1. Check for SPOT
     if (ticker.marketType == 'spot') {
       badges.add(
@@ -793,7 +793,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Opacity(
           opacity: isEnabled ? 1.0 : 0.4,
-          child: text != null 
+          child: text != null
             ? Text(text, style: GoogleFonts.jetBrainsMono(color: isActive ? Colors.black : AppColors.textPrimary, fontSize: res.fontSize(12), fontWeight: isActive ? FontWeight.bold : FontWeight.normal))
             : Icon(icon, size: res.fontSize(16), color: isEnabled ? AppColors.textPrimary : AppColors.textSecondary),
         ),
@@ -1106,9 +1106,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 4),
 
-          // ── ANALYTICS ───────────────────────────────────────────────────
-          _sectionLabel('ANALYTICS'),
-
           _DrawerNavItem(
             data: _DrawerItemData(
               icon: Icons.analytics_rounded,
@@ -1142,7 +1139,7 @@ class _HomeScreenState extends State<HomeScreen> {
             data: _DrawerItemData(
               icon: Icons.pie_chart_rounded,
               label: 'DEX Volume',
-              subtitle: 'Protocol analytics',
+              subtitle: 'Protocol volume',
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const DexVolumePage()),
@@ -1846,11 +1843,11 @@ class _ConnectDialogState extends State<_ConnectDialog> {
                 ? null
                 : () async {
                     final addr = _addressCtrl.text.trim();
-                    final name = _nameCtrl.text.trim().isEmpty 
-                        ? 'Wallet ${addr.length > 4 ? addr.substring(addr.length - 4) : ""}' 
+                    final name = _nameCtrl.text.trim().isEmpty
+                        ? 'Wallet ${addr.length > 4 ? addr.substring(addr.length - 4) : ""}'
                         : _nameCtrl.text.trim();
                     if (addr.length < 40) return;
-                    
+
                     setState(() => _loading = true);
                     await widget.onConnect(addr, name);
                     if (mounted) Navigator.pop(context);

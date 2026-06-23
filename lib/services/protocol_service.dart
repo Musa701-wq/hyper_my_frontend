@@ -77,4 +77,19 @@ class ProtocolService {
       rethrow;
     }
   }
+
+  Future<List<ChainFocus>> getChainFocus() async {
+    try {
+      final response = await http.get(Uri.parse('$_baseUrl/protocols/chain-focus')).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((e) => ChainFocus.fromJson(e)).toList();
+      } else {
+        throw Exception('Failed to load chain focus data');
+      }
+    } catch (e) {
+      print('ProtocolService ChainFocus Error: $e');
+      rethrow;
+    }
+  }
 }

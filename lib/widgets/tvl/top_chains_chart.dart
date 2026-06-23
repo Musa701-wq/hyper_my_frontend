@@ -17,9 +17,9 @@ class TopChainsChart extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withValues(alpha: 0.1),
+        color: AppColors.surfaceBright.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,7 +83,7 @@ class TopChainsChart extends StatelessWidget {
             child: Container(
               height: 8,
               width: double.infinity,
-              color: AppColors.surfaceBright.withValues(alpha: 0.2),
+              color: AppColors.surfaceBright.withOpacity(0.2),
               child: FractionallySizedBox(
                 alignment: Alignment.centerLeft,
                 widthFactor: ratio.clamp(0.0, 1.0),
@@ -92,7 +92,7 @@ class TopChainsChart extends StatelessWidget {
                     borderRadius: BorderRadius.circular(3),
                     gradient: LinearGradient(
                       colors: [
-                        color.withValues(alpha: 0.7),
+                        color.withOpacity(0.7),
                         color,
                       ],
                     ),

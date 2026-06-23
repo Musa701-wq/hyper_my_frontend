@@ -51,7 +51,7 @@ class DefiLlamaViewModel extends ChangeNotifier {
   final DefiLlamaService _service = DefiLlamaService();
 
   // ─── Loading / error ──────────────────────────────────────
-  bool _isLoading = false;
+  bool _isLoading = true;
   bool get isLoading => _isLoading;
 
   bool _isChartLoading = false;
@@ -352,7 +352,8 @@ class DefiLlamaViewModel extends ChangeNotifier {
       case ChartRange.daily:
         return '${_dd(dt.day)} ${_mmm(dt.month)} ${dt.year}';
       case ChartRange.weekly:
-        return 'Wk ${_dd(dt.day)} ${_mmm(dt.month)} \'${dt.year.toString().substring(2)}';
+        // Removed 'Wk' and "'" - showing date properly
+        return '${_dd(dt.day)} ${_mmm(dt.month)} ${dt.year}';
       case ChartRange.monthly:
         return '${_mmm(dt.month)} ${dt.year}';
       case ChartRange.yearly:

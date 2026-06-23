@@ -25,61 +25,75 @@ class AdoptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withOpacity(0.1),
+        color: AppColors.surface.withOpacity(0.12),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Text(
-            title.toUpperCase(),
-            style: GoogleFonts.jetBrainsMono(
-              color: AppColors.textSecondary,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _formatValue(value),
-            style: GoogleFonts.jetBrainsMono(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-             subtitle,
-            style: GoogleFonts.jetBrainsMono(
-              color: AppColors.textSecondary.withOpacity(0.7),
-              fontSize: 10,
-            ),
-          ),
-          if (growth != null) ...[
-            const SizedBox(height: 8),
-            Row(
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                 Icon(
-                  growth! >= 0 ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                  color: growth! >= 0 ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
-                  size: 16,
-                ),
                 Text(
-                  '${growth! >= 0 ? '+' : ''}${growth!.toStringAsFixed(2)}%',
+                  title.toUpperCase(),
                   style: GoogleFonts.jetBrainsMono(
-                    color: growth! >= 0 ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
+                    color: AppColors.textSecondary.withOpacity(0.5),
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
                   ),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  _formatValue(value),
+                  style: GoogleFonts.jetBrainsMono(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.jetBrainsMono(
+                    color: AppColors.textSecondary.withOpacity(0.5),
+                    fontSize: 10,
+                  ),
+                ),
+                if (growth != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        growth! >= 0 ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                        color: growth! >= 0 ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
+                        size: 16,
+                      ),
+                      Text(
+                        '${growth! >= 0 ? '+' : ''}${growth!.toStringAsFixed(2)}%',
+                        style: GoogleFonts.jetBrainsMono(
+                          color: growth! >= 0 ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
-          ],
+          ),
         ],
       ),
     );

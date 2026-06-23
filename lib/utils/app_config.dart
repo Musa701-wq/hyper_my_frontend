@@ -19,10 +19,10 @@ class AppConfig {
   }
 
   static String get defillamaUrl {
-    return dotenv.env['DEFILLAMA_API_URL'] ?? 'http://localhost:4000';
+    return dotenv.env['DEFILLAMA_API_URL'] ?? 'https://api.hyperliquid.bubblenexus.com';
   }
 
   static String get dexVolumeUrl {
-    return dotenv.env['DEX_VOLUME_API_URL'] ?? 'http://localhost:4001';
+    return dotenv.env['DEX_VOLUME_API_URL'] ?? 'https://coingecko.renderonnodes.com';
   }
 }
