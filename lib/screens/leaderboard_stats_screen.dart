@@ -372,8 +372,8 @@ class _PeriodSelector extends StatelessWidget {
                     gradient: selected
                         ? LinearGradient(
                             colors: [
-                              AppColors.brandAccent.withValues(alpha: 0.2),
-                              AppColors.brandAccent.withValues(alpha: 0.08),
+                              AppColors.brandAccent.withOpacity(0.2),
+                              AppColors.brandAccent.withOpacity(0.08),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -382,7 +382,7 @@ class _PeriodSelector extends StatelessWidget {
                     borderRadius: BorderRadius.circular(7),
                     border: selected
                         ? Border.all(
-                            color: AppColors.brandAccent.withValues(alpha: 0.5),
+                            color: AppColors.brandAccent.withOpacity(0.5),
                             width: 1)
                         : null,
                   ),
@@ -451,7 +451,7 @@ class _HeadlineMarquee extends StatelessWidget {
                     style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.trendGreen)),
                   const SizedBox(width: 4),
                   Text('(${_fmt(g.roi, isPct: true)})',
-                    style: GoogleFonts.jetBrainsMono(fontSize: 8, color: AppColors.trendGreen.withValues(alpha: 0.7))),
+                    style: GoogleFonts.jetBrainsMono(fontSize: 8, color: AppColors.trendGreen.withOpacity(0.7))),
                 ],
               ),
             ),
@@ -475,7 +475,7 @@ class _HeadlineMarquee extends StatelessWidget {
                     style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.trendRed)),
                   const SizedBox(width: 4),
                   Text('(${_fmt(l.roi, isPct: true)})',
-                    style: GoogleFonts.jetBrainsMono(fontSize: 8, color: AppColors.trendRed.withValues(alpha: 0.7))),
+                    style: GoogleFonts.jetBrainsMono(fontSize: 8, color: AppColors.trendRed.withOpacity(0.7))),
                 ],
               ),
             ),
@@ -487,7 +487,7 @@ class _HeadlineMarquee extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF0D0F13),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.3)),
+            border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
           ),
           clipBehavior: Clip.hardEdge,
           child: _MarqueeScroll(
@@ -694,7 +694,7 @@ class _StatsContent extends StatelessWidget {
                 Container(
                   width: 5, height: 5,
                   decoration: BoxDecoration(
-                    color: AppColors.brandAccent.withValues(alpha: 0.5),
+                    color: AppColors.brandAccent.withOpacity(0.5),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -724,7 +724,7 @@ class _StatsContent extends StatelessWidget {
                 Container(
                   width: 5, height: 5,
                   decoration: BoxDecoration(
-                    color: AppColors.brandAccent.withValues(alpha: 0.5),
+                    color: AppColors.brandAccent.withOpacity(0.5),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -768,10 +768,10 @@ class _SectionHeader extends StatelessWidget {
           width: 30,
           height: 30,
           decoration: BoxDecoration(
-            color: AppColors.brandAccent.withValues(alpha: 0.1),
+            color: AppColors.brandAccent.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-                color: AppColors.brandAccent.withValues(alpha: 0.25)),
+                color: AppColors.brandAccent.withOpacity(0.25)),
           ),
           child: Icon(icon, size: 15, color: AppColors.brandAccent),
         ),
@@ -801,7 +801,7 @@ class _SectionHeader extends StatelessWidget {
         Container(
           height: 0.5,
           width: 60,
-          color: AppColors.brandAccent.withValues(alpha: 0.2),
+          color: AppColors.brandAccent.withOpacity(0.2),
         ),
       ],
     );
@@ -894,12 +894,12 @@ class _AnimatedStatCardState extends State<_AnimatedStatCard>
               color: AppColors.background,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: d.accentColor.withValues(alpha: 0.25 + (_elevation.value * 0.2)),
+                color: d.accentColor.withOpacity(0.25 + (_elevation.value * 0.2)),
                 width: 0.8,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: d.accentColor.withValues(alpha: 0.06 + (_elevation.value * 0.08)),
+                  color: d.accentColor.withOpacity(0.06 + (_elevation.value * 0.08)),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -918,7 +918,7 @@ class _AnimatedStatCardState extends State<_AnimatedStatCard>
                       width: 20,
                       height: 20,
                       decoration: BoxDecoration(
-                        color: d.accentColor.withValues(alpha: 0.12),
+                        color: d.accentColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(5),
                       ),
                       child: Icon(d.icon, size: 11, color: d.accentColor),
@@ -955,7 +955,7 @@ class _AnimatedStatCardState extends State<_AnimatedStatCard>
                   d.subtitle,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.jetBrainsMono(
-                    color: AppColors.textSecondary.withValues(alpha: 0.6),
+                    color: AppColors.textSecondary.withOpacity(0.6),
                     fontSize: 7.5,
                   ),
                 ),
@@ -1482,7 +1482,7 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
                     width: 20, height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppColors.brandAccent.withValues(alpha: 0.7),
+                      color: AppColors.brandAccent.withOpacity(0.7),
                     ),
                   ),
                 ),

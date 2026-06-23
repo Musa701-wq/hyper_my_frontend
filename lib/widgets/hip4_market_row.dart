@@ -95,7 +95,7 @@ class Hip4ClassBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: borderColor.withValues(alpha: 0.7), width: 1),
+        border: Border.all(color: borderColor.withOpacity(0.7), width: 1),
       ),
       child: Text(
         marketClass,

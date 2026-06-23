@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Color;
+import 'package:http/http.dart';
 import '../services/defillama_service.dart';
 
 enum ChartRange { daily, weekly, monthly, yearly }
@@ -194,9 +196,22 @@ class DefiLlamaViewModel extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Failed to load data. Check your connection.';
+      _errorMessage = _getFriendlyErrorMessage(e);
       notifyListeners();
     }
+  }
+
+  String _getFriendlyErrorMessage(Object e) {
+    if (e is SocketException || e.toString().contains('SocketException')) {
+      return 'Unable to connect to the server. Please check if the backend service is running or try again later.';
+    } else if (e is ClientException || e.toString().contains('ClientException')) {
+      return 'Connection failed. Please check your internet connection and try again.';
+    } else if (e is HttpException || e.toString().contains('HttpException')) {
+      return 'Server error occurred. Please try again later.';
+    } else if (e.toString().contains('timeout')) {
+      return 'The connection timed out. Please try again.';
+    }
+    return 'Something went wrong while fetching data. Please try again.';
   }
 
   // ─── Load scope-specific chart (with cache) ───────────────

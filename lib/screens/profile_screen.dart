@@ -1348,13 +1348,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildOhlcTabs() {
     const labels = ['Candlestick', 'Bar', 'Area'];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       child: Container(
-        height: 32,
+        width: double.infinity,
+        padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: AppColors.surfaceBright),
+          color: Colors.black.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           children: List.generate(3, (i) {
@@ -1363,17 +1363,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: GestureDetector(
                 onTap: () => setState(() => _selectedOhlcChartType = i),
                 child: Container(
-                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: isActive ? AppColors.surfaceBright : Colors.transparent,
-                    borderRadius: BorderRadius.circular(5),
+                    color: isActive ? const Color(0xFF10B981) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    labels[i],
-                    style: GoogleFonts.jetBrainsMono(
-                      color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
-                      fontSize: 10,
-                      fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  child: Center(
+                    child: Text(
+                      labels[i],
+                      style: GoogleFonts.jetBrainsMono(
+                        color: isActive ? Colors.black : AppColors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -1418,11 +1420,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return LayoutBuilder(builder: (ctx, box) {
       final availW = box.maxWidth - yAxisW - 16;
-      final candleW = ((availW - 60) / n - 4).clamp(2.0, 24.0);
-      final totalW = n * (candleW + 4) + 60;
+      final candleW = ((availW - 60) / n - 5).clamp(4.0, 28.0); // Increased width and gap
+      final totalW = n * (candleW + 5) + 60;
       final initialW = totalW < availW ? availW : totalW;
       final chartH = 236.0;
-      final totalDataW = n * (candleW + 4);
+      final totalDataW = n * (candleW + 5);
       final startX = (initialW - totalDataW) / 2;
 
       return Padding(
@@ -1447,7 +1449,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         final chartPos = MatrixUtils.transformPoint(inverse, details.localPosition);
 
                         for (int i = 0; i < n; i++) {
-                          final cx = startX + i * (candleW + 4);
+                          final cx = startX + i * (candleW + 5);
                           if (chartPos.dx >= cx && chartPos.dx <= cx + candleW) {
                             setState(() {
                               _selectedCandle = ohlc[i];
@@ -1553,8 +1555,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (minVal - yMin < yInterval * 0.2) yMin -= yInterval;
     if (yMin < 0) yMin = 0;
 
-    final barWidth = n > 15 ? 8.0 : 20.0;
-    final double chartW = n * (barWidth + 12) + 40;
+    final barWidth = n > 15 ? 12.0 : 24.0; // Increased bar thickness
+    final double chartW = n * (barWidth + 14) + 40;
 
     return LayoutBuilder(builder: (ctx, box) {
       final availW = box.maxWidth - 60 - 16;
@@ -2882,7 +2884,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             pos.liqPx <= 0 ? '—' : '\$${_fmtNum(pos.liqPx)}',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.jetBrainsMono(
-                              color: pos.liqPx > 0 ? AppColors.trendRed.withValues(alpha: 0.8) : AppColors.textSecondary,
+                              color: pos.liqPx > 0 ? AppColors.trendRed.withOpacity(0.8) : AppColors.textSecondary,
                               fontSize: 11,
                             ),
                           )),
@@ -2897,7 +2899,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 Text('${pnlPos ? '+' : ''}${pos.unrealizedPnlPct.toStringAsFixed(2)}%',
                                   textAlign: TextAlign.center,
-                                  style: GoogleFonts.jetBrainsMono(color: pnlColor.withValues(alpha: 0.7), fontSize: 9),
+                                  style: GoogleFonts.jetBrainsMono(color: pnlColor.withOpacity(0.7), fontSize: 9),
                                 ),
                               ],
                             ),
@@ -3043,13 +3045,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(color: sideColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(color: sideColor.withOpacity(0.12), borderRadius: BorderRadius.circular(2)),
                 child: Text(pos.side.toUpperCase(), style: GoogleFonts.jetBrainsMono(color: sideColor, fontSize: 7, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(width: 3),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(color: AppColors.brandAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(color: AppColors.brandAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(2)),
                 child: Text('${pos.leverage.toInt()}x', style: GoogleFonts.jetBrainsMono(color: AppColors.brandAccent, fontSize: 7, fontWeight: FontWeight.bold)),
               ),
             ],
@@ -3128,7 +3130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Row(children: [
                           SizedBox(width: 80, child: Center(child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(color: sideColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(2)),
+                            decoration: BoxDecoration(color: sideColor.withOpacity(0.12), borderRadius: BorderRadius.circular(2)),
                             child: Text(sideLabel, style: GoogleFonts.jetBrainsMono(color: sideColor, fontSize: 9, fontWeight: FontWeight.bold)),
                           ))),
                           SizedBox(width: 110, child: Text('\$${_fmtNum(f.px)}', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: 11))),
@@ -3269,7 +3271,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 3),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                            decoration: BoxDecoration(color: sideColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(2)),
+                            decoration: BoxDecoration(color: sideColor.withOpacity(0.12), borderRadius: BorderRadius.circular(2)),
                             child: Text(o.side.toUpperCase(), style: GoogleFonts.jetBrainsMono(color: sideColor, fontSize: 7, fontWeight: FontWeight.bold)),
                           ),
                         ],
@@ -3531,9 +3533,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Text(text, style: GoogleFonts.inter(color: color, fontSize: 9, fontWeight: FontWeight.bold)),
     );

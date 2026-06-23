@@ -96,7 +96,7 @@ class _Hip4MarketsPanelState extends State<Hip4MarketsPanel> {
                     const SizedBox(width: 4),
                     Text('MARKET',
                         style: GoogleFonts.jetBrainsMono(
-                          color: AppColors.textSecondary.withValues(alpha: 0.6),
+                          color: AppColors.textSecondary.withOpacity(0.6),
                           fontSize: res.fontSize(9),
                           fontWeight: FontWeight.bold,
                         )),
@@ -284,7 +284,7 @@ class _Hip4MarketsPanelState extends State<Hip4MarketsPanel> {
                             textAlign: TextAlign.right,
                             style: GoogleFonts.jetBrainsMono(
                               color: AppColors.textSecondary
-                                  .withValues(alpha: 0.7),
+                                  .withOpacity(0.7),
                               fontSize: res.fontSize(9),
                             ),
                           ),
@@ -293,7 +293,7 @@ class _Hip4MarketsPanelState extends State<Hip4MarketsPanel> {
                         Icon(Icons.chevron_right,
                             size: 16,
                             color: AppColors.textSecondary
-                                .withValues(alpha: 0.4)),
+                                .withOpacity(0.4)),
                       ],
                     ),
                   ),
@@ -327,7 +327,7 @@ class _Hip4MarketsPanelState extends State<Hip4MarketsPanel> {
                 style: GoogleFonts.jetBrainsMono(
                   color: active
                       ? AppColors.brandAccent
-                      : AppColors.textSecondary.withValues(alpha: 0.6),
+                      : AppColors.textSecondary.withOpacity(0.6),
                   fontSize: res.fontSize(9),
                   fontWeight: FontWeight.bold,
                 )),
@@ -341,7 +341,7 @@ class _Hip4MarketsPanelState extends State<Hip4MarketsPanel> {
               size: 12,
               color: active
                   ? AppColors.brandAccent
-                  : AppColors.textSecondary.withValues(alpha: 0.3),
+                  : AppColors.textSecondary.withOpacity(0.3),
             ),
           ],
         ),

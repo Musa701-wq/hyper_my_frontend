@@ -16,7 +16,7 @@ class FundingLegendDialog extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF161A22),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.6)),
+          border: Border.all(color: AppColors.surfaceBright.withOpacity(0.6)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -43,17 +43,17 @@ class FundingLegendDialog extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             _buildLegendItem('>80%', 'Extremely overleveraged longs — strong buy pressure', AppColors.trendGreen),
-            _buildLegendItem('60-80%', 'Heavy long positioning — bullish sentiment', AppColors.trendGreen.withValues(alpha: 0.8)),
-            _buildLegendItem('51-60%', 'Long skew — more traders expect price up', AppColors.trendGreen.withValues(alpha: 0.6)),
+            _buildLegendItem('60-80%', 'Heavy long positioning — bullish sentiment', AppColors.trendGreen.withOpacity(0.8)),
+            _buildLegendItem('51-60%', 'Long skew — more traders expect price up', AppColors.trendGreen.withOpacity(0.6)),
             _buildLegendItem('49-51%', 'Neutral funding — balanced long/short split', AppColors.textSecondary),
-            _buildLegendItem('40-49%', 'Short skew — more traders expect price down', AppColors.trendRed.withValues(alpha: 0.6)),
-            _buildLegendItem('20-40%', 'Heavy short positioning — bearish sentiment', AppColors.trendRed.withValues(alpha: 0.8)),
+            _buildLegendItem('40-49%', 'Short skew — more traders expect price down', AppColors.trendRed.withOpacity(0.6)),
+            _buildLegendItem('20-40%', 'Heavy short positioning — bearish sentiment', AppColors.trendRed.withOpacity(0.8)),
             _buildLegendItem('<20%', 'Extremely overleveraged shorts — strong sell pressure', AppColors.trendRed),
             const SizedBox(height: 20),
             Text(
               'Derived from 8H funding. Extreme values can signal squeeze risk. Not financial advice.',
               style: GoogleFonts.jetBrainsMono(
-                color: AppColors.textSecondary.withValues(alpha: 0.7),
+                color: AppColors.textSecondary.withOpacity(0.7),
                 fontSize: 11,
                 fontStyle: FontStyle.italic,
               ),
@@ -86,7 +86,7 @@ class FundingLegendDialog extends StatelessWidget {
             child: Text(
               description,
               style: GoogleFonts.jetBrainsMono(
-                color: AppColors.textPrimary.withValues(alpha: 0.9),
+                color: AppColors.textPrimary.withOpacity(0.9),
                 fontSize: 12,
               ),
             ),

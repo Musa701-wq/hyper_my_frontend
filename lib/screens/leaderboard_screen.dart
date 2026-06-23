@@ -158,9 +158,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.brandAccent.withValues(alpha: 0.1),
+                color: AppColors.brandAccent.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: AppColors.brandAccent.withValues(alpha: 0.3)),
+                border: Border.all(color: AppColors.brandAccent.withOpacity(0.3)),
               ),
               child: Text(
                 '${vm.totalPages * vm.rowsPerPage} traders',
@@ -365,7 +365,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             top: 0, left: 0, right: 0,
             child: Shimmer.fromColors(
               baseColor: Colors.transparent,
-              highlightColor: AppColors.brandAccent.withValues(alpha: 0.15),
+              highlightColor: AppColors.brandAccent.withOpacity(0.15),
               child: Container(height: 2, color: Colors.white),
             ),
           ),
@@ -728,7 +728,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,

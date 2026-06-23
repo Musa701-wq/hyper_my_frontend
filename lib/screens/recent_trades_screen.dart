@@ -85,7 +85,7 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
           ),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
-            child: Divider(height: 1, color: AppColors.surfaceBright.withValues(alpha: 0.5)),
+            child: Divider(height: 1, color: AppColors.surfaceBright.withOpacity(0.5)),
           ),
         ),
         body: Consumer2<TradesViewModel, SubscriptionViewModel>(
@@ -120,7 +120,7 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                     color: AppColors.surfaceBright
-                                        .withValues(alpha: 0.5)),
+                                        .withOpacity(0.5)),
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
@@ -252,7 +252,7 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF161A22),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.5)),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.5)),
       ),
       padding: EdgeInsets.symmetric(
         horizontal: res.spacing(16),
@@ -293,7 +293,7 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.query_stats_outlined, 
-                  color: AppColors.textSecondary.withValues(alpha: 0.3), 
+                  color: AppColors.textSecondary.withOpacity(0.3), 
                   size: res.fontSize(48)),
               const SizedBox(height: 16),
               Text(
@@ -340,7 +340,7 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
         color: const Color(0xFF1E222D),
         border: Border(
             bottom: BorderSide(
-                color: AppColors.surfaceBright.withValues(alpha: 0.5))),
+                color: AppColors.surfaceBright.withOpacity(0.5))),
       ),
       child: Row(
         children: [
@@ -362,10 +362,10 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       decoration: BoxDecoration(
         color:
-            isEven ? Colors.white.withValues(alpha: 0.015) : Colors.transparent,
+            isEven ? Colors.white.withOpacity(0.015) : Colors.transparent,
         border: Border(
             bottom: BorderSide(
-                color: Colors.white.withValues(alpha: 0.03), width: 0.5)),
+                color: Colors.white.withOpacity(0.03), width: 0.5)),
       ),
       child: Row(
         children: [
@@ -393,7 +393,7 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
               child: Center(
                   child: Text('\$${trade.value.toStringAsFixed(2)}',
                       style: _rowStyle(res,
-                          color: AppColors.textPrimary.withValues(alpha: 0.8))))),
+                          color: AppColors.textPrimary.withOpacity(0.8))))),
         ],
       ),
     );
@@ -407,7 +407,7 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: const Color(0xFF1E222D),
-        border: Border(top: BorderSide(color: AppColors.surfaceBright.withValues(alpha: 0.5))),
+        border: Border(top: BorderSide(color: AppColors.surfaceBright.withOpacity(0.5))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -525,7 +525,7 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
                   if (loadingProgress == null) return child;
                   return Center(
                       child: CircularProgressIndicator(
-                          strokeWidth: 1, valueColor: AlwaysStoppedAnimation<Color>(AppColors.brandAccent.withValues(alpha: 0.3))));
+                          strokeWidth: 1, valueColor: AlwaysStoppedAnimation<Color>(AppColors.brandAccent.withOpacity(0.3))));
                 },
               ),
       ),
@@ -613,7 +613,7 @@ class _BuySellRatio extends StatelessWidget {
           Text(
             'VOL RATIO',
             style: GoogleFonts.jetBrainsMono(
-              color: AppColors.textSecondary.withValues(alpha: 0.6),
+              color: AppColors.textSecondary.withOpacity(0.6),
               fontSize: 7,
               fontWeight: FontWeight.bold,
             ),
@@ -639,9 +639,9 @@ class _LiveIndicator extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.trendGreen.withValues(alpha: 0.1),
+        color: AppColors.trendGreen.withOpacity(0.1),
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: AppColors.trendGreen.withValues(alpha: 0.4)),
+        border: Border.all(color: AppColors.trendGreen.withOpacity(0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

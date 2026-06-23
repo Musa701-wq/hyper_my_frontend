@@ -64,7 +64,7 @@ class Hip4DetailDialog extends StatelessWidget {
                       Text(
                         market.description,
                         style: GoogleFonts.jetBrainsMono(
-                          color: Colors.white.withValues(alpha: 0.45),
+                          color: Colors.white.withOpacity(0.45),
                           fontSize: res.fontSize(10),
                           height: 1.6,
                         ),
@@ -80,7 +80,7 @@ class Hip4DetailDialog extends StatelessWidget {
                         Text(
                           'OUTCOMES',
                           style: GoogleFonts.jetBrainsMono(
-                            color: Colors.white.withValues(alpha: 0.3),
+                            color: Colors.white.withOpacity(0.3),
                             fontSize: res.fontSize(9),
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.2,
@@ -106,7 +106,7 @@ class Hip4DetailDialog extends StatelessWidget {
                         Text(
                           'sorted by probability',
                           style: GoogleFonts.jetBrainsMono(
-                            color: Colors.white.withValues(alpha: 0.2),
+                            color: Colors.white.withOpacity(0.2),
                             fontSize: res.fontSize(8),
                           ),
                         ),
@@ -209,10 +209,10 @@ class Hip4DetailDialog extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: isTop ? color.withValues(alpha: 0.07) : _card,
+        color: isTop ? color.withOpacity(0.07) : _card,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isTop ? color.withValues(alpha: 0.4) : _border,
+          color: isTop ? color.withOpacity(0.4) : _border,
           width: 1,
         ),
       ),
@@ -266,8 +266,8 @@ class Hip4DetailDialog extends StatelessWidget {
             child: LinearProgressIndicator(
               value: barPct,
               minHeight: 3,
-              backgroundColor: Colors.white.withValues(alpha: 0.06),
-              valueColor: AlwaysStoppedAnimation<Color>(color.withValues(alpha: 0.75)),
+              backgroundColor: Colors.white.withOpacity(0.06),
+              valueColor: AlwaysStoppedAnimation<Color>(color.withOpacity(0.75)),
             ),
           ),
         ],

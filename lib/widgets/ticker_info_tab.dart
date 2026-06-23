@@ -60,7 +60,7 @@ class TickerInfoTab extends StatelessWidget {
             )),
           ]),
         ])),
-        Divider(height: 1, color: AppColors.surfaceBright.withValues(alpha: 0.3)),
+        Divider(height: 1, color: AppColors.surfaceBright.withOpacity(0.3)),
         if (ticker.impactBidPx > 0 || ticker.impactAskPx > 0) ...[
           _sectionLabel('ORDER BOOK IMPACT'),
           _pad(Row(children: [
@@ -76,7 +76,7 @@ class TickerInfoTab extends StatelessWidget {
               valueColor: AppColors.trendRed,
             )),
           ])),
-          Divider(height: 1, color: AppColors.surfaceBright.withValues(alpha: 0.3)),
+          Divider(height: 1, color: AppColors.surfaceBright.withOpacity(0.3)),
         ],
         _sectionLabel('MARKET'),
         _pad(Column(children: [
@@ -139,11 +139,11 @@ class TickerInfoTab extends StatelessWidget {
             ]),
           ],
         ])),
-        Divider(height: 1, color: AppColors.surfaceBright.withValues(alpha: 0.3)),
+        Divider(height: 1, color: AppColors.surfaceBright.withOpacity(0.3)),
         _sectionLabel('FUNDING & SENTIMENT'),
         _pad(Column(children: [
           Row(children: [
-            Icon(Icons.schedule, size: 13, color: AppColors.textSecondary.withValues(alpha: 0.8)),
+            Icon(Icons.schedule, size: 13, color: AppColors.textSecondary.withOpacity(0.8)),
             const SizedBox(width: 6),
             Text(
               'FUNDING RATE (8H)',
@@ -152,7 +152,7 @@ class TickerInfoTab extends StatelessWidget {
             const SizedBox(width: 4),
             GestureDetector(
               onTap: () => showDialog(context: context, builder: (context) => const FundingLegendDialog()),
-              child: Icon(Icons.info_outline, size: 11, color: AppColors.textSecondary.withValues(alpha: 0.8)),
+              child: Icon(Icons.info_outline, size: 11, color: AppColors.textSecondary.withOpacity(0.8)),
             ),
             const Spacer(),
             Text(
@@ -196,7 +196,7 @@ class TickerInfoTab extends StatelessWidget {
         child: Text(
           label,
           style: GoogleFonts.jetBrainsMono(
-            color: AppColors.textSecondary.withValues(alpha: 0.6),
+            color: AppColors.textSecondary.withOpacity(0.6),
             fontSize: 9,
             letterSpacing: 1.5,
             fontWeight: FontWeight.w600,

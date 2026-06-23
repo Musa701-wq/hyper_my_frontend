@@ -130,8 +130,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      AppColors.brandAccent.withValues(alpha: 0.08),
-                      AppColors.brandAccent.withValues(alpha: 0.0),
+                      AppColors.brandAccent.withOpacity(0.08),
+                      AppColors.brandAccent.withOpacity(0.0),
                     ],
                   ),
                 ),
@@ -176,10 +176,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
           decoration: BoxDecoration(
             color: const Color(0xFF161A22),
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.brandAccent.withValues(alpha: 0.4), width: 2),
+            border: Border.all(color: AppColors.brandAccent.withOpacity(0.4), width: 2),
             boxShadow: [
               BoxShadow(
-                color: AppColors.brandAccent.withValues(alpha: 0.2),
+                color: AppColors.brandAccent.withOpacity(0.2),
                 blurRadius: 30,
               ),
             ],
@@ -208,9 +208,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                AppColors.brandAccent.withValues(alpha: 0),
+                AppColors.brandAccent.withOpacity(0),
                 AppColors.brandAccent,
-                AppColors.brandAccent.withValues(alpha: 0),
+                AppColors.brandAccent.withOpacity(0),
               ],
             ),
           ),
@@ -243,7 +243,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
         ),
         boxShadow: isMonthly ? [
           BoxShadow(
-            color: AppColors.brandAccent.withValues(alpha: 0.1),
+            color: AppColors.brandAccent.withOpacity(0.1),
             blurRadius: 20,
             spreadRadius: -5,
           )
@@ -292,7 +292,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
                         Text(
                           product.description,
                           style: GoogleFonts.jetBrainsMono(
-                            color: AppColors.textSecondary.withValues(alpha: 0.6),
+                            color: AppColors.textSecondary.withOpacity(0.6),
                             fontSize: res.fontSize(12),
                           ),
                         ),
@@ -314,7 +314,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
                       Text(
                         isMonthly ? 'BILL YEARLY' : 'BILL WEEKLY',
                         style: GoogleFonts.jetBrainsMono(
-                          color: AppColors.textSecondary.withValues(alpha: 0.5),
+                          color: AppColors.textSecondary.withOpacity(0.5),
                           fontSize: res.fontSize(10),
                           fontWeight: FontWeight.bold,
                         ),
@@ -339,7 +339,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
           width: double.infinity,
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            color: const Color(0xFF161A22).withValues(alpha: 0.6),
+            color: const Color(0xFF161A22).withOpacity(0.6),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFF2E323D)),
           ),
@@ -349,7 +349,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
               Text(
                 'UNLOCKED ASSETS',
                 style: GoogleFonts.jetBrainsMono(
-                  color: AppColors.brandAccent.withValues(alpha: 0.6),
+                  color: AppColors.brandAccent.withOpacity(0.6),
                   fontSize: res.fontSize(11),
                   fontWeight: FontWeight.w900,
                   letterSpacing: 2,
@@ -460,7 +460,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
             textAlign: TextAlign.center,
             text: TextSpan(
               style: GoogleFonts.jetBrainsMono(
-                color: AppColors.textSecondary.withValues(alpha: 0.5),
+                color: AppColors.textSecondary.withOpacity(0.5),
                 fontSize: 10,
                 height: 1.5,
               ),
@@ -496,7 +496,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
           'Protected by Hyper Protocol. All transactions are encrypted. Subscriptions auto-renew unless terminated 24h prior to expiration.',
           textAlign: TextAlign.center,
           style: GoogleFonts.jetBrainsMono(
-            color: AppColors.textSecondary.withValues(alpha: 0.3),
+            color: AppColors.textSecondary.withOpacity(0.3),
             fontSize: res.fontSize(9),
             height: 1.8,
           ),
@@ -511,7 +511,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
       child: Text(
         text,
         style: GoogleFonts.jetBrainsMono(
-          color: AppColors.textSecondary.withValues(alpha: 0.6),
+          color: AppColors.textSecondary.withOpacity(0.6),
           fontSize: 9,
           fontWeight: FontWeight.bold,
           decoration: TextDecoration.underline,
@@ -526,7 +526,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
@@ -543,7 +543,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
 
   Widget _buildProcessingOverlay() {
     return Container(
-      color: Colors.black.withValues(alpha: 0.9),
+      color: Colors.black.withOpacity(0.9),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -570,9 +570,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
       padding: const EdgeInsets.all(24),
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: AppColors.trendRed.withValues(alpha: 0.05),
+        color: AppColors.trendRed.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.trendRed.withValues(alpha: 0.2)),
+        border: Border.all(color: AppColors.trendRed.withOpacity(0.2)),
       ),
       child: Column(
         children: [
@@ -610,7 +610,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
           Text(
             'SYNCHRONIZING SECURE TUNNEL...',
             style: GoogleFonts.jetBrainsMono(
-              color: AppColors.textSecondary.withValues(alpha: 0.5),
+              color: AppColors.textSecondary.withOpacity(0.5),
               fontSize: res.fontSize(12),
               letterSpacing: 2,
             ),
@@ -625,7 +625,7 @@ class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.1)
+      ..color = Colors.white.withOpacity(0.1)
       ..strokeWidth = 0.5;
 
     for (double i = 0; i < size.width; i += 40) {
@@ -655,7 +655,7 @@ class _FeatureItem extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              color: AppColors.brandAccent.withValues(alpha: 0.1),
+              color: AppColors.brandAccent.withOpacity(0.1),
               borderRadius: BorderRadius.circular(4),
             ),
             child: const Icon(Icons.add_task_rounded, color: AppColors.brandAccent, size: 14),
@@ -665,7 +665,7 @@ class _FeatureItem extends StatelessWidget {
             child: Text(
               text,
               style: GoogleFonts.jetBrainsMono(
-                color: Colors.white.withValues(alpha: 0.9),
+                color: Colors.white.withOpacity(0.9),
                 fontSize: res.fontSize(13),
               ),
             ),

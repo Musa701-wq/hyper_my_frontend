@@ -215,7 +215,7 @@ class _LiveMarketsBodyState extends State<LiveMarketsBody> {
           Container(
             height: 28,
             decoration: BoxDecoration(
-              color: AppColors.surfaceBright.withValues(alpha: 0.3),
+              color: AppColors.surfaceBright.withOpacity(0.3),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: AppColors.surfaceBright, width: 0.5),
             ),
@@ -405,7 +405,7 @@ class _RankedAssetListItem extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: index <= 3 
-                ? AppColors.brandAccent.withValues(alpha: 0.2) 
+                ? AppColors.brandAccent.withOpacity(0.2) 
                 : Colors.transparent,
               border: Border.all(
                 color: index <= 3 ? AppColors.brandAccent : AppColors.surfaceBright,
@@ -426,7 +426,7 @@ class _RankedAssetListItem extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.surfaceBright.withValues(alpha: 0.5),
+              color: AppColors.surfaceBright.withOpacity(0.5),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(color: AppColors.surfaceBright),
             ),
@@ -536,7 +536,7 @@ class _RankedAssetListItem extends StatelessWidget {
       height: 3,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withValues(alpha: 0.3),
+        color: AppColors.surfaceBright.withOpacity(0.3),
         borderRadius: BorderRadius.circular(2),
       ),
       child: FractionallySizedBox(
@@ -550,10 +550,10 @@ class _RankedAssetListItem extends StatelessWidget {
               width: (res.width - res.spacing(16) * 2 - 32 - 12 - 24 - 12) * ratio, // Apprx width calc
               decoration: BoxDecoration(
                 color: type == 'perf' 
-                  ? (ticker.change24hPct >= 0 ? AppColors.trendGreen : AppColors.trendRed).withValues(alpha: 0.6)
+                  ? (ticker.change24hPct >= 0 ? AppColors.trendGreen : AppColors.trendRed).withOpacity(0.6)
                   : type == 'funding'
-                    ? (ticker.funding8hPct >= 0 ? AppColors.trendRed : AppColors.trendGreen).withValues(alpha: 0.6)
-                    : AppColors.brandAccent.withValues(alpha: 0.6),
+                    ? (ticker.funding8hPct >= 0 ? AppColors.trendRed : AppColors.trendGreen).withOpacity(0.6)
+                    : AppColors.brandAccent.withOpacity(0.6),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -571,9 +571,9 @@ class _RankedAssetListItem extends StatelessWidget {
     return Container(
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 0.5),
+        border: Border.all(color: color.withOpacity(0.3), width: 0.5),
       ),
       child: Text(
         symbol.length >= 2 ? symbol.substring(0, 2).toUpperCase() : symbol.toUpperCase(),
@@ -730,7 +730,7 @@ class _DynamicAssetChart extends StatelessWidget {
                     width: (res.width - 100) / (tickers.length.clamp(1, 8).toDouble()),
                     height: normalizedHeight,
                     decoration: BoxDecoration(
-                      color: (isPositive ? AppColors.trendGreen : AppColors.trendRed).withValues(alpha: 0.6),
+                      color: (isPositive ? AppColors.trendGreen : AppColors.trendRed).withOpacity(0.6),
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
                     ),
                   ),
@@ -756,7 +756,7 @@ class _DynamicAssetChart extends StatelessWidget {
           )).toList(),
         ),
         const SizedBox(height: 16),
-        Text('ASSET SYMBOL', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: 8, letterSpacing: 1.5)),
+        Text('ASSET SYMBOL', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary.withOpacity(0.5), fontSize: 8, letterSpacing: 1.5)),
       ],
     );
   }
@@ -886,7 +886,7 @@ class _DistributionCardState extends State<_DistributionCard> {
             height: 28,
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              color: AppColors.surfaceBright.withValues(alpha: 0.3),
+              color: AppColors.surfaceBright.withOpacity(0.3),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Row(
@@ -929,7 +929,7 @@ class _DistributionCardState extends State<_DistributionCard> {
       runSpacing: 8,
       children: segments.map((s) {
         final bool isHidden = _hiddenKeys.contains(s.key);
-        final color = isHidden ? AppColors.textSecondary.withValues(alpha: 0.3) : _getSegmentColor(s.key);
+        final color = isHidden ? AppColors.textSecondary.withOpacity(0.3) : _getSegmentColor(s.key);
         
         return GestureDetector(
           onTap: () {
@@ -955,7 +955,7 @@ class _DistributionCardState extends State<_DistributionCard> {
               Text(
                 s.label.split(' (').first.toUpperCase(),
                 style: GoogleFonts.jetBrainsMono(
-                  color: isHidden ? AppColors.textSecondary.withValues(alpha: 0.5) : AppColors.textSecondary,
+                  color: isHidden ? AppColors.textSecondary.withOpacity(0.5) : AppColors.textSecondary,
                   fontSize: 8,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1056,7 +1056,7 @@ class _DistributionCardState extends State<_DistributionCard> {
             ],
           ),
         ),
-        Container(height: 1, width: double.infinity, color: AppColors.surfaceBright.withValues(alpha: 0.5)),
+        Container(height: 1, width: double.infinity, color: AppColors.surfaceBright.withOpacity(0.5)),
         const SizedBox(height: 8),
         ...segments.map((s) {
           return Padding(
@@ -1105,7 +1105,7 @@ class _DistributionCardState extends State<_DistributionCard> {
           val,
           textAlign: TextAlign.right,
           style: GoogleFonts.jetBrainsMono(
-            color: active ? Colors.white : AppColors.textSecondary.withValues(alpha: 0.7),
+            color: active ? Colors.white : AppColors.textSecondary.withOpacity(0.7),
             fontSize: 10,
             fontWeight: active ? FontWeight.bold : FontWeight.normal,
           ),
