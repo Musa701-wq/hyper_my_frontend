@@ -269,6 +269,13 @@ class ChainFocusProject {
     final formatter = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
     return formatter.format(tvl);
   }
+
+  String get formattedTvl {
+    if (tvl >= 1e9) return '\$${(tvl / 1e9).toStringAsFixed(2)}B';
+    if (tvl >= 1e6) return '\$${(tvl / 1e6).toStringAsFixed(2)}M';
+    if (tvl >= 1e3) return '\$${(tvl / 1e3).toStringAsFixed(2)}K';
+    return '\$${tvl.toStringAsFixed(0)}';
+  }
 }
 
 class ChainFocus {

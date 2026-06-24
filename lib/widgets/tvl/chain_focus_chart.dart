@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../../models/protocol_model.dart';
 import '../../utils/app_colors.dart';
 
@@ -72,10 +71,10 @@ class _ChainFocusChartState extends State<ChainFocusChart> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       decoration: BoxDecoration(
         color: const Color(0xFF1A1E28).withOpacity(0.4),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.06)),
       ),
       child: Column(
@@ -128,19 +127,19 @@ class _ChainFocusChartState extends State<ChainFocusChart> {
             children: [
               Text(
                 widget.selectedChain == 'Overall' ? 'Total TVL By Chain' : 'TVL by Specific Chain',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.jetBrainsMono(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 15,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
+                  letterSpacing: -0.3,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 widget.selectedChain == 'Overall' ? 'Distribution across all integrated networks.' : 'Project distribution within a selected chain.',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.jetBrainsMono(
                   color: AppColors.textSecondary.withOpacity(0.6),
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -155,22 +154,22 @@ class _ChainFocusChartState extends State<ChainFocusChart> {
 
   Widget _buildChainSelector() {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 150),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      constraints: const BoxConstraints(maxWidth: 140),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       decoration: BoxDecoration(
         color: AppColors.surfaceBright.withOpacity(0.08),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: widget.selectedChain,
           isExpanded: true,
           dropdownColor: const Color(0xFF13151C),
-          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white70, size: 18),
-          style: GoogleFonts.plusJakartaSans(
+          icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary, size: 16),
+          style: GoogleFonts.jetBrainsMono(
             color: Colors.white,
-            fontSize: 13,
+            fontSize: 11,
             fontWeight: FontWeight.w700,
           ),
           items: [
@@ -186,7 +185,7 @@ class _ChainFocusChartState extends State<ChainFocusChart> {
                   overflow: TextOverflow.ellipsis,
                 ),
               );
-            }).toList(),
+            }),
           ],
           onChanged: (val) {
             if (val != null) widget.onChainChanged(val);
@@ -230,18 +229,18 @@ class _ChainFocusChartState extends State<ChainFocusChart> {
               children: [
                 Text(
                   'Total TVL',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.jetBrainsMono(
                     color: AppColors.textSecondary.withOpacity(0.5),
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1.0,
                   ),
                 ),
                 Text(
                   _formatTotal(totalTvl),
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.jetBrainsMono(
                     color: Colors.white,
-                    fontSize: 15,
+                    fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -324,7 +323,7 @@ class _ChainFocusChartState extends State<ChainFocusChart> {
           ),
           child: Text(
             '${pct.toStringAsFixed(1)}%',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.jetBrainsMono(
               color: Colors.white,
               fontSize: 9,
               fontWeight: FontWeight.w800,
@@ -334,7 +333,7 @@ class _ChainFocusChartState extends State<ChainFocusChart> {
         const SizedBox(height: 4),
         Text(
           name.length > 10 ? '${name.substring(0, 8)}..' : name,
-          style: GoogleFonts.plusJakartaSans(
+          style: GoogleFonts.jetBrainsMono(
             color: isTouched ? Colors.white : color.withOpacity(0.9),
             fontSize: isTouched ? 10 : 8,
             fontWeight: isTouched ? FontWeight.w800 : FontWeight.w600,
@@ -390,7 +389,7 @@ class _ChainFocusChartState extends State<ChainFocusChart> {
                               p.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.jetBrainsMono(
                                 color: Colors.white.withOpacity(0.9),
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -400,7 +399,7 @@ class _ChainFocusChartState extends State<ChainFocusChart> {
                           Expanded(
                             flex: 4,
                             child: Text(
-                              p.fullTvl,
+                              p.formattedTvl,
                               textAlign: TextAlign.right,
                               style: GoogleFonts.jetBrainsMono(
                                 color: Colors.white,
@@ -483,7 +482,7 @@ class _ChainFocusChartState extends State<ChainFocusChart> {
             flex: 5,
             child: Text(
               isOverall ? 'CHAIN' : 'PROTOCOL',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.jetBrainsMono(
                 color: AppColors.textSecondary.withOpacity(0.5),
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
@@ -496,7 +495,7 @@ class _ChainFocusChartState extends State<ChainFocusChart> {
             child: Text(
               'TVL',
               textAlign: TextAlign.right,
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.jetBrainsMono(
                 color: AppColors.textSecondary.withOpacity(0.5),
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
@@ -510,7 +509,7 @@ class _ChainFocusChartState extends State<ChainFocusChart> {
             child: Text(
               'ALLOC',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.jetBrainsMono(
                 color: AppColors.textSecondary.withOpacity(0.5),
                 fontSize: 10,
                 fontWeight: FontWeight.w800,

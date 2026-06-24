@@ -11,6 +11,7 @@ class VolumeChartWidget extends StatefulWidget {
   final String selectedTimeRange;
   final String selectedChartType;
   final Function(String) onChartTypeChanged;
+  final Function(String)? onTimeRangeChanged;
 
   const VolumeChartWidget({
     super.key,
@@ -19,6 +20,7 @@ class VolumeChartWidget extends StatefulWidget {
     required this.selectedTimeRange,
     required this.selectedChartType,
     required this.onChartTypeChanged,
+    this.onTimeRangeChanged,
   });
 
   @override
@@ -115,24 +117,26 @@ class _VolumeChartWidgetState extends State<VolumeChartWidget> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                if (widget.onTimeRangeChanged != null) _buildTimeRangeToggle(),
+                const SizedBox(height: 12),
                 SizedBox(
                   height: 300,
                   child: Row(
                     children: [
                       _buildFixedYAxis(),
                       Expanded(
-                        child: GestureDetector(
-                          onScaleStart: (details) {
-                            _scaleStart = _zoomScale;
-                          },
-                          onScaleUpdate: (details) {
-                            if (details.pointerCount < 2) return;
-                            _setZoom(_scaleStart * details.scale);
-                          },
-                          child: SingleChildScrollView(
-                            controller: _scrollController,
-                            scrollDirection: Axis.horizontal,
+                        child: SingleChildScrollView(
+                          controller: _scrollController,
+                          scrollDirection: Axis.horizontal,
+                          child: GestureDetector(
+                            onScaleStart: (details) {
+                              _scaleStart = _zoomScale;
+                            },
+                            onScaleUpdate: (details) {
+                              if (details.pointerCount < 2) return;
+                              _setZoom(_scaleStart * details.scale);
+                            },
                             child: SizedBox(
                               width: chartContentWidth,
                               child: Padding(
@@ -182,12 +186,10 @@ class _VolumeChartWidgetState extends State<VolumeChartWidget> {
 
   Widget _buildTypeToggles() {
     return Container(
-      height: 32,
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: Colors.black.withOpacity(0.3),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.surfaceBright),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -195,20 +197,56 @@ class _VolumeChartWidgetState extends State<VolumeChartWidget> {
           final bool isActive = widget.selectedChartType == type;
           return GestureDetector(
             onTap: () => widget.onChartTypeChanged(type),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              alignment: Alignment.center,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: isActive ? AppColors.surfaceBright : Colors.transparent,
+                color: isActive ? const Color(0xFF10B981) : Colors.transparent,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 type,
                 style: GoogleFonts.jetBrainsMono(
-                  color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
+                  color: isActive ? Colors.black : AppColors.textSecondary,
                   fontSize: 10,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildTimeRangeToggle() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: ['D', 'W', 'M', 'Y'].map((range) {
+          final bool isActive = widget.selectedTimeRange == range;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => widget.onTimeRangeChanged?.call(range),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 7),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isActive ? const Color(0xFF10B981) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  range,
+                  style: GoogleFonts.jetBrainsMono(
+                    color: isActive ? Colors.black : AppColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -223,8 +261,8 @@ class _VolumeChartWidgetState extends State<VolumeChartWidget> {
     if (maxVal == 0) maxVal = 1e6;
 
     return Container(
-      width: 50,
-      padding: const EdgeInsets.only(bottom: 30),
+      width: 58,
+      padding: const EdgeInsets.only(left: 8, bottom: 30),
       child: LineChart(
         LineChartData(
           minY: 0,
@@ -240,7 +278,7 @@ class _VolumeChartWidgetState extends State<VolumeChartWidget> {
                 getTitlesWidget: (value, meta) {
                   if (value >= meta.max * 0.98 || value <= meta.min) return const SizedBox.shrink();
                   return Padding(
-                    padding: const EdgeInsets.only(left: 4),
+                    padding: const EdgeInsets.only(left: 12),
                     child: Text(
                       _formatPrice(value),
                       style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 7),

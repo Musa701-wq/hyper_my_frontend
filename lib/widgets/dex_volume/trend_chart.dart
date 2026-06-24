@@ -26,7 +26,7 @@ class TrendChartWidget extends StatefulWidget {
 }
 
 class _TrendChartWidgetState extends State<TrendChartWidget> {
-  String _style = 'Bar';
+  String _style = 'Area';
   final ScrollController _scrollController = ScrollController();
   double _zoomScale = 1.0;
   double _scaleStart = 1.0;
@@ -135,17 +135,17 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
                     children: [
                       _buildFixedYAxis(displayTrend),
                       Expanded(
-                        child: GestureDetector(
-                          onScaleStart: (details) {
-                            _scaleStart = _zoomScale;
-                          },
-                          onScaleUpdate: (details) {
-                            if (details.pointerCount < 2) return;
-                            _setZoom(_scaleStart * details.scale);
-                          },
-                          child: SingleChildScrollView(
-                            controller: _scrollController,
-                            scrollDirection: Axis.horizontal,
+                        child: SingleChildScrollView(
+                          controller: _scrollController,
+                          scrollDirection: Axis.horizontal,
+                          child: GestureDetector(
+                            onScaleStart: (details) {
+                              _scaleStart = _zoomScale;
+                            },
+                            onScaleUpdate: (details) {
+                              if (details.pointerCount < 2) return;
+                              _setZoom(_scaleStart * details.scale);
+                            },
                             child: SizedBox(
                               width: chartWidth,
                               child: Padding(
@@ -185,7 +185,7 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: isActive ? widget.color : Colors.transparent,
+                color: isActive ? const Color(0xFF10B981) : Colors.transparent,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -288,8 +288,8 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
     maxVal = maxVal * 1.15; // Add 15% headroom for tooltips
 
     return Container(
-      width: 45,
-      padding: const EdgeInsets.only(bottom: 24, top: 0),
+      width: 52,
+      padding: const EdgeInsets.only(left: 8, bottom: 24, top: 0),
       child: LineChart(
         LineChartData(
           minY: 0,
@@ -301,12 +301,15 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 45,
+                reservedSize: 44,
                 getTitlesWidget: (value, meta) {
                   if (value >= meta.max * 0.98 || value <= meta.min) return const SizedBox.shrink();
-                  return Text(
-                    _formatPrice(value),
-                    style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 7),
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 10),
+                    child: Text(
+                      _formatPrice(value),
+                      style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 7),
+                    ),
                   );
                 },
               ),

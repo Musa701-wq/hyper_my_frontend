@@ -14,7 +14,7 @@ class DexVolumeViewModel extends ChangeNotifier {
   bool _isLoading = true;
   String _errorMessage = '';
   String _selectedScope = 'spot'; // all, spot, perps
-  String _selectedTimeRange = 'All'; // All, D, W, M, Y
+  String _selectedTimeRange = 'M'; // All, D, W, M, Y
   String _selectedChartType = 'Area'; // Area, Bar
 
   DexVolumeMetrics? get metrics => _metrics;

@@ -82,14 +82,13 @@ class _DexVolumePageState extends State<DexVolumePage> {
                     children: [
                       _buildMetricCards(viewModel.metrics!),
                       const SizedBox(height: 24),
-                      _buildExternalToggles(viewModel),
-                      const SizedBox(height: 16),
                       VolumeChartWidget(
                         data: viewModel.chartData,
                         selectedScope: 'All',
                         selectedTimeRange: viewModel.selectedTimeRange,
                         selectedChartType: viewModel.selectedChartType,
                         onChartTypeChanged: (type) => viewModel.setChartType(type),
+                        onTimeRangeChanged: (range) => viewModel.setTimeRange(range),
                       ),
                       const SizedBox(height: 24),
                       if (viewModel.adoption != null) ...[
@@ -232,62 +231,6 @@ class _DexVolumePageState extends State<DexVolumePage> {
     );
   }
 
-  Widget _buildExternalToggles(DexVolumeViewModel vm) {
-    return Column(
-      children: [
-        _buildToggleGroup(
-          [
-            _ToggleItem(label: 'D', value: 'D'),
-            _ToggleItem(label: 'W', value: 'W'),
-            _ToggleItem(label: 'M', value: 'M'),
-            _ToggleItem(label: 'Y', value: 'Y'),
-          ],
-          vm.selectedTimeRange,
-          (val) => vm.setTimeRange(val),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildToggleGroup(List<_ToggleItem> items, String currentValue, Function(String) onChanged) {
-    return Container(
-      height: 38,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.surfaceBright),
-      ),
-      clipBehavior: Clip.antiAlias,
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        children: items.map((item) {
-          final bool isActive = currentValue == item.value;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onChanged(item.value),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: isActive ? AppColors.surfaceBright : Colors.transparent,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  item.label,
-                  style: GoogleFonts.jetBrainsMono(
-                    color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
-                    fontSize: 12,
-                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
 }
 
   Widget _buildLoading(Responsive res) {
@@ -346,9 +289,3 @@ class _DexVolumePageState extends State<DexVolumePage> {
     ),
   );
 
-
-class _ToggleItem {
-  final String label;
-  final String value;
-  _ToggleItem({required this.label, required this.value});
-}

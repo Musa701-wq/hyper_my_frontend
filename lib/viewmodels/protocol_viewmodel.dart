@@ -32,7 +32,9 @@ class ProtocolViewModel extends ChangeNotifier {
 
   // Pagination
   int _currentPage = 1;
+  int _gridPage = 1;
   final int _itemsPerPage = 20;
+  int _gridItemsPerPage = 20;
 
   // Category Distribution
   List<CategoryDistribution> _categoryDistribution = [];
@@ -70,13 +72,26 @@ class ProtocolViewModel extends ChangeNotifier {
   List<Protocol> get chartProtocols => _applyFilters(_protocols, _chartSearch, _chartCategory);
   int get currentPage => _currentPage;
   int get itemsPerPage => _itemsPerPage;
-  int get totalPages => (listProtocols.length / _itemsPerPage).ceil();
+  int get totalPages => (listProtocols.length / _itemsPerPage).ceil().clamp(1, 9999);
+
+  // Grid pagination
+  int get gridPage => _gridPage;
+  int get gridItemsPerPage => _gridItemsPerPage;
+  int get gridTotalPages => (gridProtocols.length / _gridItemsPerPage).ceil().clamp(1, 9999);
 
   List<Protocol> get paginatedListProtocols {
     final start = (_currentPage - 1) * _itemsPerPage;
     final filtered = listProtocols;
     if (start >= filtered.length) return [];
     final end = (start + _itemsPerPage).clamp(0, filtered.length);
+    return filtered.sublist(start, end);
+  }
+
+  List<Protocol> get paginatedGridProtocols {
+    final start = (_gridPage - 1) * _gridItemsPerPage;
+    final filtered = gridProtocols;
+    if (start >= filtered.length) return [];
+    final end = (start + _gridItemsPerPage).clamp(0, filtered.length);
     return filtered.sublist(start, end);
   }
   List<CategoryDistribution> get categoryDistribution => _categoryDistribution;
@@ -285,6 +300,7 @@ class ProtocolViewModel extends ChangeNotifier {
 
   void setGridSearch(String text) {
     _gridSearch = text;
+    _gridPage = 1;
     notifyListeners();
   }
 
@@ -301,6 +317,7 @@ class ProtocolViewModel extends ChangeNotifier {
 
   void setGridCategory(String category) {
     _gridCategory = category;
+    _gridPage = 1;
     notifyListeners();
   }
 
@@ -317,6 +334,8 @@ class ProtocolViewModel extends ChangeNotifier {
 
   void toggleSortOrder() {
     _isAscending = !_isAscending;
+    _currentPage = 1;
+    _gridPage = 1;
     _sortProtocols();
     notifyListeners();
   }
@@ -340,9 +359,22 @@ class ProtocolViewModel extends ChangeNotifier {
     }
   }
 
+  void setGridPageNum(int page) {
+    if (page >= 1 && page <= gridTotalPages) {
+      _gridPage = page;
+      notifyListeners();
+    }
+  }
+
   void setLimit(int value) {
     _limit = value;
     fetchProtocols();
+  }
+
+  void setGridLimit(int value) {
+    _gridItemsPerPage = value;
+    _gridPage = 1;
+    notifyListeners();
   }
 
   void _setLoading(bool value) {

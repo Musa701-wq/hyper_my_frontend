@@ -19,6 +19,7 @@ import '../widgets/funding_legend_dialog.dart';
 import '../widgets/live_markets_drawer.dart' show LiveMarketsBody;
 import '../widgets/sparkline_widget.dart';
 import '../widgets/ticker_detail_dialog.dart';
+import 'hl_tvl_screen.dart';
 import 'profile_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/responsive.dart';
@@ -105,7 +106,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: sub.isPro ? AppColors.trendGreen : AppColors.brandAccent,
                 ),
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => const SubscriptionScreen(),
+                    transitionDuration: Duration.zero,
+                    reverseTransitionDuration: Duration.zero,
+                    transitionsBuilder: (_, __, ___, child) => child,
+                  ),
                 ),
                 tooltip: sub.isPro ? 'Pro Active' : 'Go Pro',
               ),
@@ -1112,9 +1118,7 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Fees & Revenue',
               subtitle: 'Protocol earnings',
               onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const DefiLlamaScreen()),
-                );
+                Navigator.of(context).push(_smoothRoute(const DefiLlamaScreen()));
               },
             ),
             isActive: false,
@@ -1126,10 +1130,7 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Stats',
               subtitle: 'Market overview',
               onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => const LeaderboardStatsScreen()),
-                );
+                Navigator.of(context).push(_smoothRoute(const LeaderboardStatsScreen()));
               },
             ),
             isActive: false,
@@ -1141,9 +1142,7 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'DEX Volume',
               subtitle: 'Protocol volume',
               onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const DexVolumePage()),
-                );
+                Navigator.of(context).push(_smoothRoute(const DexVolumePage()));
               },
             ),
             isActive: false,
@@ -1152,12 +1151,22 @@ class _HomeScreenState extends State<HomeScreen> {
           _DrawerNavItem(
             data: _DrawerItemData(
               icon: Icons.account_balance_wallet_rounded,
-              label: 'TVL',
-              subtitle: 'Protocol liquidity',
+              label: 'Protocol TVL',
+              subtitle: 'DeFi ecosystem liquidity',
               onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ProtocolsScreen()),
-                );
+                Navigator.of(context).push(_smoothRoute(const ProtocolsScreen()));
+              },
+            ),
+            isActive: false,
+          ),
+
+          _DrawerNavItem(
+            data: _DrawerItemData(
+              icon: Icons.currency_exchange_rounded,
+              label: 'Hyperliquid TVL',
+              subtitle: 'HL protocol value locked',
+              onTap: () {
+                Navigator.of(context).push(_smoothRoute(const HlTvlScreen()));
               },
             ),
             isActive: false,

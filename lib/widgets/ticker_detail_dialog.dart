@@ -235,12 +235,15 @@ class _DialogHeader extends StatelessWidget {
                       AnalyticsService.logTickerRecentActivity(ticker.symbol);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => RecentTradesScreen(
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => RecentTradesScreen(
                             symbol: ticker.symbol,
                             dex: ticker.dex,
                             iconUrl: ticker.iconUrl,
                           ),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                          transitionsBuilder: (_, __, ___, child) => child,
                         ),
                       );
                     },

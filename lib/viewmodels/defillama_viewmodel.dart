@@ -64,10 +64,10 @@ class DefiLlamaViewModel extends ChangeNotifier {
   String _tab = 'fees';
   String get tab => _tab;
 
-  String _chartMode = 'bar';
+  String _chartMode = 'area';
   String get chartMode => _chartMode;
 
-  ChartRange _chartRange = ChartRange.daily;
+  ChartRange _chartRange = ChartRange.weekly;
   ChartRange get chartRange => _chartRange;
 
   ChartScope _chartScope = ChartScope.all;

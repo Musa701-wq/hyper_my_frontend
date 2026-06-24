@@ -28,95 +28,81 @@ class MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const accentColor = Color(0xFF2EE2BA);
+    const accent = AppColors.brandAccent;
+    final isUp = (change ?? 0) >= 0;
+
     return Container(
-      clipBehavior: Clip.antiAlias,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.12),
+        color: AppColors.surfaceBright.withOpacity(0.2),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top accent bar
-          Positioned(
-            top: 0, left: 0, right: 0,
-            child: Container(
-              height: 3,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [accentColor, Colors.transparent],
-                  stops: [0.35, 1.0],
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title.toUpperCase(),
+                style: GoogleFonts.inter(
+                  color: AppColors.textSecondary,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
                 ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isCumulative
+                      ? Icons.bar_chart_rounded
+                      : (isUp ? Icons.trending_up : Icons.trending_down),
+                  color: accent,
+                  size: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _formatValue(value),
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          // Background Glow
-          Positioned(
-            top: -20, right: -20,
-            child: Container(
-              width: 60, height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [accentColor.withOpacity(0.05), Colors.transparent],
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          if (!isCumulative && change != null) ...[
+            const SizedBox(height: 6),
+            Row(
               children: [
+                Icon(
+                  isUp ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                  color: isUp ? AppColors.trendGreen : AppColors.trendRed,
+                  size: 16,
+                ),
+                const SizedBox(width: 2),
                 Text(
-                  title.toUpperCase(),
-                  style: GoogleFonts.jetBrainsMono(
-                    color: AppColors.textSecondary.withOpacity(0.5),
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.1,
+                  '${change! >= 0 ? '+' : ''}${change!.toStringAsFixed(2)}%',
+                  style: GoogleFonts.inter(
+                    color: isUp ? AppColors.trendGreen : AppColors.trendRed,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  _formatValue(value),
-                  style: GoogleFonts.jetBrainsMono(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                if (!isCumulative && change != null) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        change! >= 0 ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                        color: change! >= 0 ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
-                        size: 16,
-                      ),
-                      Text(
-                        '${change! >= 0 ? '+' : ''}${change!.toStringAsFixed(2)}%',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: change! >= 0 ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
               ],
             ),
-          ),
+          ],
         ],
       ),
     );

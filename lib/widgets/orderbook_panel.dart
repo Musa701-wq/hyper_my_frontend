@@ -59,7 +59,12 @@ class OrderBookPanel extends StatelessWidget {
         title: 'Premium Analytics',
         description: 'Unlock real-time orderbook depth, liquidity walls, and depth charts.',
         onUpgrade: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => const SubscriptionScreen(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+            transitionsBuilder: (_, __, ___, child) => child,
+          ),
         ),
       );
     }

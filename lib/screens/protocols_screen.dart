@@ -1,7 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../utils/common_widgets.dart';
 import '../viewmodels/protocol_viewmodel.dart';
@@ -11,11 +10,9 @@ import '../utils/responsive.dart';
 import '../widgets/error_state_widget.dart';
 import '../widgets/tvl/category_distribution_chart.dart';
 import '../widgets/tvl/chain_focus_chart.dart';
-import '../widgets/tvl/top_chains_chart.dart';
 import '../widgets/tvl/ecosystem_treemap.dart';
 import '../widgets/shimmer_skeleton.dart';
 import 'protocol_detail_screen.dart';
-
 class ProtocolsScreen extends StatefulWidget {
   const ProtocolsScreen({super.key});
 
@@ -24,11 +21,9 @@ class ProtocolsScreen extends StatefulWidget {
 }
 
 class _ProtocolsScreenState extends State<ProtocolsScreen> {
-  bool _isSearchVisible = false;
   bool _isFooterShowBar = false;
   bool _showAllBarProtocols = false;
 
-  static const double headerH = 48.0;
   static const double rowH = 60.0;
 
   @override
@@ -196,7 +191,10 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.all(res.spacing(20)),
+      padding: EdgeInsets.symmetric(
+        horizontal: res.spacing(8),
+        vertical: res.spacing(12),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -211,64 +209,133 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
     );
   }
 
-  Widget _buildViewSelector(ProtocolViewModel vm, Responsive res) {
-    return Container(
-      height: 30, // Decreased from 36
-      padding: const EdgeInsets.all(2.5),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildSelectorIcon(0, Icons.grid_view_rounded, vm.tvlViewIndex == 0, () => vm.setTvlView(0)),
-          const SizedBox(width: 4),
-          _buildSelectorIcon(1, Icons.list_alt_rounded, vm.tvlViewIndex == 1, () => vm.setTvlView(1)),
-          const SizedBox(width: 4),
-          _buildSelectorIcon(2, Icons.bar_chart_rounded, vm.tvlViewIndex == 2, () => vm.setTvlView(2)),
-        ],
-      ),
+  Widget _buildViewDropdown(ProtocolViewModel vm, Responsive res) {
+    final views = ['Grid', 'List', 'Chart'];
+    final icons = [Icons.grid_view_rounded, Icons.list_alt_rounded, Icons.bar_chart_rounded];
+    final currentIndex = vm.tvlViewIndex;
+
+    return _buildPopupSelector<int>(
+      value: currentIndex,
+      labelBuilder: (i) => views[i].toUpperCase(),
+      iconBuilder: (i) => icons[i],
+      options: List.generate(views.length, (i) => i),
+      onChanged: vm.setTvlView,
+      res: res,
     );
   }
 
-  Widget _buildSelectorIcon(int index, IconData icon, bool isActive, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), // Adjusted from 12, 6
+  Widget _buildPopupSelector<T>({
+    required T value,
+    required String Function(T) labelBuilder,
+    required IconData Function(T) iconBuilder,
+    required List<T> options,
+    required ValueChanged<T> onChanged,
+    required Responsive res,
+    IconData? leadingIcon,
+    double? width,
+    bool showTriggerIcon = true,
+    bool expand = false,
+  }) {
+    return PopupMenuButton<T>(
+      offset: const Offset(0, 36),
+      elevation: 8,
+      shadowColor: Colors.black54,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppColors.surfaceBright.withOpacity(0.15)),
+      ),
+      color: const Color(0xFF12151A),
+      padding: EdgeInsets.zero,
+      onSelected: onChanged,
+      itemBuilder: (context) => options.map((opt) {
+        final selected = opt == value;
+        return PopupMenuItem<T>(
+          value: opt,
+          height: 42,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Row(
+            children: [
+              Icon(
+                iconBuilder(opt),
+                size: 14,
+                color: selected ? AppColors.brandAccent : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  labelBuilder(opt),
+                  style: GoogleFonts.jetBrainsMono(
+                    color: selected ? AppColors.brandAccent : Colors.white,
+                    fontSize: 11,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ),
+              if (selected)
+                Icon(Icons.check_rounded, size: 14, color: AppColors.brandAccent),
+            ],
+          ),
+        );
+      }).toList(),
+      child: Container(
+        height: 32,
+        width: expand ? double.infinity : width,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.brandAccent.withOpacity(0.14) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: isActive
-              ? Border.all(color: AppColors.brandAccent.withOpacity(0.4), width: 1)
-              : Border.all(color: Colors.transparent, width: 1),
+          color: AppColors.surfaceBright.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.surfaceBright.withOpacity(0.12)),
         ),
-        child: Icon(
-          icon,
-          size: 14,
-          color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showTriggerIcon) ...[
+              if (leadingIcon != null) ...[
+                Icon(leadingIcon, size: 14, color: AppColors.brandAccent),
+                const SizedBox(width: 6),
+              ] else ...[
+                Icon(iconBuilder(value), size: 14, color: AppColors.brandAccent),
+                const SizedBox(width: 6),
+              ],
+            ],
+            Flexible(
+              child: Text(
+                labelBuilder(value),
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.jetBrainsMono(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 2),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppColors.textSecondary),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildFilterBar(ProtocolViewModel vm, Responsive res) {
-    final currentSearch = vm.tvlViewIndex == 0 ? vm.gridSearch : (vm.tvlViewIndex == 1 ? vm.listSearch : vm.chartSearch);
-
     return Container(
       padding: EdgeInsets.fromLTRB(
-        res.spacing(16),
-        res.spacing(16),
-        res.spacing(16),
-        res.spacing(14),
+        res.spacing(12),
+        res.spacing(6),
+        res.spacing(12),
+        res.spacing(6),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              SizedBox(
-                width: 130,
+              // Category dropdown — takes available space
+              Expanded(
+                flex: 3,
                 child: _buildCategoryDropdown(vm, res, vm.tvlViewIndex == 0 ? 'GRID' : (vm.tvlViewIndex == 1 ? 'LIST' : 'CHARTS')),
               ),
               const SizedBox(width: 8),
+              // Sort pill — fixed size
               _buildFilterPill(
                 label: vm.isAscending ? 'Lowest' : 'Highest',
                 icon: vm.isAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
@@ -276,12 +343,13 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
                 res: res,
                 onTap: () => vm.toggleSortOrder(),
               ),
-              const Spacer(),
-              _buildViewSelector(vm, res),
+              const SizedBox(width: 8),
+              // View dropdown — fixed size
+              _buildViewDropdown(vm, res),
             ],
           ),
-          const SizedBox(height: 12),
-          if (vm.tvlViewIndex != 2 && vm.isSearchExpanded) // Hide search for Charts or if not expanded
+          if (vm.tvlViewIndex != 2 && vm.isSearchExpanded) ...[
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
@@ -294,12 +362,17 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
                 ),
               ],
             ),
+          ],
         ],
       ),
     );
   }
 
   Widget _buildBottomPaginationBar(ProtocolViewModel vm, Responsive res) {
+    final isGrid = vm.tvlViewIndex == 0;
+    final currentPage = isGrid ? vm.gridPage : vm.currentPage;
+    final totalPages  = isGrid ? vm.gridTotalPages : vm.totalPages;
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: res.spacing(16), vertical: res.spacing(10)),
       decoration: BoxDecoration(
@@ -310,7 +383,6 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
         top: false,
         child: Row(
           children: [
-            // Left: Rows selector
             Text(
               'Rows:',
               style: GoogleFonts.jetBrainsMono(
@@ -319,73 +391,64 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            _buildRowsPill(vm, res),
-
+            _buildRowsPill(vm, res, isGrid: isGrid),
             const Spacer(),
-
-            // Right: Pagination controls
-            _buildPaginationRow(vm, res),
+            _buildPaginationRow(
+              currentPage: currentPage,
+              totalPages: totalPages,
+              onPage: isGrid ? vm.setGridPageNum : vm.setPage,
+              res: res,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRowsPill(ProtocolViewModel vm, Responsive res) {
-    return Container(
-      height: 32,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.1)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
-          value: vm.limit,
-          dropdownColor: AppColors.background,
-          icon: const Icon(Icons.keyboard_arrow_down, size: 14, color: AppColors.textSecondary),
-          style: GoogleFonts.jetBrainsMono(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-          items: [20, 50, 100].map((val) {
-            return DropdownMenuItem<int>(
-              value: val,
-              child: Text(val.toString()),
-            );
-          }).toList(),
-          onChanged: (val) => vm.setLimit(val ?? 20),
-        ),
-      ),
+  Widget _buildRowsPill(ProtocolViewModel vm, Responsive res, {bool isGrid = false}) {
+    final currentVal = isGrid ? vm.gridItemsPerPage : vm.limit;
+    return _buildPopupSelector<int>(
+      value: currentVal,
+      labelBuilder: (v) => v.toString(),
+      iconBuilder: (_) => Icons.format_list_numbered_rounded,
+      options: const [10, 20, 50, 100],
+      onChanged: isGrid ? vm.setGridLimit : vm.setLimit,
+      res: res,
+      showTriggerIcon: false,
+      width: 64,
     );
   }
 
-  Widget _buildPaginationRow(ProtocolViewModel vm, Responsive res) {
-    if (vm.totalPages <= 1) return const SizedBox.shrink();
+  Widget _buildPaginationRow({
+    required int currentPage,
+    required int totalPages,
+    required void Function(int) onPage,
+    required Responsive res,
+  }) {
+    if (totalPages <= 1) return const SizedBox.shrink();
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildPageIcon(Icons.chevron_left, vm.currentPage > 1 ? () => vm.setPage(vm.currentPage - 1) : null),
+        _buildPageIcon(Icons.chevron_left, currentPage > 1 ? () => onPage(currentPage - 1) : null),
         const SizedBox(width: 4),
-        ..._buildPageNumbersList(vm),
+        ..._buildPageNumbersList(currentPage: currentPage, totalPages: totalPages, onPage: onPage),
         const SizedBox(width: 4),
-        _buildPageIcon(Icons.chevron_right, vm.currentPage < vm.totalPages ? () => vm.setPage(vm.currentPage + 1) : null),
+        _buildPageIcon(Icons.chevron_right, currentPage < totalPages ? () => onPage(currentPage + 1) : null),
       ],
     );
   }
 
-  List<Widget> _buildPageNumbersList(ProtocolViewModel vm) {
-    List<Widget> children = [];
-    int total = vm.totalPages;
-    int current = vm.currentPage;
-
-    for (int i = 1; i <= total; i++) {
-      if (i == 1 || i == total || (i >= current - 1 && i <= current + 1)) {
-        children.add(_buildPageNumberItem(i, i == current, () => vm.setPage(i)));
-        if (i < total && (i == 1 && current > 3 || i == current + 1 && current < total - 2)) {
+  List<Widget> _buildPageNumbersList({
+    required int currentPage,
+    required int totalPages,
+    required void Function(int) onPage,
+  }) {
+    final List<Widget> children = [];
+    for (int i = 1; i <= totalPages; i++) {
+      if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+        children.add(_buildPageNumberItem(i, i == currentPage, () => onPage(i)));
+        if (i < totalPages && (i == 1 && currentPage > 3 || i == currentPage + 1 && currentPage < totalPages - 2)) {
           children.add(Text('...', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10)));
         }
       }
@@ -474,93 +537,22 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
   Widget _buildCategoryDropdown(ProtocolViewModel vm, Responsive res, String viewType) {
     final selectedCat = viewType == 'GRID' ? vm.gridCategory : (viewType == 'LIST' ? vm.listCategory : vm.chartCategory);
 
-    return Container(
-      height: 32,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.08)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.category_outlined, size: 14, color: AppColors.brandAccent),
-          const SizedBox(width: 8),
-          Expanded(
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: selectedCat,
-                dropdownColor: AppColors.background,
-                icon: const Icon(Icons.keyboard_arrow_down, size: 14, color: AppColors.textSecondary),
-                style: GoogleFonts.jetBrainsMono(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-                isExpanded: true,
-                items: vm.categories.map((cat) {
-                  return DropdownMenuItem<String>(
-                    value: cat,
-                    child: Text(cat.toUpperCase()),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  if (val == null) return;
-                  if (viewType == 'GRID') vm.setGridCategory(val);
-                  else if (viewType == 'LIST') vm.setListCategory(val);
-                  else vm.setChartCategory(val);
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
+    return _buildPopupSelector<String>(
+      value: selectedCat,
+      labelBuilder: (v) => v == 'All' ? 'ALL' : v.toUpperCase(),
+      iconBuilder: (_) => Icons.category_outlined,
+      options: vm.categories,
+      leadingIcon: Icons.category_outlined,
+      expand: true,
+      onChanged: (val) {
+        if (viewType == 'GRID') vm.setGridCategory(val);
+        else if (viewType == 'LIST') vm.setListCategory(val);
+        else vm.setChartCategory(val);
+      },
+      res: res,
     );
   }
 
-  Widget _buildDropdownPill<T>({
-    required T value,
-    required IconData icon,
-    String? prefix,
-    required List<T> options,
-    required ValueChanged<T?> onChanged,
-    required Responsive res,
-  }) {
-    return Container(
-      height: 36,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: AppColors.brandAccent),
-          const SizedBox(width: 8),
-          DropdownButton<T>(
-            value: value,
-            underline: const SizedBox(),
-            icon: const Icon(Icons.keyboard_arrow_down, size: 14, color: AppColors.textSecondary),
-            dropdownColor: AppColors.surfaceBright,
-            style: GoogleFonts.jetBrainsMono(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.bold
-            ),
-            items: options.map((opt) {
-              return DropdownMenuItem<T>(
-                value: opt,
-                child: Text(prefix != null ? '$prefix $opt' : opt.toString()),
-              );
-            }).toList(),
-            onChanged: onChanged,
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildFilterPill({
     required String label,
@@ -573,16 +565,16 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
       onTap: onTap,
       child: Container(
         height: 32,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: isActive
-              ? AppColors.brandAccent.withOpacity(0.15)
-              : Colors.transparent,
+              ? AppColors.brandAccent.withOpacity(0.12)
+              : AppColors.surfaceBright.withOpacity(0.06),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isActive
-                ? AppColors.brandAccent.withOpacity(0.4)
-                : AppColors.surfaceBright.withOpacity(0.08),
+                ? AppColors.brandAccent.withOpacity(0.35)
+                : AppColors.surfaceBright.withOpacity(0.12),
           ),
         ),
         child: Row(
@@ -590,16 +582,16 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
           children: [
             Icon(
               icon,
-              size: 14,
-              color: isActive ? AppColors.brandAccent : AppColors.textSecondary
+              size: 13,
+              color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               label,
               style: GoogleFonts.jetBrainsMono(
-                color: isActive ? Colors.white : AppColors.textSecondary,
+                color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
                 fontSize: 11,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
@@ -635,107 +627,202 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
       );
     }
 
-    final headerH = 40.0;
-    final rowH = 56.0;
-    final fixedW = res.columnWidth(180);
-
     return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
+      physics: const BouncingScrollPhysics(),
       child: Column(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Fixed Left Column
-              SizedBox(
-                width: fixedW,
-                child: Column(
-                  children: [
-                    _buildFixedHeader(headerH, res),
-                    ...protocols.asMap().entries.map((entry) {
-                       final p = entry.value;
-                       final globalIndex = (vm.currentPage - 1) * vm.itemsPerPage + entry.key + 1;
-                       return _buildFixedRow(p, globalIndex, rowH, res);
-                    }),
-                  ],
-                ),
-              ),
-              // Scrollable Right Section
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildScrollableHeader(headerH, res),
-                      ...protocols.map((p) => _buildScrollableRow(p, rowH, res)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (vm.listCategory != 'All Categories' || vm.listSearch.isNotEmpty)
+          _buildProtocolListTable(vm, res, protocols),
+          if (vm.listCategory != 'All' || vm.listSearch.isNotEmpty)
             _buildCategorySummary(vm, res, vm.listProtocols, vm.listCategory),
         ],
       ),
     );
   }
 
-  Widget _buildFixedHeader(double height, Responsive res) {
-    return Container(
-      height: height,
-      padding: const EdgeInsets.only(left: 8, right: 4), // Matched Home screen
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
-      ),
+  Widget _buildProtocolListTable(ProtocolViewModel vm, Responsive res, List<Protocol> protocols) {
+    final double leftW = res.value(mobile: 150.0, tablet: 200.0, desktop: 240.0);
+    final double wCat  = res.value(mobile: 100.0, tablet: 120.0, desktop: 130.0);
+    final double wType = res.value(mobile: 72.0,  tablet: 90.0,  desktop: 100.0);
+    final double wTvl  = res.value(mobile: 100.0, tablet: 130.0, desktop: 150.0);
+    final double rightW = wCat + wType + wTvl;
+
+    if (!res.isMobile) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 4),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final colW = (constraints.maxWidth - leftW) / 3;
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: leftW,
+                  child: _ProtocolStickyTable(
+                    header: _listLeftHeader(res),
+                    itemCount: protocols.length,
+                    itemBuilder: (i) {
+                      final rank = (vm.currentPage - 1) * vm.itemsPerPage + i + 1;
+                      return _listLeftRow(protocols[i], rank, res);
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: _ProtocolStickyTable(
+                    header: _listRightHeader(res, colW, colW, colW),
+                    itemCount: protocols.length,
+                    itemBuilder: (i) => _listRightRow(protocols[i], res, colW, colW, colW),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 30, child: Text('#', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold))),
-          const SizedBox(width: 4),
-          Expanded(child: Text('PROTOCOL', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold))),
+          SizedBox(
+            width: leftW,
+            child: _ProtocolStickyTable(
+              header: _listLeftHeader(res),
+              itemCount: protocols.length,
+              itemBuilder: (i) {
+                final rank = (vm.currentPage - 1) * vm.itemsPerPage + i + 1;
+                return _listLeftRow(protocols[i], rank, res);
+              },
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: SizedBox(
+                width: rightW,
+                child: _ProtocolStickyTable(
+                  header: _listRightHeader(res, wCat, wType, wTvl),
+                  itemCount: protocols.length,
+                  itemBuilder: (i) => _listRightRow(protocols[i], res, wCat, wType, wTvl),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildFixedRow(Protocol p, int index, double height, Responsive res) {
-    return InkWell(
+  Widget _listLeftHeader(Responsive res) {
+    final s = res.value(mobile: 10.0, tablet: 11.0, desktop: 12.0);
+    final h = res.value(mobile: 38.0, tablet: 42.0, desktop: 46.0);
+    return Container(
+      height: h,
+      color: const Color(0xFF0D0F13),
+      padding: const EdgeInsets.only(left: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 22,
+            child: Text('#',
+                style: GoogleFonts.jetBrainsMono(
+                    color: AppColors.textSecondary, fontSize: s)),
+          ),
+          Text('Protocol',
+              style: GoogleFonts.jetBrainsMono(
+                  color: AppColors.textSecondary, fontSize: s)),
+        ],
+      ),
+    );
+  }
+
+  Widget _listRightHeader(Responsive res, double wCat, double wType, double wTvl) {
+    final s = res.value(mobile: 10.0, tablet: 11.0, desktop: 12.0);
+    final h = res.value(mobile: 38.0, tablet: 42.0, desktop: 46.0);
+    return Container(
+      height: h,
+      color: const Color(0xFF0D0F13),
+      child: Row(
+        children: [
+          _listHeaderCell('Category', wCat, s),
+          _listHeaderCell('Type', wType, s),
+          _listHeaderCell('TVL', wTvl, s),
+        ],
+      ),
+    );
+  }
+
+  Widget _listHeaderCell(String label, double width, double fontSize) {
+    return SizedBox(
+      width: width,
+      child: Center(
+        child: Text(
+          label.toUpperCase(),
+          style: GoogleFonts.jetBrainsMono(
+            color: AppColors.textSecondary,
+            fontSize: fontSize,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _rankColor(int rank) {
+    if (rank == 1) return const Color(0xFFFFD700);
+    if (rank == 2) return const Color(0xFFC0C0C0);
+    if (rank == 3) return const Color(0xFFCD7F32);
+    return AppColors.textSecondary;
+  }
+
+  Widget _listLeftRow(Protocol p, int rank, Responsive res) {
+    final rowH = res.value(mobile: 48.0, tablet: 54.0, desktop: 58.0);
+    final nameSize = res.value(mobile: 11.0, tablet: 12.0, desktop: 13.0);
+    final rankSize = res.value(mobile: 11.0, tablet: 12.0, desktop: 13.0);
+
+    return GestureDetector(
       onTap: () => _navigateToDetail(p),
       child: Container(
-        height: height,
-        padding: const EdgeInsets.only(left: 8, right: 4, top: 10, bottom: 10), // Matched Home screen
+        height: rowH,
+        padding: const EdgeInsets.only(left: 4, right: 4),
         decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+          border: Border(
+              bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
         ),
         child: Row(
           children: [
-            SizedBox(width: 30, child: Text(index.toString(), style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10))),
-            const SizedBox(width: 4),
-            _buildProtocolIcon(p.logo, 20), // Matched Home icon size
-            const SizedBox(width: 8),
+            SizedBox(
+              width: 22,
+              child: Text('$rank',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: _rankColor(rank),
+                    fontSize: rankSize,
+                    fontWeight: rank <= 3 ? FontWeight.bold : FontWeight.normal,
+                  )),
+            ),
+            _buildProtocolIcon(p.logo, res.value(mobile: 16.0, tablet: 18.0, desktop: 20.0)),
+            const SizedBox(width: 6),
             Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                   Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          p.name,
-                          style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                  Expanded(
+                    child: Text(
+                      p.name,
+                      style: GoogleFonts.jetBrainsMono(
+                        color: AppColors.textPrimary,
+                        fontSize: nameSize,
+                        fontWeight: FontWeight.bold,
                       ),
-                      if (p.type == 'core')
-                        const Padding(
-                          padding: EdgeInsets.only(left: 4),
-                          child: Icon(Icons.verified, size: 10, color: AppColors.brandAccent),
-                        ),
-                    ],
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  if (p.type == 'core')
+                    const Padding(
+                      padding: EdgeInsets.only(left: 2),
+                      child: Icon(Icons.verified, size: 10, color: AppColors.brandAccent),
+                    ),
                 ],
               ),
             ),
@@ -745,132 +832,54 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
     );
   }
 
-  Widget _buildScrollableHeader(double height, Responsive res) {
-    return Container(
-      height: height,
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
-      ),
-      child: Row(
-        children: [
-          _buildTableHeader('CATEGORY', 120, res),
-          _buildTableHeader('TYPE', 90, res),
-          _buildTableHeader('TVL', 140, res),
-        ],
-      ),
-    );
-  }
+  Widget _listRightRow(Protocol p, Responsive res, double wCat, double wType, double wTvl) {
+    final rowH = res.value(mobile: 48.0, tablet: 54.0, desktop: 58.0);
+    final cellSize = res.value(mobile: 10.0, tablet: 11.0, desktop: 12.0);
 
-  Widget _buildScrollableRow(Protocol p, double height, Responsive res) {
-    return InkWell(
+    return GestureDetector(
       onTap: () => _navigateToDetail(p),
       child: Container(
-        height: height,
+        height: rowH,
         decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+          border: Border(
+              bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
         ),
         child: Row(
           children: [
-            _buildTextCell(p.category.toUpperCase(), 120, Colors.white.withOpacity(0.8), res),
-            _buildTextCell(p.type.toUpperCase(), 90, p.type == 'core' ? AppColors.brandAccent : AppColors.textSecondary, res),
-            _buildTvlCell(p, 140, res),
+            _listDataCell(p.category.toUpperCase(), wCat, cellSize,
+                color: Colors.white.withOpacity(0.85)),
+            _listDataCell(p.type.toUpperCase(), wType, cellSize,
+                color: p.type == 'core' ? AppColors.brandAccent : AppColors.textSecondary),
+            _listDataCell(p.formattedTvl, wTvl, cellSize,
+                color: p.type == 'core'
+                    ? AppColors.brandAccent.withOpacity(0.85)
+                    : Colors.white.withOpacity(0.85),
+                bold: true),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTableHeader(String title, double width, Responsive res, {TextAlign textAlign = TextAlign.center}) {
-    return SizedBox(
-      width: width,
-      height: double.infinity,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            title,
-            textAlign: textAlign,
-            style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryCell(String category, double width, Responsive res) {
-    return SizedBox(
-      width: width,
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceBright.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            category,
-            style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextCell(String text, double width, Color color, Responsive res) {
+  Widget _listDataCell(String text, double width, double fontSize,
+      {Color? color, bool bold = false}) {
     return SizedBox(
       width: width,
       child: Center(
         child: Text(
           text,
-          style: GoogleFonts.jetBrainsMono(color: color, fontSize: 10, fontWeight: FontWeight.normal),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTvlCell(Protocol p, double width, Responsive res) {
-    return SizedBox(
-      width: width,
-      child: Container(
-        alignment: Alignment.center, // Changed from centerRight
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Text(
-          p.fullTvl,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: GoogleFonts.jetBrainsMono(
-            color: p.type == 'core'
-                ? AppColors.brandAccent.withOpacity(0.85)
-                : Colors.white.withOpacity(0.85),
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
+            color: color ?? AppColors.textPrimary,
+            fontSize: fontSize,
+            fontWeight: bold ? FontWeight.bold : FontWeight.w500,
           ),
         ),
       ),
     );
   }
-
-  Widget _buildChangeCell(double? change, double width, Responsive res) {
-    if (change == null) return _buildTextCell('-', width, AppColors.textSecondary, res);
-    final isPositive = change >= 0;
-    final color = isPositive ? AppColors.trendGreen : AppColors.trendRed;
-    return SizedBox(
-      width: width,
-      child: Container(
-        alignment: Alignment.center, // Changed from centerRight
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(isPositive ? Icons.arrow_drop_up : Icons.arrow_drop_down, color: color, size: 16),
-            Text(
-              '${change.abs().toStringAsFixed(2)}%',
-              style: GoogleFonts.jetBrainsMono(color: color, fontSize: 10, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
 
 
   Widget _buildPageIcon(IconData icon, VoidCallback? onTap) {
@@ -887,12 +896,6 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
     );
   }
 
-  Widget _buildPageNumber(int current, int total) {
-    return Text(
-      'PAGE $current OF $total',
-      style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-    );
-  }
 
   void _navigateToDetail(Protocol p) {
     Navigator.of(context).push(
@@ -1225,9 +1228,9 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
       );
     }
 
-    final displayProtocols = vm.gridProtocols;
+    final displayProtocols = vm.paginatedGridProtocols;
 
-    if (displayProtocols.isEmpty) {
+    if (displayProtocols.isEmpty && vm.gridProtocols.isEmpty) {
       return Center(
         child: Text(
           'No protocols found',
@@ -1272,7 +1275,7 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
               );
             },
           ),
-          if (vm.gridCategory != 'All Categories' || vm.gridSearch.isNotEmpty)
+          if (vm.gridCategory != 'All' || vm.gridSearch.isNotEmpty)
             _buildCategorySummary(vm, res, vm.gridProtocols, vm.gridCategory),
         ],
       ),
@@ -1286,54 +1289,24 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.all(res.spacing(16)),
+      padding: EdgeInsets.symmetric(
+        horizontal: res.spacing(12),
+        vertical: res.spacing(8),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: _buildSummaryRow(vm, res),
-          ),
-          const SizedBox(height: 28),
+          _buildSummaryRow(vm, res),
+          const SizedBox(height: 16),
           EcosystemTreeMap(protocols: vm.chartProtocols),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _buildProtocolBarChart(vm, res),
-          const SizedBox(height: 24),
-          if (res.isMobile) ...[
-            _buildCategoryDist(vm, res),
-          ] else
-            _buildCategoryDist(vm, res),
+          const SizedBox(height: 16),
+          _buildCategoryDist(vm, res),
         ],
       ),
     );
   }
-  Widget _buildSummaryRow(ProtocolViewModel vm, Responsive res) {
-    final protocols = vm.chartProtocols;
-    final uniqueTypes = protocols.map((p) => p.type).toSet().length;
-
-    final stats = [
-      {'label': 'ALL', 'value': protocols.length.toString(), 'icon': Icons.layers_outlined},
-      {'label': 'HIGHEST', 'value': protocols.isEmpty ? '\$0' : _fmtCompactTvl(protocols.map((p) => p.tvl).reduce((a, b) => a > b ? a : b)), 'icon': Icons.trending_up_rounded},
-      {'label': 'TYPES', 'value': uniqueTypes.toString(), 'icon': Icons.category_outlined},
-    ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final spacing = 12.0;
-        return Row(
-          children: stats.asMap().entries.map((entry) {
-            final i = entry.key;
-            final s = entry.value;
-            return [
-              Expanded(child: _buildStatCard(s['label'] as String, s['value'] as String, s['icon'] as IconData)),
-              if (i < stats.length - 1) SizedBox(width: spacing),
-            ];
-          }).expand((w) => w).toList(),
-        );
-      }
-    );
-  }
-
   String _fmtCompactTvl(double value) {
     if (value >= 1e9) return '\$${(value / 1e9).toStringAsFixed(1)}B';
     if (value >= 1e6) return '\$${(value / 1e6).toStringAsFixed(1)}M';
@@ -1341,51 +1314,105 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
     return '\$${value.toStringAsFixed(0)}';
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon) {
-    const accentColor = Color(0xFF2EE2BA);
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.transparent,
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 14, color: accentColor),
+  Widget _buildSummaryRow(ProtocolViewModel vm, Responsive res) {
+    final protocols = vm.chartProtocols;
+    final uniqueTypes = protocols.map((p) => p.type).toSet().length;
+    final highestTvl = protocols.isEmpty
+        ? '\$0'
+        : _fmtCompactTvl(protocols.map((p) => p.tvl).reduce((a, b) => a > b ? a : b));
+
+    return Row(
+      children: [
+        Expanded(
+          child: _tvlProfileStatCard(
+            title: 'ALL',
+            value: protocols.length.toString(),
+            icon: Icons.layers_outlined,
+            res: res,
           ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+        ),
+        SizedBox(width: res.spacing(8)),
+        Expanded(
+          child: _tvlProfileStatCard(
+            title: 'HIGHEST',
+            value: highestTvl,
+            icon: Icons.trending_up_rounded,
+            res: res,
+          ),
+        ),
+        SizedBox(width: res.spacing(8)),
+        Expanded(
+          child: _tvlProfileStatCard(
+            title: 'TYPES',
+            value: uniqueTypes.toString(),
+            icon: Icons.category_outlined,
+            res: res,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _tvlProfileStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Responsive res,
+  }) {
+    const accent = AppColors.brandAccent;
+    return Container(
+      padding: EdgeInsets.all(res.spacing(12)),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBright.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(res.value(mobile: 16, tablet: 14, desktop: 20)),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                label,
-                style: GoogleFonts.jetBrainsMono(
-                  color: AppColors.textSecondary,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
+              Flexible(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    color: AppColors.textSecondary,
+                    fontSize: res.value(mobile: 9, tablet: 8, desktop: 10),
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: GoogleFonts.jetBrainsMono(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                  height: 1.1,
+              Container(
+                padding: EdgeInsets.all(res.value(mobile: 6, tablet: 4, desktop: 6)),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  color: accent,
+                  size: res.value(mobile: 14, tablet: 12, desktop: 16),
                 ),
               ),
             ],
+          ),
+          SizedBox(height: res.spacing(8)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: res.value(mobile: 16, tablet: 13, desktop: 16),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -1611,10 +1638,6 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
     return CategoryDistributionChart(data: vm.categoryDistribution);
   }
 
-  Widget _buildTopProtocolsByCategory(ProtocolViewModel vm, Responsive res) {
-    return _TopProtocolsByCategoryWidget(protocols: vm.chartProtocols);
-  }
-
 
   Widget _buildLegend() {
     return Row(
@@ -1764,7 +1787,7 @@ class _ProtocolCard extends StatelessWidget {
                             protocol.name,
                             style: GoogleFonts.jetBrainsMono(
                               color: Colors.white,
-                              fontSize: res.fontSize(13),
+                              fontSize: res.fontSize(12),
                               fontWeight: FontWeight.bold,
                             ),
                             maxLines: 1,
@@ -1772,7 +1795,7 @@ class _ProtocolCard extends StatelessWidget {
                           ),
                         ),
                         if (protocol.type == 'core')
-                          const Icon(Icons.verified, size: 14, color: AppColors.brandAccent),
+                          const Icon(Icons.verified, size: 13, color: AppColors.brandAccent),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -1790,7 +1813,7 @@ class _ProtocolCard extends StatelessWidget {
                         protocol.category.toUpperCase(),
                         style: GoogleFonts.jetBrainsMono(
                           color: AppColors.brandAccent,
-                          fontSize: 7,
+                          fontSize: 8,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.5,
                         ),
@@ -1809,7 +1832,7 @@ class _ProtocolCard extends StatelessWidget {
                 'TOTAL VALUE LOCKED',
                 style: GoogleFonts.jetBrainsMono(
                   color: AppColors.textSecondary.withOpacity(0.5),
-                  fontSize: 7,
+                  fontSize: 8,
                   letterSpacing: 1.0,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1827,7 +1850,7 @@ class _ProtocolCard extends StatelessWidget {
                         protocol.fullTvl,
                         style: GoogleFonts.jetBrainsMono(
                           color: Colors.white.withOpacity(0.9),
-                          fontSize: res.fontSize(14),
+                          fontSize: res.fontSize(13),
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.5,
                         ),
@@ -1864,7 +1887,7 @@ class _ProtocolCard extends StatelessWidget {
                     'RANK #${protocol.rank}',
                     style: GoogleFonts.jetBrainsMono(
                       color: Colors.white.withOpacity(0.6),
-                      fontSize: 8,
+                      fontSize: 9,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.8,
                     ),
@@ -1876,7 +1899,7 @@ class _ProtocolCard extends StatelessWidget {
                       'DETAILS',
                       style: GoogleFonts.jetBrainsMono(
                         color: AppColors.brandAccent,
-                        fontSize: 9,
+                        fontSize: 10,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.5,
                       ),
@@ -1911,7 +1934,7 @@ class _ProtocolCard extends StatelessWidget {
             '${change.abs().toStringAsFixed(1)}%',
             style: GoogleFonts.jetBrainsMono(
               color: color,
-              fontSize: 8,
+              fontSize: 9,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -2141,6 +2164,30 @@ class _TopProtocolsByCategoryWidgetState extends State<_TopProtocolsByCategoryWi
           }),
         ],
       ),
+    );
+  }
+}
+
+class _ProtocolStickyTable extends StatelessWidget {
+  final Widget header;
+  final int itemCount;
+  final Widget Function(int index) itemBuilder;
+
+  const _ProtocolStickyTable({
+    required this.header,
+    required this.itemCount,
+    required this.itemBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        header,
+        Container(height: 0.5, color: AppColors.surfaceBright),
+        ...List.generate(itemCount, (i) => itemBuilder(i)),
+      ],
     );
   }
 }
