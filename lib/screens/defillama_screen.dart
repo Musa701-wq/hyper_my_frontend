@@ -1049,8 +1049,8 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
   // ════════════════════════════════════════════════════════════
   Widget _buildLoading(Responsive res) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF1E222D),
-      highlightColor: const Color(0xFF2E3340),
+      baseColor: const Color(0xFF2C2F3A),
+      highlightColor: const Color(0xFF3F4452),
       period: const Duration(milliseconds: 1400),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -1093,7 +1093,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
     height: h,
     margin: const EdgeInsets.symmetric(vertical: 4),
     decoration: BoxDecoration(
-      color: Colors.white.withOpacity(0.08),
+      color: Colors.white.withOpacity(0.18),
       borderRadius: BorderRadius.circular(radius),
     ),
   );

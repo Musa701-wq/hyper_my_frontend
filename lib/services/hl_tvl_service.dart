@@ -25,4 +25,24 @@ class HlTvlService {
     }
     throw Exception('Failed to load Hyperliquid TVL metrics (${res.statusCode})');
   }
+
+  Future<HlTvlHistory> fetchHistory({String range = 'all'}) async {
+    final res = await http
+        .get(Uri.parse('$_base/api/v1/hyperliquid/tvl?range=$range&interval=daily'))
+        .timeout(const Duration(seconds: 15));
+    if (res.statusCode == 200) {
+      return HlTvlHistory.fromJson(json.decode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to load TVL history (${res.statusCode})');
+  }
+
+  Future<HlChainsHistory> fetchChainsHistory({String range = 'all'}) async {
+    final res = await http
+        .get(Uri.parse('$_base/api/v1/hyperliquid/chains?range=$range&interval=daily'))
+        .timeout(const Duration(seconds: 15));
+    if (res.statusCode == 200) {
+      return HlChainsHistory.fromJson(json.decode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to load Chains TVL history (${res.statusCode})');
+  }
 }

@@ -84,10 +84,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildHeader(res),
+              SizedBox(height: res.spacing(16)),
               _buildSearchBar(vm, res),
-              const SizedBox(height: 8),
+              SizedBox(height: res.spacing(12)),
               _buildPeriodTabs(vm, res),
-              const SizedBox(height: 8),
+              SizedBox(height: res.spacing(12)),
               _buildRowsPerPage(vm, res),
               const SizedBox(height: 6),
               Expanded(child: _buildBody(res, vm)),
@@ -108,20 +110,34 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildTopBar(context, vm, res),
-                  const SizedBox(height: 6),
+                  _buildHeader(res),
+                  SizedBox(height: res.spacing(16)),
                   _buildSearchBar(vm, res),
-                  const SizedBox(height: 8),
+                  SizedBox(height: res.spacing(12)),
                   _buildPeriodTabs(vm, res),
-                  const SizedBox(height: 8),
+                  SizedBox(height: res.spacing(12)),
                   _buildRowsPerPage(vm, res),
-                  const SizedBox(height: 6),
+                  SizedBox(height: res.spacing(8)),
                   Expanded(child: _buildBody(res, vm)),
                   _buildPagination(vm, res),
                 ],
               );
             },
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(Responsive res) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(res.spacing(12), res.spacing(12), res.spacing(12), 0),
+      child: Text(
+        'Hyper Leaderboard',
+        style: GoogleFonts.jetBrainsMono(
+          color: AppColors.textPrimary,
+          fontSize: res.fontSize(20),
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -379,8 +395,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Shimmer.fromColors(
-          baseColor: const Color(0xFF1E222D),
-          highlightColor: const Color(0xFF2E3340),
+          baseColor: const Color(0xFF2C2F3A),
+          highlightColor: const Color(0xFF3F4452),
           period: const Duration(milliseconds: 1400),
           child: ListView(
             physics: const NeverScrollableScrollPhysics(),
@@ -611,8 +627,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         ),
       ),
       child: Container(
-        height: res.value(mobile: 56.0, tablet: 64.0),
-        padding: const EdgeInsets.only(left: 8, right: 4, top: 10, bottom: 10),
+        height: res.value(mobile: 56.0, tablet: 72.0),
+        padding: EdgeInsets.only(left: res.spacing(8), right: res.spacing(4), top: res.spacing(10), bottom: res.spacing(10)),
         decoration: const BoxDecoration(
           border: Border(
               bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
@@ -674,7 +690,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         ),
       ),
       child: Container(
-        height: res.value(mobile: 56.0, tablet: 64.0),
+        height: res.value(mobile: 56.0, tablet: 72.0),
         decoration: const BoxDecoration(
           border: Border(
               bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),

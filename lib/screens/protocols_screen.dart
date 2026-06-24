@@ -1254,7 +1254,7 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
               crossAxisCount: crossAxisCount,
               crossAxisSpacing: res.spacing(16),
               mainAxisSpacing: res.spacing(16),
-              childAspectRatio: 1.1,
+              mainAxisExtent: 148,
             ),
             itemCount: displayProtocols.length,
             itemBuilder: (context, index) {
@@ -1744,6 +1744,7 @@ class _ProtocolCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1811,6 +1812,8 @@ class _ProtocolCard extends StatelessWidget {
                       ),
                       child: Text(
                         protocol.category.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.jetBrainsMono(
                           color: AppColors.brandAccent,
                           fontSize: 8,
@@ -1824,7 +1827,7 @@ class _ProtocolCard extends StatelessWidget {
               ),
             ],
           ),
-          const Spacer(),
+          const SizedBox(height: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1863,9 +1866,9 @@ class _ProtocolCard extends StatelessWidget {
               ),
             ],
           ),
-          const Spacer(),
+          const SizedBox(height: 4),
           Container(
-            padding: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.only(top: 6),
             decoration: BoxDecoration(
               border: Border(
                 top: BorderSide(
@@ -1877,37 +1880,27 @@ class _ProtocolCard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceBright.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'RANK #${protocol.rank}',
-                    style: GoogleFonts.jetBrainsMono(
-                      color: Colors.white.withOpacity(0.6),
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceBright.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                  ),
-                ),
-                Row(
-                  children: [
-                    Text(
-                      'DETAILS',
+                    child: Text(
+                      'RANK #${protocol.rank}',
                       style: GoogleFonts.jetBrainsMono(
-                        color: AppColors.brandAccent,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 2),
-                    const Icon(Icons.chevron_right_rounded, size: 14, color: AppColors.brandAccent),
-                  ],
+                  ),
                 ),
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.brandAccent),
               ],
             ),
           ),

@@ -154,6 +154,90 @@ class HlTvlMetrics {
   }
 }
 
+class HlTvlHistory {
+  final int lastUpdated;
+  final String range;
+  final String interval;
+  final List<HlHistoryPoint> data;
+
+  HlTvlHistory({
+    required this.lastUpdated,
+    required this.range,
+    required this.interval,
+    required this.data,
+  });
+
+  factory HlTvlHistory.fromJson(Map<String, dynamic> json) {
+    return HlTvlHistory(
+      lastUpdated: (json['lastUpdated'] as num?)?.toInt() ?? 0,
+      range: json['range'] as String? ?? 'all',
+      interval: json['interval'] as String? ?? 'daily',
+      data: (json['data'] as List<dynamic>? ?? [])
+          .map((e) => HlHistoryPoint.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class HlHistoryPoint {
+  final int date;
+  final double value;
+
+  HlHistoryPoint({required this.date, required this.value});
+
+  factory HlHistoryPoint.fromJson(Map<String, dynamic> json) {
+    return HlHistoryPoint(
+      date: (json['date'] as num?)?.toInt() ?? 0,
+      value: (json['value'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
+class HlChainsHistory {
+  final int lastUpdated;
+  final String range;
+  final String interval;
+  final List<HlChainsHistoryPoint> data;
+
+  HlChainsHistory({
+    required this.lastUpdated,
+    required this.range,
+    required this.interval,
+    required this.data,
+  });
+
+  factory HlChainsHistory.fromJson(Map<String, dynamic> json) {
+    return HlChainsHistory(
+      lastUpdated: (json['lastUpdated'] as num?)?.toInt() ?? 0,
+      range: json['range'] as String? ?? 'all',
+      interval: json['interval'] as String? ?? 'daily',
+      data: (json['data'] as List<dynamic>? ?? [])
+          .map((e) => HlChainsHistoryPoint.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class HlChainsHistoryPoint {
+  final int date;
+  final double l1;
+  final double arbitrum;
+
+  HlChainsHistoryPoint({
+    required this.date,
+    required this.l1,
+    required this.arbitrum,
+  });
+
+  factory HlChainsHistoryPoint.fromJson(Map<String, dynamic> json) {
+    return HlChainsHistoryPoint(
+      date: (json['date'] as num?)?.toInt() ?? 0,
+      l1: (json['l1'] as num?)?.toDouble() ?? 0,
+      arbitrum: (json['arbitrum'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
 // ── Helpers ──────────────────────────────────────────────────────
 String fmtTvl(double v) {
   if (v >= 1e9) return '\$${(v / 1e9).toStringAsFixed(2)}B';

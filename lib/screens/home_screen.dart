@@ -281,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               hintStyle: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(14)),
                               border: InputBorder.none,
                               isDense: true,
-                              contentPadding: EdgeInsets.symmetric(vertical: res.spacing(12)),
+                              contentPadding: EdgeInsets.symmetric(vertical: res.value(mobile: 12.0, tablet: 16.0)),
                             ),
                           ),
                         ),
@@ -291,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(height: res.spacing(12)),
 
                   Container(
-                    height: 38,
+                    height: res.value(mobile: 38.0, tablet: 48.0),
                     decoration: BoxDecoration(
                       color: AppColors.background,
                       borderRadius: BorderRadius.circular(8),
@@ -337,7 +337,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: SizedBox(
-                          height: 32,
+                          height: res.value(mobile: 32.0, tablet: 40.0),
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: viewModel.selectedTab == 'HIP-4'
@@ -452,8 +452,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                       const SizedBox(width: 4),
                                       SizedBox(
-                                        width: res.fontSize(20), height: res.fontSize(20),
-                                        child: _buildTickerIcon(ticker.iconUrl, res.fontSize(20)),
+                                        width: res.fontSize(28), height: res.fontSize(28),
+                                        child: _buildTickerIcon(ticker.iconUrl, res.fontSize(28)),
                                       ),
                                       const SizedBox(width: 8),
                                       Expanded(
@@ -552,7 +552,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     onTap: () => _showTickerDetail(ticker),
                                     behavior: HitTestBehavior.opaque,
                                     child: Container(
-                                    height: res.value(mobile: 56.0, tablet: 64.0),
+                                    height: res.value(mobile: 56.0, tablet: 80.0),
                                     width: res.columnWidth(490),
                                     padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 10.0),
                                     decoration: const BoxDecoration(
@@ -571,7 +571,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             child: SparklineWidget(
                                               color: changeColor,
                                               width: res.columnWidth(40),
-                                              height: res.value(mobile: 24.0, tablet: 32.0),
+                                              height: res.value(mobile: 24.0, tablet: 40.0),
                                               seed: ticker.symbol,
                                               changePct: ticker.change24hPct,
                                             ),
@@ -1294,8 +1294,8 @@ class _HomeScreenState extends State<HomeScreen> {
         final col5 = availableWidth * 0.18;
 
         return Shimmer.fromColors(
-          baseColor: const Color(0xFF1E222D),
-          highlightColor: const Color(0xFF3A3F4E),
+          baseColor: const Color(0xFF2C2F3A),
+          highlightColor: const Color(0xFF3F4452),
           period: const Duration(milliseconds: 1500),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

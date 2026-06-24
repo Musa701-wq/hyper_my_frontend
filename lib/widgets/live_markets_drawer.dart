@@ -125,7 +125,7 @@ class _LiveMarketsBodyState extends State<LiveMarketsBody> {
             
             const _TableHeader(),
             
-            _buildCategoryHeader(),
+            _buildCategoryHeader(res),
 
             ListView.builder(
               shrinkWrap: true,
@@ -160,7 +160,7 @@ class _LiveMarketsBodyState extends State<LiveMarketsBody> {
     );
   }
 
-  Widget _buildCategoryHeader() {
+  Widget _buildCategoryHeader(Responsive res) {
     String label = '';
     List<String> options = [];
     String currentMode = '';
@@ -190,7 +190,7 @@ class _LiveMarketsBodyState extends State<LiveMarketsBody> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: 4, vertical: res.spacing(12)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -199,21 +199,21 @@ class _LiveMarketsBodyState extends State<LiveMarketsBody> {
               Icon(
                 _selectedTabIndex == 0 ? Icons.trending_up : _selectedTabIndex == 1 ? Icons.bar_chart : Icons.currency_exchange,
                 color: AppColors.brandAccent,
-                size: 16,
+                size: res.fontSize(16),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: res.spacing(8)),
               Text(
                 label,
                 style: GoogleFonts.jetBrainsMono(
                   color: Colors.white,
-                  fontSize: 13,
+                  fontSize: res.fontSize(13),
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
           Container(
-            height: 28,
+            height: res.value(mobile: 28.0, tablet: 36.0),
             decoration: BoxDecoration(
               color: AppColors.surfaceBright.withOpacity(0.3),
               borderRadius: BorderRadius.circular(6),
@@ -226,7 +226,7 @@ class _LiveMarketsBodyState extends State<LiveMarketsBody> {
                   onTap: () => onToggle(opt),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: EdgeInsets.symmetric(horizontal: res.spacing(12)),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: isSelected ? AppColors.brandAccent : Colors.transparent,
@@ -236,7 +236,7 @@ class _LiveMarketsBodyState extends State<LiveMarketsBody> {
                       opt,
                       style: GoogleFonts.jetBrainsMono(
                         color: isSelected ? Colors.black : AppColors.textSecondary,
-                        fontSize: 10,
+                        fontSize: res.fontSize(10),
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
@@ -299,23 +299,24 @@ class _TabSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final res = Responsive(context);
     return Container(
-      height: 48,
-      margin: const EdgeInsets.only(bottom: 16),
+      height: res.value(mobile: 48.0, tablet: 64.0),
+      margin: EdgeInsets.only(bottom: res.spacing(16)),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 1)),
       ),
       child: Row(
         children: [
-          _tabItem('PERFORMANCE', 0),
-          _tabItem('ACTIVITY', 1),
+          _tabItem('PERFORMANCE', 0, res),
+          _tabItem('ACTIVITY', 1, res),
           // _tabItem('FUNDING', 2),
         ],
       ),
     );
   }
 
-  Widget _tabItem(String label, int index) {
+  Widget _tabItem(String label, int index, Responsive res) {
     final bool isActive = selectedIndex == index;
     return Expanded(
       child: GestureDetector(
@@ -328,7 +329,7 @@ class _TabSelector extends StatelessWidget {
                   label,
                   style: GoogleFonts.jetBrainsMono(
                     color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
-                    fontSize: 12,
+                    fontSize: res.fontSize(12),
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.1,
                   ),
@@ -337,7 +338,7 @@ class _TabSelector extends StatelessWidget {
             ),
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              height: 2,
+              height: isActive ? 2 : 0,
               width: double.infinity,
               color: isActive ? AppColors.brandAccent : Colors.transparent,
             ),
@@ -353,14 +354,15 @@ class _TableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final res = Responsive(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: res.spacing(8), vertical: res.spacing(8)),
       child: Row(
         children: [
-          SizedBox(width: 32, child: Text('#', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10))),
-          const SizedBox(width: 8),
-          Expanded(child: Text('ASSET / PRICE', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10))),
-          Text('CHANGE', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10)),
+          SizedBox(width: res.spacing(32), child: Text('#', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(10)))),
+          SizedBox(width: res.spacing(8)),
+          Expanded(child: Text('ASSET / PRICE', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(10)))),
+          Text('CHANGE', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(10))),
         ],
       ),
     );
@@ -392,15 +394,15 @@ class _RankedAssetListItem extends StatelessWidget {
     final color = isPositive ? AppColors.trendGreen : AppColors.trendRed;
     
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: EdgeInsets.symmetric(vertical: res.spacing(12), horizontal: res.spacing(8)),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
       ),
       child: Row(
         children: [
           Container(
-            width: 24,
-            height: 24,
+            width: res.value(mobile: 24.0, tablet: 32.0),
+            height: res.value(mobile: 24.0, tablet: 32.0),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
@@ -416,23 +418,23 @@ class _RankedAssetListItem extends StatelessWidget {
               '$index',
               style: GoogleFonts.jetBrainsMono(
                 color: index <= 3 ? AppColors.brandAccent : AppColors.textSecondary,
-                fontSize: 10,
+                fontSize: res.fontSize(10),
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: res.spacing(12)),
           Container(
-            width: 32,
-            height: 32,
+            width: res.value(mobile: 32.0, tablet: 44.0),
+            height: res.value(mobile: 32.0, tablet: 44.0),
             decoration: BoxDecoration(
               color: AppColors.surfaceBright.withOpacity(0.5),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(color: AppColors.surfaceBright),
             ),
-            child: _buildIcon(ticker.symbol.split(':').last.replaceAll('USDT', ''), ticker.iconUrl),
+            child: _buildIcon(ticker.symbol.split(':').last.replaceAll('USDT', ''), ticker.iconUrl, res),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: res.spacing(12)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,71 +442,71 @@ class _RankedAssetListItem extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      ticker.symbol.split(':').last.replaceAll('USDT', ''),
-                      style: GoogleFonts.jetBrainsMono(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (!isMarketActive)
                       Text(
-                        '${isPositive ? '+' : ''}${ticker.change24hPct.toStringAsFixed(2)}%',
+                        ticker.symbol.split(':').last.replaceAll('USDT', ''),
                         style: GoogleFonts.jetBrainsMono(
-                          color: color,
-                          fontSize: 14,
+                          color: Colors.white,
+                          fontSize: res.fontSize(14),
                           fontWeight: FontWeight.bold,
                         ),
-                      )
-                    else 
-                      Text(
-                        type == 'active' 
-                          ? (activeMode == 'Vol' ? _formatValue(ticker.volume24hUSD) : _formatValue(ticker.openInterestUSD))
-                          : type == 'perf'
+                      ),
+                      if (!isMarketActive)
+                        Text(
+                          '${isPositive ? '+' : ''}${ticker.change24hPct.toStringAsFixed(2)}%',
+                          style: GoogleFonts.jetBrainsMono(
+                            color: color,
+                            fontSize: res.fontSize(14),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      else 
+                        Text(
+                          type == 'active' 
+                            ? (activeMode == 'Vol' ? _formatValue(ticker.volume24hUSD) : _formatValue(ticker.openInterestUSD))
+                            : type == 'perf'
+                              ? '${isPositive ? '+' : ''}${ticker.change24hPct.toStringAsFixed(2)}%'
+                              : '${ticker.funding8hPct > 0 ? '+' : ''}${(ticker.funding8hPct * 100).toStringAsFixed(4)}%',
+                          style: GoogleFonts.jetBrainsMono(
+                            color: type == 'perf' 
+                              ? color 
+                              : type == 'funding'
+                                ? (ticker.funding8hPct >= 0 ? AppColors.trendRed : AppColors.trendGreen)
+                                : Colors.white,
+                            fontSize: res.fontSize(13),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                    ],
+                  ),
+                  SizedBox(height: res.spacing(4)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                        Text(
+                          '\$${ticker.lastPrice.toStringAsFixed(ticker.lastPrice < 1 ? 6 : 2)}',
+                          style: GoogleFonts.jetBrainsMono(
+                            color: AppColors.textSecondary,
+                            fontSize: res.fontSize(11),
+                          ),
+                        ),
+                      if (isMarketActive)
+                        Text(
+                          type == 'active'
                             ? '${isPositive ? '+' : ''}${ticker.change24hPct.toStringAsFixed(2)}%'
-                            : '${ticker.funding8hPct > 0 ? '+' : ''}${(ticker.funding8hPct * 100).toStringAsFixed(4)}%',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: type == 'perf' 
-                            ? color 
-                            : type == 'funding'
-                              ? (ticker.funding8hPct >= 0 ? AppColors.trendRed : AppColors.trendGreen)
-                              : Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
+                            : type == 'perf'
+                              ? (ticker.volume24hUSD > 0 ? _formatValue(ticker.volume24hUSD) : '')
+                              : '${ticker.funding8hPct * 3 * 365 * 100 >= 0 ? '+' : ''}${(ticker.funding8hPct * 3 * 365 * 100).toStringAsFixed(1)}% APR',
+                          style: GoogleFonts.jetBrainsMono(
+                            color: (type == 'active' || type == 'perf') ? (type == 'active' ? color : AppColors.textSecondary) : (ticker.funding8hPct >= 0 ? AppColors.trendRed : AppColors.trendGreen),
+                            fontSize: res.fontSize(10),
+                          ),
                         ),
-                      ),
+                    ],
+                  ),
+                  if (isMarketActive) ...[
+                    SizedBox(height: res.spacing(8)),
+                    _buildAnimatedProgressBar(),
                   ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                      Text(
-                        '\$${ticker.lastPrice.toStringAsFixed(ticker.lastPrice < 1 ? 6 : 2)}',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: AppColors.textSecondary,
-                          fontSize: 11,
-                        ),
-                      ),
-                    if (isMarketActive)
-                      Text(
-                        type == 'active'
-                          ? '${isPositive ? '+' : ''}${ticker.change24hPct.toStringAsFixed(2)}%'
-                          : type == 'perf'
-                            ? (ticker.volume24hUSD > 0 ? _formatValue(ticker.volume24hUSD) : '')
-                            : '${ticker.funding8hPct * 3 * 365 * 100 >= 0 ? '+' : ''}${(ticker.funding8hPct * 3 * 365 * 100).toStringAsFixed(1)}% APR',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: (type == 'active' || type == 'perf') ? (type == 'active' ? color : AppColors.textSecondary) : (ticker.funding8hPct >= 0 ? AppColors.trendRed : AppColors.trendGreen),
-                          fontSize: 10,
-                        ),
-                      ),
-                  ],
-                ),
-                if (isMarketActive) ...[
-                  const SizedBox(height: 8),
-                  _buildAnimatedProgressBar(),
-                ],
               ],
             ),
           ),
@@ -563,7 +565,7 @@ class _RankedAssetListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildIcon(String symbol, String url) {
+  Widget _buildIcon(String symbol, String url, Responsive res) {
     final int hash = symbol.hashCode;
     final double hue = (hash % 360).toDouble();
     final color = HSVColor.fromAHSV(1.0, hue, 0.6, 0.8).toColor();
@@ -579,7 +581,7 @@ class _RankedAssetListItem extends StatelessWidget {
         symbol.length >= 2 ? symbol.substring(0, 2).toUpperCase() : symbol.toUpperCase(),
         style: GoogleFonts.jetBrainsMono(
           color: color,
-          fontSize: 10,
+          fontSize: res.fontSize(10),
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -600,6 +602,7 @@ class _ScreenHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final res = Responsive(context);
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF0D1014),
@@ -608,34 +611,34 @@ class _ScreenHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _statBox('${viewModel.allTickers.length}', 'MARKETS', AppColors.textPrimary),
+          _statBox(res, '${viewModel.allTickers.length}', 'MARKETS', AppColors.textPrimary),
           _dividerV(),
-          _statBox('${viewModel.gainersCount}', 'GAINERS', AppColors.trendGreen),
+          _statBox(res, '${viewModel.gainersCount}', 'GAINERS', AppColors.trendGreen),
           _dividerV(),
-          _statBox('${viewModel.losersCount}', 'LOSERS', AppColors.trendRed),
+          _statBox(res, '${viewModel.losersCount}', 'LOSERS', AppColors.trendRed),
           _dividerV(),
-          _statBox(_fmt(viewModel.totalVolume), 'VOL 24H', AppColors.textPrimary),
+          _statBox(res, _fmt(viewModel.totalVolume), 'VOL 24H', AppColors.textPrimary),
         ],
       ),
     );
   }
 
-  Widget _statBox(String val, String label, Color valColor) => Expanded(
+  Widget _statBox(Responsive res, String val, String label, Color valColor) => Expanded(
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: EdgeInsets.symmetric(vertical: res.spacing(12)),
           child: Column(
             children: [
               Text(label,
                   style: GoogleFonts.jetBrainsMono(
                       color: AppColors.textSecondary,
-                      fontSize: 8,
+                      fontSize: res.fontSize(8),
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.8)),
-              const SizedBox(height: 6),
+              SizedBox(height: res.spacing(6)),
               Text(val,
                   style: GoogleFonts.jetBrainsMono(
                       color: valColor,
-                      fontSize: 13,
+                      fontSize: res.fontSize(13),
                       fontWeight: FontWeight.bold)),
             ],
           ),
@@ -645,122 +648,6 @@ class _ScreenHeader extends StatelessWidget {
   Widget _dividerV() => Container(width: 1, height: 48, color: AppColors.surfaceBright);
 }
 
-class _MarketSentimentSection extends StatelessWidget {
-  final List<TickerModel> tickers;
-  final Responsive res;
-
-  const _MarketSentimentSection({required this.tickers, required this.res});
-
-  @override
-  Widget build(BuildContext context) {
-    if (tickers.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0D1014),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.surfaceBright),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'ASSET PERFORMANCE',
-            style: GoogleFonts.jetBrainsMono(
-              color: AppColors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1,
-            ),
-          ),
-          const SizedBox(height: 32),
-          _DynamicAssetChart(tickers: tickers.take(8).toList(), res: res),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('ACTIVE ASSETS DATA', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 9)),
-              Text('Total Shown: ${tickers.length > 8 ? 8 : tickers.length}', style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DynamicAssetChart extends StatelessWidget {
-  final List<TickerModel> tickers;
-  final Responsive res;
-  const _DynamicAssetChart({required this.tickers, required this.res});
-
-  @override
-  Widget build(BuildContext context) {
-    if (tickers.isEmpty) return const SizedBox(height: 120);
-    final maxChange = tickers.map((t) => t.change24hPct.abs()).reduce((a, b) => a > b ? a : b);
-
-    return Column(
-      children: [
-        SizedBox(
-          height: 140,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: tickers.map((t) {
-              final double normalizedHeight = maxChange > 0 
-                  ? (t.change24hPct.abs() / maxChange * 100).clamp(20.0, 120.0) 
-                  : 60.0;
-              final bool isPositive = t.change24hPct >= 0;
-
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    '${t.change24hPct.toStringAsFixed(1)}%',
-                    style: GoogleFonts.jetBrainsMono(
-                      color: isPositive ? AppColors.trendGreen : AppColors.trendRed,
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    width: (res.width - 100) / (tickers.length.clamp(1, 8).toDouble()),
-                    height: normalizedHeight,
-                    decoration: BoxDecoration(
-                      color: (isPositive ? AppColors.trendGreen : AppColors.trendRed).withOpacity(0.6),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: tickers.map((t) => SizedBox(
-            width: (res.width - 100) / (tickers.length.clamp(1, 8).toDouble()),
-            child: Text(
-              t.symbol.split(':').last.replaceAll('USDT', ''),
-              textAlign: TextAlign.center,
-              style: GoogleFonts.jetBrainsMono(
-                color: AppColors.textPrimary,
-                fontSize: 8,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          )).toList(),
-        ),
-        const SizedBox(height: 16),
-        Text('ASSET SYMBOL', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary.withOpacity(0.5), fontSize: 8, letterSpacing: 1.5)),
-      ],
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Technical Trader Distribution Section - 2 Stacked Cards
@@ -846,7 +733,7 @@ class _DistributionCardState extends State<_DistributionCard> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(widget.res.spacing(20)),
       decoration: BoxDecoration(
         color: const Color(0xFF0D1014),
         borderRadius: BorderRadius.circular(4),
@@ -856,11 +743,11 @@ class _DistributionCardState extends State<_DistributionCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(),
-          const SizedBox(height: 24),
+          SizedBox(height: widget.res.spacing(24)),
           _buildLegendRow(segments),
-          const SizedBox(height: 32),
+          SizedBox(height: widget.res.spacing(32)),
           _buildDonutChart(visibleSegments, data),
-          const SizedBox(height: 40),
+          SizedBox(height: widget.res.spacing(40)),
           _buildDataTable(segments, data),
         ],
       ),
@@ -876,14 +763,14 @@ class _DistributionCardState extends State<_DistributionCard> {
             widget.title.toUpperCase(),
             style: GoogleFonts.jetBrainsMono(
               color: Colors.white,
-              fontSize: 11,
+              fontSize: widget.res.fontSize(11),
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
         if (widget.isAccountValue)
           Container(
-            height: 28,
+            height: widget.res.value(mobile: 28.0, tablet: 36.0),
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               color: AppColors.surfaceBright.withOpacity(0.3),
@@ -915,7 +802,7 @@ class _DistributionCardState extends State<_DistributionCard> {
           label,
           style: GoogleFonts.jetBrainsMono(
             color: isActive ? Colors.black : AppColors.textSecondary,
-            fontSize: 9,
+            fontSize: widget.res.fontSize(9),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -947,16 +834,16 @@ class _DistributionCardState extends State<_DistributionCard> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 10,
-                height: 10,
+                width: widget.res.value(mobile: 10.0, tablet: 14.0),
+                height: widget.res.value(mobile: 10.0, tablet: 14.0),
                 decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
-              const SizedBox(width: 6),
+              SizedBox(width: widget.res.spacing(6)),
               Text(
                 s.label.split(' (').first.toUpperCase(),
                 style: GoogleFonts.jetBrainsMono(
                   color: isHidden ? AppColors.textSecondary.withOpacity(0.5) : AppColors.textSecondary,
-                  fontSize: 8,
+                  fontSize: widget.res.fontSize(8),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1001,7 +888,7 @@ class _DistributionCardState extends State<_DistributionCard> {
                   color: _getSegmentColor(s.key),
                   value: value > 0 ? value : 0.001,
                   title: '',
-                  radius: 24,
+                  radius: widget.res.value(mobile: 24.0, tablet: 32.0),
                   badgeWidget: null,
                 );
               }).toList(),
@@ -1019,7 +906,7 @@ class _DistributionCardState extends State<_DistributionCard> {
                   '${centerPct.toStringAsFixed(0)}%',
                   style: GoogleFonts.jetBrainsMono(
                     color: Colors.white,
-                    fontSize: 28,
+                    fontSize: widget.res.fontSize(28),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1027,7 +914,7 @@ class _DistributionCardState extends State<_DistributionCard> {
                   centerLabel,
                   style: GoogleFonts.jetBrainsMono(
                     color: AppColors.textSecondary,
-                    fontSize: 9,
+                    fontSize: widget.res.fontSize(9),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1043,10 +930,10 @@ class _DistributionCardState extends State<_DistributionCard> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: EdgeInsets.only(bottom: widget.res.spacing(12)),
           child: Row(
             children: [
-              Expanded(child: Text('SEGMENT', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 8, fontWeight: FontWeight.bold))),
+              Expanded(child: Text('SEGMENT', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: widget.res.fontSize(8), fontWeight: FontWeight.bold))),
               if (widget.isAccountValue) ...[
                 _tableHeaderCell('VAL%', _activeMetricIndex == 0),
                 _tableHeaderCell('TRD%', _activeMetricIndex == 1),
@@ -1057,18 +944,18 @@ class _DistributionCardState extends State<_DistributionCard> {
           ),
         ),
         Container(height: 1, width: double.infinity, color: AppColors.surfaceBright.withOpacity(0.5)),
-        const SizedBox(height: 8),
+        SizedBox(height: widget.res.spacing(8)),
         ...segments.map((s) {
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: EdgeInsets.symmetric(vertical: widget.res.spacing(10)),
             child: Row(
               children: [
                 Expanded(
                   child: Row(
                     children: [
-                      Container(width: 10, height: 10, decoration: BoxDecoration(color: _getSegmentColor(s.key), borderRadius: BorderRadius.circular(2))),
-                      const SizedBox(width: 12),
-                      Text(s.label.split(' (').first.toUpperCase(), style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                      Container(width: widget.res.value(mobile: 10.0, tablet: 14.0), height: widget.res.value(mobile: 10.0, tablet: 14.0), decoration: BoxDecoration(color: _getSegmentColor(s.key), borderRadius: BorderRadius.circular(2))),
+                      SizedBox(width: widget.res.spacing(12)),
+                      Text(s.label.split(' (').first.toUpperCase(), style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: widget.res.fontSize(10), fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -1087,26 +974,26 @@ class _DistributionCardState extends State<_DistributionCard> {
   }
 
   Widget _tableHeaderCell(String label, bool active) => SizedBox(
-        width: 60,
+        width: widget.res.columnWidth(60),
         child: Text(
           label,
           textAlign: TextAlign.right,
           style: GoogleFonts.jetBrainsMono(
             color: active ? AppColors.brandAccent : AppColors.textSecondary,
-            fontSize: 8,
+            fontSize: widget.res.fontSize(8),
             fontWeight: FontWeight.bold,
           ),
         ),
       );
 
   Widget _tableDataCell(String val, bool active) => SizedBox(
-        width: 60,
+        width: widget.res.columnWidth(60),
         child: Text(
           val,
           textAlign: TextAlign.right,
           style: GoogleFonts.jetBrainsMono(
             color: active ? Colors.white : AppColors.textSecondary.withOpacity(0.7),
-            fontSize: 10,
+            fontSize: widget.res.fontSize(10),
             fontWeight: active ? FontWeight.bold : FontWeight.normal,
           ),
         ),
