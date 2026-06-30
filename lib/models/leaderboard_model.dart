@@ -181,7 +181,7 @@ class OhlcSnapshot {
   factory OhlcSnapshot.fromJson(Map<String, dynamic> json) {
     int ts;
     if (json['timestamp'] is String) {
-      ts = DateTime.parse(json['timestamp']).millisecondsSinceEpoch;
+      ts = DateTime.tryParse(json['timestamp'].toString())?.millisecondsSinceEpoch ?? 0;
     } else {
       ts = (json['timestamp'] ?? 0).toInt();
     }

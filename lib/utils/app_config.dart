@@ -25,4 +25,8 @@ class AppConfig {
   static String get dexVolumeUrl {
     return dotenv.env['DEX_VOLUME_API_URL'] ?? 'https://coingecko.renderonnodes.com';
   }
+
+  static String get hip4DetailBaseUrl {
+    return dotenv.env['HIP4_DETAIL_API_URL'] ?? baseUrl;
+  }
 }

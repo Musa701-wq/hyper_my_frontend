@@ -17,6 +17,7 @@ class OrderBookPanel extends StatelessWidget {
   final bool isLoading;
   final String? errorMessage;
   final String sizeLabel;
+  final bool bypassPaywall;
 
   const OrderBookPanel({
     super.key,
@@ -24,6 +25,7 @@ class OrderBookPanel extends StatelessWidget {
     required this.isLoading,
     this.errorMessage,
     required this.sizeLabel,
+    this.bypassPaywall = false,
   });
 
   @override
@@ -52,7 +54,7 @@ class OrderBookPanel extends StatelessWidget {
       return _buildShimmerSkeleton(res);
     }
 
-    final isPro = context.watch<SubscriptionViewModel>().isPro;
+    final isPro = bypassPaywall || context.watch<SubscriptionViewModel>().isPro;
 
     if (!isPro) {
       return PaywallWidget(

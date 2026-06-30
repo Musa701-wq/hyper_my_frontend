@@ -8,7 +8,7 @@ import '../models/hip4_model.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
 import 'hip4_probability_bar.dart';
-import 'hip4_detail_dialog.dart';
+import 'hip4_detail_screen.dart';
 import 'hip4_market_row.dart';
 
 class Hip4MarketsPanel extends StatefulWidget {
@@ -206,9 +206,14 @@ class _Hip4MarketsPanelState extends State<Hip4MarketsPanel> {
     final iconSize = res.fontSize(20);
 
     return GestureDetector(
-      onTap: () => showDialog(
-          context: context,
-          builder: (_) => Hip4DetailDialog(market: market)),
+      onTap: () => Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                Hip4DetailScreen(market: market),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          )),
       behavior: HitTestBehavior.opaque,
       child: IntrinsicHeight(
         child: Row(
