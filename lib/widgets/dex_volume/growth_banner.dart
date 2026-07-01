@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../utils/app_colors.dart';
+import '../../utils/responsive.dart';
 
 class GrowthBanner extends StatelessWidget {
   final String title;
@@ -17,6 +18,7 @@ class GrowthBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isNegative = growth < 0;
     final Color statusColor = isNegative ? const Color(0xFFF43F5E) : const Color(0xFF10B981);
+    final res = Responsive(context);
 
     return Container(
       width: double.infinity,
@@ -36,7 +38,7 @@ class GrowthBanner extends StatelessWidget {
       child: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            padding: EdgeInsets.symmetric(horizontal: res.spacing(12), vertical: res.spacing(14)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -44,18 +46,18 @@ class GrowthBanner extends StatelessWidget {
                   title.toUpperCase(),
                   style: GoogleFonts.jetBrainsMono(
                     color: statusColor.withOpacity(0.7),
-                    fontSize: 10,
+                    fontSize: res.fontSize(9),
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.2,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: res.spacing(6)),
                 Row(
                   children: [
                     Icon(
                       isNegative ? Icons.trending_down : Icons.trending_up,
                       color: statusColor,
-                      size: 24,
+                      size: res.fontSize(16),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -67,7 +69,7 @@ class GrowthBanner extends StatelessWidget {
                           maxLines: 1,
                           style: GoogleFonts.jetBrainsMono(
                             color: statusColor,
-                            fontSize: 24,
+                            fontSize: res.fontSize(16),
                             fontWeight: FontWeight.w900,
                           ),
                         ),
@@ -75,12 +77,12 @@ class GrowthBanner extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: res.spacing(4)),
                 Text(
                   isNegative ? 'Declining vs prior period' : 'Growing vs prior period',
                   style: GoogleFonts.jetBrainsMono(
                     color: statusColor.withOpacity(0.5),
-                    fontSize: 10,
+                    fontSize: res.fontSize(9),
                   ),
                 ),
               ],

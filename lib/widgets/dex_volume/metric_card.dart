@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/responsive.dart';
 
 class MetricCard extends StatelessWidget {
   final String title;
@@ -30,9 +31,10 @@ class MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     const accent = AppColors.brandAccent;
     final isUp = (change ?? 0) >= 0;
+    final res = Responsive(context);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(res.spacing(12)),
       decoration: BoxDecoration(
         color: AppColors.surfaceBright.withOpacity(0.2),
         borderRadius: BorderRadius.circular(16),
@@ -48,13 +50,13 @@ class MetricCard extends StatelessWidget {
                 title.toUpperCase(),
                 style: GoogleFonts.inter(
                   color: AppColors.textSecondary,
-                  fontSize: 9,
+                  fontSize: res.fontSize(9),
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
                 ),
               ),
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: EdgeInsets.all(res.spacing(6)),
                 decoration: BoxDecoration(
                   color: accent.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -64,12 +66,12 @@ class MetricCard extends StatelessWidget {
                       ? Icons.bar_chart_rounded
                       : (isUp ? Icons.trending_up : Icons.trending_down),
                   color: accent,
-                  size: 14,
+                  size: res.fontSize(14),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: res.spacing(6)),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -77,26 +79,26 @@ class MetricCard extends StatelessWidget {
               _formatValue(value),
               style: GoogleFonts.inter(
                 color: Colors.white,
-                fontSize: 20,
+                fontSize: res.fontSize(15),
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           if (!isCumulative && change != null) ...[
-            const SizedBox(height: 6),
+            SizedBox(height: res.spacing(4)),
             Row(
               children: [
                 Icon(
                   isUp ? Icons.arrow_drop_up : Icons.arrow_drop_down,
                   color: isUp ? AppColors.trendGreen : AppColors.trendRed,
-                  size: 16,
+                  size: res.fontSize(14),
                 ),
                 const SizedBox(width: 2),
                 Text(
                   '${change! >= 0 ? '+' : ''}${change!.toStringAsFixed(2)}%',
                   style: GoogleFonts.inter(
                     color: isUp ? AppColors.trendGreen : AppColors.trendRed,
-                    fontSize: 11,
+                    fontSize: res.fontSize(10),
                     fontWeight: FontWeight.w600,
                   ),
                 ),

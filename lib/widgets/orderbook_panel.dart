@@ -50,7 +50,7 @@ class OrderBookPanel extends StatelessWidget {
     }
 
     final book = snapshot;
-    if (book == null || (book.bids.isEmpty && book.asks.isEmpty)) {
+    if (book == null || book.bids.isEmpty || book.asks.isEmpty) {
       return _buildShimmerSkeleton(res);
     }
 

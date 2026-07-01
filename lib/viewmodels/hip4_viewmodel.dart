@@ -170,8 +170,11 @@ class Hip4ViewModel extends ChangeNotifier {
       final uri = Uri.parse('$detailUrl/api/hip4/outcomes/$marketId');
       debugPrint('fetchOutcomeDetail: GET $uri');
       final response = await http.get(uri).timeout(const Duration(seconds: 10));
-      debugPrint('fetchOutcomeDetail: status=${response.statusCode}');
-      debugPrint('fetchOutcomeDetail: response body=${response.body}');
+      print('=== [OUTCOME DETAIL (VOLUME/OI) API RESPONSE] ===');
+      print('URI: $uri');
+      print('Status: ${response.statusCode}');
+      print('Body: ${response.body}');
+      print('==================================================');
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         if (decoded is Map && decoded['success'] == true && decoded['data'] != null) {
@@ -192,14 +195,17 @@ class Hip4ViewModel extends ChangeNotifier {
     return null;
   }
 
-  Future<List<Hip4Candle>> fetchCandles(int marketId, String side, {int limit = 24}) async {
+  Future<List<Hip4Candle>?> fetchCandles(int marketId, String side, {int limit = 24}) async {
     try {
       final detailUrl = AppConfig.hip4DetailBaseUrl;
       final uri = Uri.parse('$detailUrl/api/hip4/candles/$side/$marketId?limit=$limit');
       debugPrint('fetchCandles: GET $uri');
       final response = await http.get(uri).timeout(const Duration(seconds: 10));
-      debugPrint('fetchCandles($side): status=${response.statusCode}');
-      debugPrint('fetchCandles($side): response body=${response.body}');
+      print('=== [CANDLES API RESPONSE] ===');
+      print('URI: $uri');
+      print('Status: ${response.statusCode}');
+      print('Body: ${response.body}');
+      print('===============================');
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         if (decoded is Map && decoded['success'] == true && decoded['data'] is List) {
@@ -213,7 +219,7 @@ class Hip4ViewModel extends ChangeNotifier {
     } catch (e) {
       debugPrint('fetchCandles exception: $e');
     }
-    return [];
+    return null;
   }
 
   @override

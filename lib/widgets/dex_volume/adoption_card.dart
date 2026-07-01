@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/responsive.dart';
 
 class AdoptionCard extends StatelessWidget {
   final String title;
@@ -24,6 +25,8 @@ class AdoptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final res = Responsive(context);
+
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -41,7 +44,7 @@ class AdoptionCard extends StatelessWidget {
       child: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(res.spacing(12)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -49,42 +52,42 @@ class AdoptionCard extends StatelessWidget {
                   title.toUpperCase(),
                   style: GoogleFonts.jetBrainsMono(
                     color: AppColors.textSecondary.withOpacity(0.5),
-                    fontSize: 10,
+                    fontSize: res.fontSize(9),
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.1,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: res.spacing(4)),
                 Text(
                   _formatValue(value),
                   style: GoogleFonts.jetBrainsMono(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: res.fontSize(14),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: res.spacing(4)),
                 Text(
                   subtitle,
                   style: GoogleFonts.jetBrainsMono(
                     color: AppColors.textSecondary.withOpacity(0.5),
-                    fontSize: 10,
+                    fontSize: res.fontSize(9),
                   ),
                 ),
                 if (growth != null) ...[
-                  const SizedBox(height: 8),
+                  SizedBox(height: res.spacing(8)),
                   Row(
                     children: [
                       Icon(
                         growth! >= 0 ? Icons.arrow_drop_up : Icons.arrow_drop_down,
                         color: growth! >= 0 ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
-                        size: 16,
+                        size: res.fontSize(14),
                       ),
                       Text(
                         '${growth! >= 0 ? '+' : ''}${growth!.toStringAsFixed(2)}%',
                         style: GoogleFonts.jetBrainsMono(
                           color: growth! >= 0 ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
-                          fontSize: 10,
+                          fontSize: res.fontSize(9),
                           fontWeight: FontWeight.bold,
                         ),
                       ),

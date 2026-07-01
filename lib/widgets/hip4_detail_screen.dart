@@ -198,7 +198,7 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
       return Hip4Candle(
         timestamp: now.subtract(Duration(hours: 24 - i)),
         open: open, close: close, high: high, low: low,
-        volume: 500 + rng.nextDouble() * 2500,
+        volume: (500 + rng.nextDouble() * 2500) * (0.5 + basePrice),
         quoteVolume: 0, tradeCount: 0,
       );
     });
@@ -401,61 +401,85 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
   }
 
   Widget _loader() {
-    return Shimmer.fromColors(
-      baseColor: const Color(0xFF1E222D),
-      highlightColor: const Color(0xFF3A3F4E),
-      period: const Duration(milliseconds: 1500),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Info Chips skeleton
-          Row(
-            children: [
-              _skeletonBar(width: 80, height: 18, radius: 4),
-              const SizedBox(width: 8),
-              _skeletonBar(width: 60, height: 18, radius: 4),
-              const SizedBox(width: 8),
-              _skeletonBar(width: 90, height: 18, radius: 4),
-            ],
-          ),
-          const SizedBox(height: 12),
-          
-          // Description paragraph replacement skeleton
-          _skeletonBar(width: double.infinity, height: 12, radius: 2),
-          const SizedBox(height: 6),
-          _skeletonBar(width: double.infinity, height: 12, radius: 2),
-          const SizedBox(height: 6),
-          _skeletonBar(width: 140, height: 12, radius: 2),
-          const SizedBox(height: 20),
-          
-          // Yes/No switcher skeleton
-          _skeletonBar(width: 120, height: 32, radius: 8),
-          const SizedBox(height: 14),
-          
-          // Chart toggles skeleton
-          _skeletonBar(width: 150, height: 26, radius: 6),
-          const SizedBox(height: 12),
-          
-          // Chart Card skeleton
-          _skeletonBar(width: double.infinity, height: 230, radius: 14),
-          const SizedBox(height: 14),
-          
-          // OHLC details row skeleton
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _skeletonBar(width: 70, height: 38, radius: 8),
-              _skeletonBar(width: 70, height: 38, radius: 8),
-              _skeletonBar(width: 70, height: 38, radius: 8),
-              _skeletonBar(width: 70, height: 38, radius: 8),
-            ],
-          ),
-          const SizedBox(height: 14),
-          
-          // Open Interest stats card skeleton
-          _skeletonBar(width: double.infinity, height: 80, radius: 14),
-        ],
+    final res = Responsive(context);
+    final chartH = res.value(mobile: 240.0, tablet: 360.0);
+    final statsCardH = res.value(mobile: 110.0, tablet: 130.0);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+      child: Shimmer.fromColors(
+        baseColor: const Color(0xFF1E222D),
+        highlightColor: const Color(0xFF3A3F4E),
+        period: const Duration(milliseconds: 1500),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Description chips and text skeleton
+            _descriptionSkeleton(),
+            const SizedBox(height: 14),
+
+            // 2. Yes/No switcher skeleton
+            _skeletonBar(width: 120, height: 32, radius: 8),
+            const SizedBox(height: 14),
+
+            // 3. Chart toggles skeleton
+            _skeletonBar(width: 150, height: 26, radius: 6),
+            const SizedBox(height: 12),
+
+            // 4. Chart Card skeleton
+            _skeletonBar(width: double.infinity, height: chartH, radius: 14),
+            const SizedBox(height: 14),
+
+            // 5. OHLC details row skeleton
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _skeletonBar(width: 70, height: 38, radius: 8),
+                _skeletonBar(width: 70, height: 38, radius: 8),
+                _skeletonBar(width: 70, height: 38, radius: 8),
+                _skeletonBar(width: 70, height: 38, radius: 8),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // 6. Open Interest stats card skeleton
+            _skeletonBar(width: double.infinity, height: statsCardH, radius: 14),
+            const SizedBox(height: 16),
+
+            // 7. Outcomes header skeleton
+            _skeletonBar(width: 120, height: 14, radius: 4),
+            const SizedBox(height: 10),
+
+            // 8. Outcomes list rows skeleton
+            _skeletonBar(width: double.infinity, height: 48, radius: 8),
+            const SizedBox(height: 8),
+            _skeletonBar(width: double.infinity, height: 48, radius: 8),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _descriptionSkeleton() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _skeletonBar(width: 80, height: 18, radius: 4),
+            const SizedBox(width: 8),
+            _skeletonBar(width: 60, height: 18, radius: 4),
+            const SizedBox(width: 8),
+            _skeletonBar(width: 90, height: 18, radius: 4),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _skeletonBar(width: double.infinity, height: 12, radius: 2),
+        const SizedBox(height: 6),
+        _skeletonBar(width: double.infinity, height: 12, radius: 2),
+        const SizedBox(height: 6),
+        _skeletonBar(width: 140, height: 12, radius: 2),
+      ],
     );
   }
 

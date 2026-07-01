@@ -311,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildTab(viewModel, 'SPOT', res),
                           _buildTab(viewModel, 'CRYPTO', res),
                           _buildTab(viewModel, 'HIP-3', res),
-                          _buildTab(viewModel, 'HIP-4', res),
+                          _buildTab(viewModel, 'OUTCOME', res),
                         ],
                       ),
                     ),
@@ -333,24 +333,24 @@ class _HomeScreenState extends State<HomeScreen> {
                     )
                   else ...[
                     // Horizontal Filters Row
-                    if (viewModel.selectedTab == 'HIP-3' || viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'HIP-4')
+                    if (viewModel.selectedTab == 'HIP-3' || viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'OUTCOME')
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: SizedBox(
                           height: res.value(mobile: 32.0, tablet: 40.0),
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
-                            itemCount: viewModel.selectedTab == 'HIP-4'
+                            itemCount: viewModel.selectedTab == 'OUTCOME'
                               ? context.watch<Hip4ViewModel>().categories.length
                               : (viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'HIP-3' ? viewModel.cryptoCategories : viewModel.availableDexes).length,
                             separatorBuilder: (context, index) => const SizedBox(width: 8),
                             itemBuilder: (context, index) {
                               final isCategoryMode = viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'HIP-3';
-                              final items = viewModel.selectedTab == 'HIP-4'
+                              final items = viewModel.selectedTab == 'OUTCOME'
                                 ? context.read<Hip4ViewModel>().categories
                                 : (isCategoryMode ? viewModel.cryptoCategories : viewModel.availableDexes);
                               final item = items[index];
-                              final isSelected = viewModel.selectedTab == 'HIP-4'
+                              final isSelected = viewModel.selectedTab == 'OUTCOME'
                                 ? context.watch<Hip4ViewModel>().selectedCategory == item
                                 : (isCategoryMode
                                   ? viewModel.selectedCryptoCategory == item
@@ -358,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                               return GestureDetector(
                                 onTap: () {
-                                  if (viewModel.selectedTab == 'HIP-4') {
+                                  if (viewModel.selectedTab == 'OUTCOME') {
                                     final hip4Vm = context.read<Hip4ViewModel>();
                                     hip4Vm.setCategory(item);
                                     AnalyticsService.logCategoryClick(item);
@@ -396,7 +396,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
 
-                    if (viewModel.selectedTab == 'HIP-4')
+                    if (viewModel.selectedTab == 'OUTCOME')
                       const Hip4MarketsPanel()
                     else ...[
                     SizedBox(height: res.spacing(16)),
@@ -552,7 +552,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     onTap: () => _showTickerDetail(ticker),
                                     behavior: HitTestBehavior.opaque,
                                     child: Container(
-                                    height: res.value(mobile: 56.0, tablet: 80.0),
+                                    height: res.value(mobile: 56.0, tablet: 64.0),
                                     width: res.columnWidth(490),
                                     padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 10.0),
                                     decoration: const BoxDecoration(

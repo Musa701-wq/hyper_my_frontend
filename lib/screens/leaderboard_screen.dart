@@ -391,69 +391,107 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   // ── Shimmer skeleton ───────────────────────────────────────────────────────
   Widget _buildShimmer(Responsive res) {
-    return ClipRect(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        child: Shimmer.fromColors(
-          baseColor: const Color(0xFF2C2F3A),
-          highlightColor: const Color(0xFF3F4452),
-          period: const Duration(milliseconds: 1400),
-          child: ListView(
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              // Header row skeleton
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                child: Row(
-                  children: [
-                    _sPill(24, 10),
-                    const SizedBox(width: 10),
-                    _sPill(80, 10),
-                    const Spacer(),
-                    Flexible(child: _sPill(65, 10)),
-                    const SizedBox(width: 12),
-                    Flexible(child: _sPill(55, 10)),
-                    const SizedBox(width: 12),
-                    Flexible(child: _sPill(45, 10)),
-                    const SizedBox(width: 12),
-                    Flexible(child: _sPill(60, 10)),
-                  ],
-                ),
-              ),
-              Container(height: 0.5, color: Colors.white12),
-              const SizedBox(height: 4),
-              ...List.generate(14, (index) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Row(
-                  children: [
-                    _sPill(22, 10),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _sPill(double.infinity, 11),
-                          const SizedBox(height: 5),
-                          _sPill(70, 8),
-                        ],
-                      ),
+    final double defaultLeftW  = res.columnWidth(150.0);
+    final double defaultWAcc   = res.columnWidth(85.0);
+    final double defaultWPnl   = res.columnWidth(85.0);
+    final double defaultWRoi   = res.columnWidth(80.0);
+    final double defaultWVol   = res.columnWidth(90.0);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double leftW;
+        final double wAcc;
+        final double wPnl;
+        final double wRoi;
+        final double wVol;
+        final bool useFullWidth = !res.isMobile;
+
+        if (useFullWidth) {
+          leftW = res.value(mobile: 150.0, tablet: 240.0, desktop: 300.0);
+          final double availableRight = constraints.maxWidth - leftW - 12.0 - 12.0; // margins
+          final double colW = (availableRight / 4.0).clamp(110.0, double.infinity);
+          wAcc = colW;
+          wPnl = colW;
+          wRoi = colW;
+          wVol = colW;
+        } else {
+          leftW = defaultLeftW;
+          wAcc = defaultWAcc;
+          wPnl = defaultWPnl;
+          wRoi = defaultWRoi;
+          wVol = defaultWVol;
+        }
+
+        return ClipRect(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Shimmer.fromColors(
+              baseColor: const Color(0xFF2C2F3A),
+              highlightColor: const Color(0xFF3F4452),
+              period: const Duration(milliseconds: 1400),
+              child: ListView(
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  // Header row skeleton
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: leftW,
+                          child: Row(
+                            children: [
+                              _sPill(24, 10),
+                              const SizedBox(width: 10),
+                              _sPill(80, 10),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: wAcc, child: Center(child: _sPill(65, 10))),
+                        SizedBox(width: wPnl, child: Center(child: _sPill(55, 10))),
+                        SizedBox(width: wRoi, child: Center(child: _sPill(45, 10))),
+                        SizedBox(width: wVol, child: Center(child: _sPill(60, 10))),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Flexible(child: _sPill(65, 11)),
-                    const SizedBox(width: 8),
-                    Flexible(child: _sPill(55, 11)),
-                    const SizedBox(width: 8),
-                    Flexible(child: _sPill(45, 11)),
-                    const SizedBox(width: 8),
-                    Flexible(child: _sPill(60, 11)),
-                  ],
-                ),
-              )),
-            ],
+                  ),
+                  Container(height: 0.5, color: Colors.white12),
+                  const SizedBox(height: 4),
+                  ...List.generate(14, (index) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: leftW,
+                          child: Row(
+                            children: [
+                              _sPill(22, 10),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _sPill(double.infinity, 11),
+                                    const SizedBox(height: 5),
+                                    _sPill(70, 8),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: wAcc, child: Center(child: _sPill(65, 11))),
+                        SizedBox(width: wPnl, child: Center(child: _sPill(55, 11))),
+                        SizedBox(width: wRoi, child: Center(child: _sPill(45, 11))),
+                        SizedBox(width: wVol, child: Center(child: _sPill(60, 11))),
+                      ],
+                    ),
+                  )),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -470,48 +508,80 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   // Single CustomScrollView approach — no extra divider between columns,
   // no extra spacing. Header is a SliverPersistentHeader (sticky).
   Widget _buildTable(Responsive res, LeaderboardViewModel vm) {
-    final double leftW  = res.columnWidth(150.0);
-    final double wAcc   = res.columnWidth(85.0);
-    final double wPnl   = res.columnWidth(85.0);
-    final double wRoi   = res.columnWidth(80.0);
-    final double wVol   = res.columnWidth(90.0);
-    final double rightW = wAcc + wPnl + wRoi + wVol;
+    final double defaultLeftW  = res.columnWidth(150.0);
+    final double defaultWAcc   = res.columnWidth(85.0);
+    final double defaultWPnl   = res.columnWidth(85.0);
+    final double defaultWRoi   = res.columnWidth(80.0);
+    final double defaultWVol   = res.columnWidth(90.0);
+    final double defaultRightW = defaultWAcc + defaultWPnl + defaultWRoi + defaultWVol;
 
     final traders = vm.topTraders;
 
     return Padding(
       padding: const EdgeInsets.only(left: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Fixed left column ──────────────────────────────────────────────
-          SizedBox(
-            width: leftW,
-            child: _StickyTable(
-              controller: _leftScroll,
-              header: _leftHeader(res),
-              itemCount: traders.length,
-              itemBuilder: (i) => _leftRow(i, traders[i], vm, res),
-            ),
-          ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double leftW;
+          final double wAcc;
+          final double wPnl;
+          final double wRoi;
+          final double wVol;
+          final double rightW;
+          final bool useFullWidth = !res.isMobile;
 
-          // ── Scrollable right columns ───────────────────────────────────────
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: SizedBox(
-                width: rightW,
+          if (useFullWidth) {
+            // Tablet/desktop: expand columns to fill the entire available width
+            leftW = res.value(mobile: 150.0, tablet: 240.0, desktop: 300.0);
+            final double availableRight = constraints.maxWidth - leftW - 12.0; // subtracting padding
+            final double colW = (availableRight / 4.0).clamp(110.0, double.infinity);
+            wAcc = colW;
+            wPnl = colW;
+            wRoi = colW;
+            wVol = colW;
+            rightW = wAcc + wPnl + wRoi + wVol;
+          } else {
+            // Mobile: standard scrollable columns
+            leftW = defaultLeftW;
+            wAcc = defaultWAcc;
+            wPnl = defaultWPnl;
+            wRoi = defaultWRoi;
+            wVol = defaultWVol;
+            rightW = defaultRightW;
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Fixed left column ──────────────────────────────────────────────
+              SizedBox(
+                width: leftW,
                 child: _StickyTable(
-                  controller: _rightScroll,
-                  header: _rightHeader(res, vm, wAcc, wPnl, wRoi, wVol),
+                  controller: _leftScroll,
+                  header: _leftHeader(res),
                   itemCount: traders.length,
-                  itemBuilder: (i) => _rightRow(traders[i], res, wAcc, wPnl, wRoi, wVol),
+                  itemBuilder: (i) => _leftRow(i, traders[i], vm, res),
                 ),
               ),
-            ),
-          ),
-        ],
+
+              // ── Scrollable right columns ───────────────────────────────────────
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: SizedBox(
+                    width: rightW,
+                    child: _StickyTable(
+                      controller: _rightScroll,
+                      header: _rightHeader(res, vm, wAcc, wPnl, wRoi, wVol),
+                      itemCount: traders.length,
+                      itemBuilder: (i) => _rightRow(traders[i], res, wAcc, wPnl, wRoi, wVol),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

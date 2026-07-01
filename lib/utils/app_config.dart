@@ -29,4 +29,8 @@ class AppConfig {
   static String get hip4DetailBaseUrl {
     return dotenv.env['HIP4_DETAIL_API_URL'] ?? baseUrl;
   }
+
+  static String get hip4DetailsTabBaseUrl {
+    return dotenv.env['HIP4_DETAILS_TAB_API_URL'] ?? 'http://localhost:4001';
+  }
 }

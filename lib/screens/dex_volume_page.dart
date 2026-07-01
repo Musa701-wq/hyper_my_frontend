@@ -42,16 +42,17 @@ class _DexVolumePageState extends State<DexVolumePage> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.brandAccent, size: 20),
-            onPressed: () => Navigator.pop(context),
+          leading: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
           ),
           title: Text(
             'Hyperliquid DEX Volume',
             style: GoogleFonts.jetBrainsMono(
               color: AppColors.brandAccent,
-              fontSize: 20,
+              fontSize: res.fontSize(16),
               fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
             ),
           ),
         ),
@@ -81,7 +82,7 @@ class _DexVolumePageState extends State<DexVolumePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildMetricCards(viewModel.metrics!),
-                      const SizedBox(height: 24),
+                      SizedBox(height: res.spacing(16)),
                       VolumeChartWidget(
                         data: viewModel.chartData,
                         selectedScope: 'All',
@@ -90,7 +91,7 @@ class _DexVolumePageState extends State<DexVolumePage> {
                         onChartTypeChanged: (type) => viewModel.setChartType(type),
                         onTimeRangeChanged: (range) => viewModel.setTimeRange(range),
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: res.spacing(16)),
                       if (viewModel.adoption != null) ...[
                         Row(
                           children: [
@@ -100,7 +101,7 @@ class _DexVolumePageState extends State<DexVolumePage> {
                                 growth: viewModel.adoption!.monthOverMonthGrowth ?? 0,
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            SizedBox(width: res.spacing(10)),
                             Expanded(
                               child: GrowthBanner(
                                 title: 'QoQ Growth',
@@ -109,16 +110,16 @@ class _DexVolumePageState extends State<DexVolumePage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: res.spacing(12)),
                         _buildAdoptionCards(viewModel.adoption!),
-                        const SizedBox(height: 16),
+                        SizedBox(height: res.spacing(12)),
                         TrendChartWidget(
                           title: 'Monthly Volume Trend',
                           subtitle: 'Historical performance',
                           trend: viewModel.adoption!.monthlyTrend,
                           color: const Color(0xFF10B981),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: res.spacing(12)),
                         TrendChartWidget(
                           title: 'Quarterly Volume Trend',
                           subtitle: 'Strategic growth',
@@ -126,12 +127,12 @@ class _DexVolumePageState extends State<DexVolumePage> {
                           color: const Color(0xFF8B5CF6),
                           filterCurrent: true,
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: res.spacing(12)),
                         MonthlyVolumeTable(
                           monthlyTrend: viewModel.adoption!.monthlyTrend,
                           sixMonthAvg: viewModel.adoption!.sixMonthAverageVolume,
                         ),
-                        const SizedBox(height: 32),
+                        SizedBox(height: res.spacing(24)),
                       ],
                     ],
                   ),
@@ -145,6 +146,7 @@ class _DexVolumePageState extends State<DexVolumePage> {
   }
 
   Widget _buildMetricCards(DexVolumeMetrics metrics) {
+    final res = Responsive(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth > 700;
@@ -152,11 +154,11 @@ class _DexVolumePageState extends State<DexVolumePage> {
           return Row(
             children: [
               Expanded(child: MetricCard(title: '24h Volume', value: metrics.total24h, change: metrics.change1d)),
-              const SizedBox(width: 12),
+              SizedBox(width: res.spacing(10)),
               Expanded(child: MetricCard(title: '7d Volume', value: metrics.total7d, change: metrics.change7d)),
-              const SizedBox(width: 12),
+              SizedBox(width: res.spacing(10)),
               Expanded(child: MetricCard(title: '30d Volume', value: metrics.total30d, change: metrics.change1m)),
-              const SizedBox(width: 12),
+              SizedBox(width: res.spacing(10)),
               Expanded(child: MetricCard(title: 'Cumulative', value: metrics.totalAllTime, isCumulative: true)),
             ],
           );
@@ -166,15 +168,15 @@ class _DexVolumePageState extends State<DexVolumePage> {
             Row(
               children: [
                 Expanded(child: MetricCard(title: '24h Volume', value: metrics.total24h, change: metrics.change1d)),
-                const SizedBox(width: 12),
+                SizedBox(width: res.spacing(10)),
                 Expanded(child: MetricCard(title: '7d Volume', value: metrics.total7d, change: metrics.change7d)),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: res.spacing(10)),
             Row(
               children: [
                 Expanded(child: MetricCard(title: '30d Volume', value: metrics.total30d, change: metrics.change1m)),
-                const SizedBox(width: 12),
+                SizedBox(width: res.spacing(10)),
                 Expanded(child: MetricCard(title: 'Cumulative', value: metrics.totalAllTime, isCumulative: true)),
               ],
             ),
@@ -185,6 +187,7 @@ class _DexVolumePageState extends State<DexVolumePage> {
   }
 
   Widget _buildAdoptionCards(AdoptionMetrics adoption) {
+    final res = Responsive(context);
     return Column(
       children: [
         Row(
@@ -197,7 +200,7 @@ class _DexVolumePageState extends State<DexVolumePage> {
                 growth: adoption.monthOverMonthGrowth,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: res.spacing(10)),
             Expanded(
               child: AdoptionCard(
                 title: 'Previous Month',
@@ -207,7 +210,7 @@ class _DexVolumePageState extends State<DexVolumePage> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: res.spacing(10)),
         Row(
           children: [
             Expanded(
@@ -217,7 +220,7 @@ class _DexVolumePageState extends State<DexVolumePage> {
                 value: adoption.sixMonthAverageVolume ?? 0,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: res.spacing(10)),
             Expanded(
               child: AdoptionCard(
                 title: 'ATH Month',

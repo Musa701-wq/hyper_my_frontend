@@ -9,8 +9,8 @@ class HlTvlViewModel extends ChangeNotifier {
   HlTvlMetrics? _metrics;
   HlTvlHistory? _history;
   HlChainsHistory? _chainsHistory;
-  String _selectedRange = 'all';
-  String _selectedChainsRange = 'all';
+  String _selectedRange = '1y';
+  String _selectedChainsRange = '1y';
   bool _isLoading = false;
   bool _isHistoryLoading = false;
   bool _isChainsHistoryLoading = false;

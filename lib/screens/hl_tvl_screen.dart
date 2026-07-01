@@ -503,6 +503,7 @@ class _HlTvlScreenState extends State<HlTvlScreen> {
         height: res.spacing(220),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
+          reverse: true,
           physics: const BouncingScrollPhysics(),
           child: SizedBox(
             width: MediaQuery.of(context).size.width * 2.0,
@@ -709,6 +710,7 @@ class _HlTvlScreenState extends State<HlTvlScreen> {
         height: res.spacing(250),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
+          reverse: true,
           physics: const BouncingScrollPhysics(),
           child: SizedBox(
             width: MediaQuery.of(context).size.width * 2.0,
