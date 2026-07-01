@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -16,6 +15,9 @@ import '../models/orderbook_model.dart';
 class OrderBookService {
   final String symbol;
   final String? dex;
+  final bool isHip4;
+  final String? hip4MarketId;
+  final int? hip4Side;
 
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _subscription;
@@ -24,24 +26,54 @@ class OrderBookService {
 
   static const _pollInterval = Duration(milliseconds: 1500);
 
-  OrderBookService({required this.symbol, this.dex});
+  OrderBookService({
+    required this.symbol,
+    this.dex,
+    this.isHip4 = false,
+    this.hip4MarketId,
+    this.hip4Side,
+  });
 
-  String get _baseUrl => AppConfig.baseUrl;
-  String get _wsBase => AppConfig.wsUrl;
+  String get _wsBase {
+    if (isHip4) {
+      final detailBase = AppConfig.hip4DetailBaseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+      if (detailBase.startsWith('https://')) {
+        return detailBase.replaceFirst('https://', 'wss://');
+      } else if (detailBase.startsWith('http://')) {
+        return detailBase.replaceFirst('http://', 'ws://');
+      }
+      return detailBase;
+    }
+    return AppConfig.wsUrl;
+  }
 
   /// Starts live updates: REST poll + symbol-scoped WebSocket.
   Future<void> startLive({
     required void Function(OrderBookSnapshot snapshot) onUpdate,
     void Function(Object error)? onError,
   }) async {
-    final initial = await fetchSnapshot(symbol, dex: dex, maxAttempts: 3);
+    final initial = await fetchSnapshot(
+      symbol,
+      dex: dex,
+      maxAttempts: 3,
+      isHip4: isHip4,
+      hip4MarketId: hip4MarketId,
+      hip4Side: hip4Side,
+    );
     if (_disposed) return;
     if (initial != null) onUpdate(initial);
 
     _pollTimer = Timer.periodic(_pollInterval, (_) async {
       if (_disposed) return;
       try {
-        final snap = await fetchSnapshot(symbol, dex: dex, maxAttempts: 1);
+        final snap = await fetchSnapshot(
+          symbol,
+          dex: dex,
+          maxAttempts: 1,
+          isHip4: isHip4,
+          hip4MarketId: hip4MarketId,
+          hip4Side: hip4Side,
+        );
         if (!_disposed && snap != null) onUpdate(snap);
       } catch (e) {
         debugPrint('OrderBook poll error $symbol: $e');
@@ -73,10 +105,17 @@ class OrderBookService {
       await _channel!.ready;
 
       _subscription = _channel!.stream.listen(
-        (message) => _handleMessage(message, onUpdate),
-        onError: (e) => onError?.call(e),
+        (message) {
+          debugPrint('[OB-WS] RAW >> ${message.toString().length > 300 ? message.toString().substring(0, 300) + "..." : message}');
+          _handleMessage(message, onUpdate);
+        },
+        onError: (e) {
+          debugPrint('[OB-WS] ERROR >> $e');
+          onError?.call(e);
+        },
+        onDone: () => debugPrint('[OB-WS] CLOSED for $symbol'),
       );
-      debugPrint('OrderBook WS connected: $wsUrl');
+      debugPrint('[OB-WS] Connected: $wsUrl');
     } catch (e) {
       debugPrint('OrderBook WS failed ($symbol): $e');
     }
@@ -88,15 +127,27 @@ class OrderBookService {
     String? dex,
     int levels = 8,
     int maxAttempts = 2,
+    bool isHip4 = false,
+    String? hip4MarketId,
+    int? hip4Side,
   }) async {
     final query = <String, String>{'levels': levels.toString()};
     if (dex != null && dex.isNotEmpty) query['dex'] = dex;
 
-    final String baseUrl = AppConfig.baseUrl;
+    final String baseUrl = isHip4 ? AppConfig.hip4DetailBaseUrl : AppConfig.baseUrl;
     final String cleanBase = baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
     final bareSymbol = symbol.contains(':') ? symbol.split(':').last : symbol;
 
-    final uri = Uri.parse('$cleanBase/api/orderbook/$bareSymbol').replace(queryParameters: query);
+    Uri uri;
+    if (isHip4 && hip4MarketId != null) {
+      if (hip4Side != null) {
+        query['side'] = hip4Side.toString();
+      }
+      query['coin'] = symbol;
+      uri = Uri.parse('$cleanBase/api/hip4/orderbook/$hip4MarketId').replace(queryParameters: query);
+    } else {
+      uri = Uri.parse('$cleanBase/api/orderbook/$bareSymbol').replace(queryParameters: query);
+    }
 
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       try {
@@ -128,40 +179,82 @@ class OrderBookService {
   }
 
   static Map<String, dynamic>? _extractData(dynamic decoded) {
-    if (decoded is! Map<String, dynamic>) return null;
-    if (decoded['success'] == true && decoded['data'] is Map) {
-      return Map<String, dynamic>.from(decoded['data'] as Map);
+    if (decoded is String) {
+      try {
+        decoded = json.decode(decoded);
+      } catch (_) {}
     }
-    if (decoded.containsKey('bids') || decoded.containsKey('asks')) {
-      return decoded;
+    if (decoded is! Map) return null;
+    final map = Map<String, dynamic>.from(decoded);
+    if (map['success'] == true) {
+      final rawData = map['data'];
+      if (rawData is Map) {
+        return Map<String, dynamic>.from(rawData);
+      } else if (rawData is String) {
+        try {
+          final parsed = json.decode(rawData);
+          if (parsed is Map) {
+            return Map<String, dynamic>.from(parsed);
+          }
+        } catch (_) {}
+      }
+    }
+    if (map.containsKey('bids') || map.containsKey('asks')) {
+      return map;
     }
     return null;
   }
 
   void _handleMessage(dynamic message, void Function(OrderBookSnapshot) onUpdate) {
     try {
-      final decoded = json.decode(message as String);
-      if (decoded is! Map<String, dynamic>) return;
+      var decoded = json.decode(message as String);
+      if (decoded is String) {
+        try { decoded = json.decode(decoded); } catch (_) {}
+      }
+      if (decoded is! Map) {
+        debugPrint('[OB-WS] Non-map message, skipping');
+        return;
+      }
+
+      final map = Map<String, dynamic>.from(decoded);
+      final msgType = map['type'] ?? map['channel'] ?? '(no type)';
+      debugPrint('[OB-WS] MSG type=$msgType keys=${map.keys.toList()}');
 
       Map<String, dynamic>? payload;
-      if (decoded['type'] == 'orderbook_update' && decoded['data'] is Map) {
-        payload = Map<String, dynamic>.from(decoded['data'] as Map);
-      } else if (decoded.containsKey('bids')) {
-        payload = decoded;
+      if (map['type'] == 'orderbook_update' || map['type'] == 'orderbook_snapshot') {
+        final rawData = map['data'];
+        debugPrint('[OB-WS] data runtimeType=${rawData.runtimeType}');
+        if (rawData is Map) {
+          payload = Map<String, dynamic>.from(rawData);
+        } else if (rawData is String) {
+          try {
+            final parsed = json.decode(rawData);
+            if (parsed is Map) payload = Map<String, dynamic>.from(parsed);
+          } catch (_) {}
+        }
+      } else if (map.containsKey('bids')) {
+        payload = map;
       }
-      if (payload == null) return;
+      if (payload == null) {
+        debugPrint('[OB-WS] No payload extracted for type=$msgType, dropping');
+        return;
+      }
+      debugPrint('[OB-WS] Parsed payload bids=${payload["bids"]?.length ?? 0} asks=${payload["asks"]?.length ?? 0}');
 
       final snapshot = OrderBookSnapshot.fromJson(payload);
-      if (!_matchesSymbol(symbol, snapshot.symbol)) return;
+      if (!_matchesSymbol(symbol, snapshot.symbol, isHip4: isHip4)) return;
       if (snapshot.bids.isEmpty && snapshot.asks.isEmpty) return;
 
       onUpdate(snapshot);
     } catch (e) {
-      debugPrint('OrderBook WS parse: $e');
+      debugPrint('[OB-WS] PARSE ERROR: $e');
     }
   }
 
-  static bool _matchesSymbol(String subscribed, String incoming) {
+  static bool _matchesSymbol(String subscribed, String incoming, {bool isHip4 = false}) {
+    if (isHip4) {
+      return subscribed.trim().toUpperCase() == incoming.trim().toUpperCase();
+    }
     String coin(String s) {
       final upper = s.toUpperCase();
       if (upper.contains(':')) return upper.split(':').last;

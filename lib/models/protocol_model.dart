@@ -1,5 +1,19 @@
 import 'package:intl/intl.dart';
 
+class TvlPoint {
+  final DateTime date;
+  final double value;
+
+  TvlPoint({required this.date, required this.value});
+
+  factory TvlPoint.fromJson(Map<String, dynamic> json) {
+    return TvlPoint(
+      date: DateTime.fromMillisecondsSinceEpoch((json['date'] as num).toInt() * 1000),
+      value: (json['totalLiquidityUSD'] as num? ?? 0).toDouble(),
+    );
+  }
+}
+
 class Protocol {
   final String name;
   final String slug;
@@ -9,6 +23,9 @@ class Protocol {
   final String? division;
   final String type; // core, ecosystem, other
   final int? rank;
+  final double? change1h;
+  final double? change1d;
+  final double? change7d;
 
   Protocol({
     required this.name,
@@ -19,6 +36,9 @@ class Protocol {
     this.division,
     required this.type,
     this.rank,
+    this.change1h,
+    this.change1d,
+    this.change7d,
   });
 
   factory Protocol.fromJson(Map<String, dynamic> json, {int? index}) {
@@ -31,6 +51,9 @@ class Protocol {
       division: json['division'] as String?,
       type: json['type'] as String? ?? 'other',
       rank: index != null ? index + 1 : null,
+      change1h: (json['change_1h'] as num?)?.toDouble(),
+      change1d: (json['change_1d'] as num?)?.toDouble(),
+      change7d: (json['change_7d'] as num?)?.toDouble(),
     );
   }
 
@@ -69,6 +92,7 @@ class ProtocolDetail {
   final double? mcap;
   final String? division;
   final String type;
+  final List<TvlPoint> historicalTvl;
 
   ProtocolDetail({
     required this.id,
@@ -88,9 +112,24 @@ class ProtocolDetail {
     this.mcap,
     this.division,
     required this.type,
+    required this.historicalTvl,
   });
 
   factory ProtocolDetail.fromJson(Map<String, dynamic> json) {
+    // Robust TVL and historical data parsing
+    double currentTvl = 0;
+    List<TvlPoint> historicalTvl = [];
+    
+    final tvlData = json['tvl'];
+    if (tvlData is List) {
+      historicalTvl = tvlData.map((e) => TvlPoint.fromJson(e)).toList();
+      if (historicalTvl.isNotEmpty) {
+        currentTvl = historicalTvl.last.value;
+      }
+    } else if (tvlData is num) {
+      currentTvl = tvlData.toDouble();
+    }
+
     // Parse chainTvls
     final rawChainTvls = json['chainTvls'] as Map<String, dynamic>? ?? {};
     final chainTvls = <String, double>{};
@@ -107,7 +146,7 @@ class ProtocolDetail {
       name: json['name'] as String? ?? 'Unknown',
       slug: json['slug'] as String? ?? '',
       logo: json['logo'] as String? ?? '',
-      tvl: (json['tvl'] as num? ?? 0).toDouble(),
+      tvl: currentTvl,
       change1h: (json['change_1h'] as num? ?? 0).toDouble(),
       change1d: (json['change_1d'] as num? ?? 0).toDouble(),
       change7d: (json['change_7d'] as num? ?? 0).toDouble(),
@@ -120,6 +159,7 @@ class ProtocolDetail {
       mcap: (json['mcap'] as num?)?.toDouble(),
       division: json['division'] as String?,
       type: json['type'] as String? ?? 'other',
+      historicalTvl: historicalTvl,
     );
   }
 
@@ -174,6 +214,11 @@ class CategoryDistribution {
     if (tvl >= 1e3) return '\$${(tvl / 1e3).toStringAsFixed(2)}K';
     return '\$${tvl.toStringAsFixed(0)}';
   }
+
+  String get fullTvl {
+    final formatter = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+    return formatter.format(tvl);
+  }
 }
 
 class ChainTvl {
@@ -194,5 +239,68 @@ class ChainTvl {
     if (tvl >= 1e6) return '\$${(tvl / 1e6).toStringAsFixed(2)}M';
     if (tvl >= 1e3) return '\$${(tvl / 1e3).toStringAsFixed(2)}K';
     return '\$${tvl.toStringAsFixed(0)}';
+  }
+
+  String get fullTvl {
+    final formatter = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+    return formatter.format(tvl);
+  }
+}
+class ChainFocusProject {
+  final String name;
+  final double tvl;
+  final double pct;
+
+  ChainFocusProject({
+    required this.name,
+    required this.tvl,
+    required this.pct,
+  });
+
+  factory ChainFocusProject.fromJson(Map<String, dynamic> json) {
+    return ChainFocusProject(
+      name: json['name'] as String? ?? 'Unknown',
+      tvl: (json['tvl'] as num? ?? 0).toDouble(),
+      pct: (json['projectPct'] as num? ?? json['pct'] as num? ?? 0).toDouble(),
+    );
+  }
+
+  String get fullTvl {
+    final formatter = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+    return formatter.format(tvl);
+  }
+
+  String get formattedTvl {
+    if (tvl >= 1e9) return '\$${(tvl / 1e9).toStringAsFixed(2)}B';
+    if (tvl >= 1e6) return '\$${(tvl / 1e6).toStringAsFixed(2)}M';
+    if (tvl >= 1e3) return '\$${(tvl / 1e3).toStringAsFixed(2)}K';
+    return '\$${tvl.toStringAsFixed(0)}';
+  }
+}
+
+class ChainFocus {
+  final String chain;
+  final double totalTvl;
+  final double pct;
+  final int count;
+  final List<ChainFocusProject> projects;
+
+  ChainFocus({
+    required this.chain,
+    required this.totalTvl,
+    required this.pct,
+    required this.count,
+    required this.projects,
+  });
+
+  factory ChainFocus.fromJson(Map<String, dynamic> json) {
+    var rawProjects = json['projects'] as List<dynamic>? ?? [];
+    return ChainFocus(
+      chain: json['chain'] as String? ?? 'Unknown',
+      totalTvl: (json['totalTvl'] as num? ?? 0).toDouble(),
+      pct: (json['pct'] as num? ?? 0).toDouble(),
+      count: (json['count'] as num? ?? 0).toInt(),
+      projects: rawProjects.map((e) => ChainFocusProject.fromJson(e as Map<String, dynamic>)).toList(),
+    );
   }
 }

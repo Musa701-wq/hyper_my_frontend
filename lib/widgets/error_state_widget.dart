@@ -70,13 +70,13 @@ class ErrorStateWidget extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               errorMessage.isEmpty
-                  ? 'We encountered a problem connecting to the server. Please try again.'
+                  ? 'We encountered a problem connecting to the server. Please check your internet connection or try again later.'
                   : errorMessage,
               textAlign: TextAlign.center,
               style: GoogleFonts.jetBrainsMono(
                 color: AppColors.textSecondary,
-                fontSize: 12,
-                height: 1.5,
+                fontSize: 13,
+                height: 1.6,
               ),
             ),
             if (onRetry != null) ...[

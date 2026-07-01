@@ -11,10 +11,10 @@ class DexVolumeViewModel extends ChangeNotifier {
   List<DexVolumeChartPoint> _spotChartData = [];
   AdoptionMetrics? _adoption;
   
-  bool _isLoading = false;
+  bool _isLoading = true;
   String _errorMessage = '';
   String _selectedScope = 'spot'; // all, spot, perps
-  String _selectedTimeRange = 'All'; // All, D, W, M, Y
+  String _selectedTimeRange = 'M'; // All, D, W, M, Y
   String _selectedChartType = 'Area'; // Area, Bar
 
   DexVolumeMetrics? get metrics => _metrics;
@@ -73,7 +73,7 @@ class DexVolumeViewModel extends ChangeNotifier {
       
       _errorMessage = '';
     } catch (e) {
-      _errorMessage = 'Failed to fetch DEX data: $e';
+      _errorMessage = 'We encountered a problem connecting to the server. Please check your internet connection or try again later.';
       debugPrint('Fetch error: $e');
     } finally {
       _isLoading = false;

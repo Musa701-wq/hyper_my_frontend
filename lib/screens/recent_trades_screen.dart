@@ -95,7 +95,12 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
                 title: 'Live Trade Stream',
                 description: 'Unlock real-time trade history, liquidity analysis, and millisecond-precision trade matching.',
                 onUpgrade: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => const SubscriptionScreen(),
+                    transitionDuration: Duration.zero,
+                    reverseTransitionDuration: Duration.zero,
+                    transitionsBuilder: (_, __, ___, child) => child,
+                  ),
                 ),
               );
             }

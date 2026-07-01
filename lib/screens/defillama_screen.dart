@@ -9,28 +9,9 @@ import '../utils/responsive.dart';
 import '../viewmodels/defillama_viewmodel.dart';
 import '../widgets/error_state_widget.dart';
 
-// ─── Sub-protocol colors ─────────────────────────────────────
+// ─── Sub-protocol colors (only used in scope tabs / period table) ──
 const Color kColorPerps = Color(0xFF0D9488);
 const Color kColorSpot  = Color(0xFF7C3AED);
-const Color kColorHLP   = Color(0xFFD97706);
-const Color kColorMain  = Color(0xFF059669);
-const Color kColorBar   = Color(0xFF10B981);
-
-// ─── Stat card data model ────────────────────────────────────
-class _StatCard {
-  final String label;
-  final String value;
-  final String badge;
-  final bool badgeUp;
-  final bool showBadge;
-  const _StatCard({
-    required this.label,
-    required this.value,
-    this.badge = '',
-    this.badgeUp = true,
-    this.showBadge = false,
-  });
-}
 
 class DefiLlamaScreen extends StatefulWidget {
   const DefiLlamaScreen({super.key});
@@ -52,9 +33,9 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
     final res = Responsive(context);
     return AppBackground(
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
-          backgroundColor: AppColors.background,
+          backgroundColor: Colors.transparent,
           elevation: 0,
           leading: GestureDetector(
             onTap: () => Navigator.pop(context),
@@ -106,25 +87,13 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
             SizedBox(height: res.spacing(16)),
 
             _sectionLabel('OVERVIEW'),
-            SizedBox(height: res.spacing(8)),
-            _statCards(vm, res),
-            SizedBox(height: res.spacing(20)),
-
-            Row(children: [
-              _sectionLabel('DAILY ${vm.tabLabel.toUpperCase()} — ALL TIME'),
-              const Spacer(),
-              _chartToggle(vm.chartMode, vm.setChartMode, res),
-            ]),
-            SizedBox(height: res.spacing(8)),
-            _scopeTabRow(vm, res),
-            SizedBox(height: res.spacing(6)),
-            _rangeTabRow(vm, res),
-            SizedBox(height: res.spacing(8)),
-            _allTimeChart(vm, res),
             SizedBox(height: res.spacing(12)),
+            _statCards(vm, res),
+            SizedBox(height: res.spacing(12)),
+
+            _allTimeChart(vm, res),
+            SizedBox(height: res.spacing(16)),
             _chartDataTable(vm, res),
-            SizedBox(height: res.spacing(8)),
-            _tablePagination(vm, res),
             SizedBox(height: res.spacing(20)),
 
             _sectionLabel('PERIOD BREAKDOWN'),
@@ -137,29 +106,22 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
     );
   }
 
-  Widget _sectionLabel(String text) => Text(
-    text,
-    style: GoogleFonts.jetBrainsMono(
-      color: AppColors.textSecondary.withOpacity(0.45),
-      fontSize: 9,
-      letterSpacing: 1.8,
-    ),
-  );
+  Widget _sectionLabel(String text) => SectionLabel(text: text);
 
   // ════════════════════════════════════════════════════════════
   //  TAB TOGGLE
   // ════════════════════════════════════════════════════════════
   Widget _tabRow(DefiLlamaViewModel vm, Responsive res) {
     return Container(
-      height: 38,
+      height: 44,
       decoration: BoxDecoration(
         color: AppColors.background,
         border: Border.all(color: AppColors.surfaceBright),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
       ),
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(3),
+        padding: const EdgeInsets.all(4),
         child: Row(children: [
           _tabPill('Fees',    vm.tab == 'fees',    () => vm.setTab('fees'),    res),
           _tabPill('Revenue', vm.tab == 'revenue', () => vm.setTab('revenue'), res),
@@ -177,13 +139,13 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: active ? AppColors.surfaceBright : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(7),
           ),
           child: Text(title,
             style: GoogleFonts.jetBrainsMono(
               color: active ? AppColors.brandAccent : AppColors.textSecondary,
               fontSize: res.fontSize(12),
-              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+              fontWeight: FontWeight.bold,
             )),
         ),
       ),
@@ -195,19 +157,17 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
   // ════════════════════════════════════════════════════════════
   Widget _chartToggle(String mode, void Function(String) onSet, Responsive res) {
     return Container(
-      height: 26,
+      height: 32,
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.surfaceBright),
-        borderRadius: BorderRadius.circular(6),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(2),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          _modePill('Area', mode == 'area', () => onSet('area'), res),
-          _modePill('Bar',  mode == 'bar',  () => onSet('bar'),  res),
-        ]),
-      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        _modePill('Area', mode == 'area', () => onSet('area'), res),
+        _modePill('Bar',  mode == 'bar',  () => onSet('bar'),  res),
+      ]),
     );
   }
 
@@ -220,210 +180,207 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: active ? AppColors.surfaceBright : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(5),
         ),
         child: Text(label,
           style: GoogleFonts.jetBrainsMono(
             color: active ? AppColors.brandAccent : AppColors.textSecondary,
-            fontSize: res.fontSize(9),
-            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
           )),
       ),
     );
   }
 
   // ════════════════════════════════════════════════════════════
-  //  6 STAT CARDS
+  //  STAT CARDS — 3 per row, Profile-style with icons
   // ════════════════════════════════════════════════════════════
   Widget _statCards(DefiLlamaViewModel vm, Responsive res) {
     final change = vm.change1d;
-    final cards = [
-      _StatCard(
-        label: '24h',
-        value: vm.fmtCompact(vm.stat24h),
-        badge: vm.fmtPct(change),
-        badgeUp: change >= 0,
-        showBadge: true,
-      ),
-      _StatCard(label: 'Prev 24h', value: vm.fmtCompact(vm.statPrev24h)),
-      _StatCard(label: '7d',       value: vm.fmtCompact(vm.stat7d)),
-      _StatCard(label: '30d',      value: vm.fmtCompact(vm.stat30d)),
-      _StatCard(label: '1y',       value: vm.fmtCompact(vm.stat1y)),
-      _StatCard(label: 'All Time', value: vm.fmtCompact(vm.statAllTime)),
-    ];
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: res.spacing(8),
-      mainAxisSpacing: res.spacing(8),
-      childAspectRatio: 1.35,
-      children: cards.map((c) => _statCardTile(c, res)).toList(),
+    final isUp = change >= 0;
+    return Row(
+      children: [
+        Expanded(child: _profileStatCard(
+          title: '24H',
+          value: vm.fmtCompact(vm.stat24h),
+          icon: Icons.trending_up,
+          accent: AppColors.brandAccent,
+          badge: vm.fmtPct(change),
+          badgeUp: isUp,
+        )),
+        SizedBox(width: res.spacing(10)),
+        Expanded(child: _profileStatCard(
+          title: '7D',
+          value: vm.fmtCompact(vm.stat7d),
+          icon: Icons.date_range,
+          accent: AppColors.brandAccent,
+        )),
+        SizedBox(width: res.spacing(10)),
+        Expanded(child: _profileStatCard(
+          title: 'ALL TIME',
+          value: vm.fmtCompact(vm.statAllTime),
+          icon: Icons.history,
+          accent: AppColors.brandAccent,
+        )),
+      ],
     );
   }
 
-  Widget _statCardTile(_StatCard c, Responsive res) {
+  Widget _profileStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color accent,
+    String? badge,
+    bool badgeUp = true,
+  }) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: res.spacing(10), vertical: res.spacing(9),
-      ),
+      padding: EdgeInsets.all(responsive(context).spacing(12)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.brandAccent.withOpacity(0.25),
-          width: 1,
-        ),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.brandAccent.withOpacity(0.13),
-            AppColors.brandAccent.withOpacity(0.04),
-            AppColors.background,
-          ],
-          stops: const [0.0, 0.45, 1.0],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.brandAccent.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.surfaceBright.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(responsive(context).value(mobile: 16, tablet: 14, desktop: 20)),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(c.label,
-            style: GoogleFonts.jetBrainsMono(
-              color: AppColors.brandAccent.withOpacity(0.7),
-              fontSize: res.fontSize(9),
-              letterSpacing: 0.6,
-              fontWeight: FontWeight.w500,
-            )),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(c.value,
-              style: GoogleFonts.jetBrainsMono(
-                color: Colors.white,
-                fontSize: res.fontSize(14),
-                fontWeight: FontWeight.bold,
-              )),
-          ),
-          if (c.showBadge)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-              decoration: BoxDecoration(
-                color: c.badgeUp
-                    ? AppColors.trendGreen.withOpacity(0.18)
-                    : AppColors.trendRed.withOpacity(0.18),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: c.badgeUp
-                      ? AppColors.trendGreen.withOpacity(0.3)
-                      : AppColors.trendRed.withOpacity(0.3),
-                  width: 0.5,
-                ),
-              ),
-              child: Text(c.badge,
-                style: GoogleFonts.jetBrainsMono(
-                  color: c.badgeUp ? AppColors.trendGreen : AppColors.trendRed,
-                  fontSize: res.fontSize(8),
-                  fontWeight: FontWeight.bold,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title,
+                style: GoogleFonts.inter(
+                  color: AppColors.textSecondary,
+                  fontSize: responsive(context).value(mobile: 9, tablet: 8, desktop: 10),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
                 )),
-            )
-          else
-            const SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(responsive(context).value(mobile: 6, tablet: 4, desktop: 6)),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: accent,
+                  size: responsive(context).value(mobile: 14, tablet: 12, desktop: 16)),
+              ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(value,
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: responsive(context).value(mobile: 16, tablet: 13, desktop: 16),
+                    fontWeight: FontWeight.bold,
+                  )),
+              ),
+              if (badge != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(badgeUp ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                      color: badgeUp ? AppColors.trendGreen : AppColors.trendRed,
+                      size: responsive(context).value(mobile: 14, tablet: 11, desktop: 14)),
+                    const SizedBox(width: 2),
+                    Text(badge,
+                      style: GoogleFonts.inter(
+                        color: badgeUp ? AppColors.trendGreen : AppColors.trendRed,
+                        fontSize: responsive(context).value(mobile: 10, tablet: 8, desktop: 10),
+                        fontWeight: FontWeight.w500,
+                      )),
+                  ],
+                ),
+              ],
+            ],
+          ),
         ],
       ),
     );
   }
 
+  Responsive responsive(BuildContext context) => Responsive(context);
+
   // ════════════════════════════════════════════════════════════
-  //  SCOPE TABS  — All / Perps / Spot / HLP
+  //  SCOPE TABS  — All / Perps / Spot / HLP  (OHLC-style)
   // ════════════════════════════════════════════════════════════
   Widget _scopeTabRow(DefiLlamaViewModel vm, Responsive res) {
     return Container(
-      height: 34,
+      width: double.infinity,
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: AppColors.background,
-        border: Border.all(color: AppColors.surfaceBright),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(10),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(3),
-        child: Row(
-          children: ChartScope.values.map((s) {
-            final active = vm.chartScope == s;
-            final color  = s.color;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () => vm.setChartScope(s),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: active ? color.withOpacity(0.18) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                    border: active
-                        ? Border.all(color: color.withOpacity(0.5), width: 1)
-                        : null,
+      child: Row(
+        children: ChartScope.values.map((s) {
+          final isSelected = vm.chartScope == s;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => vm.setChartScope(s),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 7),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFF10B981) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  s.label.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.jetBrainsMono(
+                    color: isSelected ? Colors.black : AppColors.textSecondary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
                   ),
-                  child: Text(s.label,
-                    style: GoogleFonts.jetBrainsMono(
-                      color: active ? color : AppColors.textSecondary,
-                      fontSize: res.fontSize(11),
-                      fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                    )),
                 ),
               ),
-            );
-          }).toList(),
-        ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 
   // ════════════════════════════════════════════════════════════
-  //  RANGE TABS  — 1D / 1W / 1M / 1Y / ALL
+  //  RANGE DROPDOWN — 1D / 1W / 1M / 1Y
   // ════════════════════════════════════════════════════════════
-  Widget _rangeTabRow(DefiLlamaViewModel vm, Responsive res) {
+  Widget _rangeDropdown(DefiLlamaViewModel vm, Responsive res) {
     return Container(
-      height: 34,
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: AppColors.background,
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: AppColors.surfaceBright),
-        borderRadius: BorderRadius.circular(8),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(3),
-        child: Row(
-          children: ChartRange.values.map((r) {
-            final active = vm.chartRange == r;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () => vm.setChartRange(r),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: active ? AppColors.surfaceBright : Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(r.label,
-                    style: GoogleFonts.jetBrainsMono(
-                      color: active ? AppColors.brandAccent : AppColors.textSecondary,
-                      fontSize: res.fontSize(11),
-                      fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                    )),
-                ),
-              ),
-            );
-          }).toList(),
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          canvasColor: AppColors.background,
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<ChartRange>(
+            value: vm.chartRange,
+            icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary, size: 14),
+            style: GoogleFonts.jetBrainsMono(
+              color: AppColors.brandAccent,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+            padding: EdgeInsets.zero,
+            dropdownColor: AppColors.background,
+            onChanged: (ChartRange? r) {
+              if (r != null) vm.setChartRange(r);
+            },
+            items: ChartRange.values.map((r) {
+              return DropdownMenuItem<ChartRange>(
+                value: r,
+                child: Text(r.label),
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
@@ -434,25 +391,24 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
   // ════════════════════════════════════════════════════════════
   Widget _allTimeChart(DefiLlamaViewModel vm, Responsive res) {
     if (vm.isChartLoading) {
-      return Container(
-        height: 300,
-        decoration: BoxDecoration(
-          color: AppColors.background,
-          border: Border.all(color: AppColors.surfaceBright),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(child: SizedBox(
-          width: 24, height: 24,
-          child: CircularProgressIndicator(
-            strokeWidth: 2, color: vm.chartScope.color,
+      return Shimmer.fromColors(
+        baseColor: const Color(0xFF1E222D),
+        highlightColor: const Color(0xFF2E3340),
+        period: const Duration(milliseconds: 1400),
+        child: Container(
+          height: 320,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceBright.withOpacity(0.1),
+            border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
+            borderRadius: BorderRadius.circular(20),
           ),
-        )),
+        ),
       );
     }
 
     final spots = vm.chartSpots;
     final dates = vm.chartDates;
-    if (spots.isEmpty) return _emptyBox(res, 300);
+    if (spots.isEmpty) return _emptyBox(res, 320);
 
     final n          = spots.length;
     final scopeColor = vm.chartScope.color;
@@ -470,31 +426,72 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
     final double pxPerBar;
     switch (vm.chartRange) {
       case ChartRange.daily:
-        pxPerBar = (scrollAreaW / 365).clamp(3.0, 10.0);
+        pxPerBar = (scrollAreaW / 365).clamp(3.0, 10.0).toDouble();
         break;
       case ChartRange.weekly:
-        pxPerBar = (scrollAreaW / 52).clamp(12.0, 36.0);
+        pxPerBar = (scrollAreaW / 52).clamp(12.0, 36.0).toDouble();
         break;
       case ChartRange.monthly:
-        pxPerBar = (scrollAreaW / 12).clamp(40.0, 80.0);
+        pxPerBar = (scrollAreaW / 12).clamp(40.0, 80.0).toDouble();
         break;
       case ChartRange.yearly:
         pxPerBar = scrollAreaW;
         break;
     }
 
-    final canvasW = (n * pxPerBar).clamp(scrollAreaW, scrollAreaW * 15);
+    final canvasW = (n * pxPerBar).clamp(scrollAreaW, scrollAreaW * 15).toDouble();
 
-    return _ChartWithPinnedYAxis(
-      height: 300,
-      yAxisW: yAxisW,
-      canvasW: canvasW,
-      yAxisWidget: _yAxisWidget(spots, scopeColor),
-      chartWidget: Padding(
-        padding: const EdgeInsets.only(right: 4),
-        child: vm.chartMode == 'bar'
-            ? _barChart(spots, dates, scopeColor, res, canvasW)
-            : _areaChart(spots, dates, scopeColor, res, canvasW),
+    return AppCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'DAILY ${vm.tabLabel.toUpperCase()}',
+                style: GoogleFonts.jetBrainsMono(
+                  color: AppColors.textSecondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              _rangeDropdown(vm, res),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(color: Colors.white.withOpacity(0.06), height: 1, thickness: 1),
+          const SizedBox(height: 12),
+          _scopeTabRow(vm, res),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 320,
+            child: Stack(
+              children: [
+                _ChartWithPinnedYAxis(
+                  height: 320,
+                  yAxisW: yAxisW,
+                  canvasW: canvasW,
+                  yAxisWidget: _yAxisWidget(spots, scopeColor),
+                  chartBuilder: (chartWidth) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: vm.chartMode == 'bar'
+                        ? _barChart(spots, dates, scopeColor, res, chartWidth)
+                        : _areaChart(spots, dates, scopeColor, res, chartWidth),
+                  ),
+                ),
+                // Overlaid Controls (Grouped on right)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: _chartToggle(vm.chartMode, vm.setChartMode, res),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -624,7 +621,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
     final interval = maxY > 0 ? maxY / 6 : 1.0;
     final labelEvery = _labelEvery(n, canvasWidth);
     final rodW = canvasWidth != null && n > 0
-        ? (canvasWidth / n * 0.6).clamp(1.0, 12.0)
+        ? (canvasWidth / n * 0.6).clamp(1.0, 12.0).toDouble()
         : (n > 300 ? 1.0 : n > 150 ? 1.6 : n > 60 ? 2.4 : 4.0);
 
     return BarChart(
@@ -722,7 +719,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
   }
 
   // ════════════════════════════════════════════════════════════
-  //  CHART DATA TABLE  (same data as graph, paginated)
+  //  CHART DATA TABLE  (spot-balances style)
   // ════════════════════════════════════════════════════════════
   Widget _chartDataTable(DefiLlamaViewModel vm, Responsive res) {
     final rows = vm.paginatedTableRows;
@@ -737,162 +734,179 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
     }
     final scopeColor = vm.chartScope.color;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        border: Border.all(color: AppColors.surfaceBright),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: res.spacing(14), vertical: 10),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.surfaceBright)),
-            ),
-            child: Row(children: [
-              Expanded(flex: 3, child: Text(dateHeader,
-                style: GoogleFonts.jetBrainsMono(
-                  color: AppColors.textSecondary, fontSize: res.fontSize(10),
-                  fontWeight: FontWeight.bold, letterSpacing: 0.4,
-                ))),
-              Expanded(flex: 2, child: Text(vm.tabLabel,
-                textAlign: TextAlign.right,
-                style: GoogleFonts.jetBrainsMono(
-                  color: scopeColor, fontSize: res.fontSize(10),
-                  fontWeight: FontWeight.bold,
-                ))),
-            ]),
-          ),
-          ...rows.asMap().entries.map((e) {
-            final isLast = e.key == rows.length - 1;
-            final row    = e.value;
-            return Container(
-              padding: EdgeInsets.symmetric(horizontal: res.spacing(14), vertical: 12),
-              decoration: BoxDecoration(
-                border: isLast ? null : const Border(
-                  bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5),
-                ),
-              ),
-              child: Row(children: [
-                Expanded(flex: 3, child: Text(vm.tableDateLabel(row.date),
-                  style: GoogleFonts.jetBrainsMono(
-                    color: Colors.white, fontSize: res.fontSize(11),
-                    fontWeight: FontWeight.w500,
-                  ))),
-                Expanded(flex: 2, child: Text(vm.fmtCompact(row.value),
-                  textAlign: TextAlign.right,
-                  style: GoogleFonts.jetBrainsMono(
-                    color: scopeColor, fontSize: res.fontSize(11),
-                    fontWeight: FontWeight.w600,
-                  ))),
-              ]),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  // ════════════════════════════════════════════════════════════
-  //  TABLE PAGINATION  (same style as home screen)
-  // ════════════════════════════════════════════════════════════
-  Widget _tablePagination(DefiLlamaViewModel vm, Responsive res) {
     final totalPages  = vm.tableTotalPages;
     final currentPage = vm.tablePage;
-    if (totalPages <= 1) return const SizedBox.shrink();
+    final totalRows   = vm.chartSpots.length;
+    final rowsPerPage = vm.tableRowsPerPage;
+    final startRow = (currentPage - 1) * rowsPerPage + 1;
+    final endRow   = (startRow + rowsPerPage - 1).clamp(1, totalRows);
 
     final tp = totalPages.clamp(1, totalPages);
-    int start = (currentPage - 1).clamp(1, tp);
-    int end   = (start + 2).clamp(1, tp);
-    if (end == tp && tp > 3) start = (end - 2).clamp(1, tp);
+    int pStart = (currentPage - 1).clamp(1, tp);
+    int pEnd   = (pStart + 2).clamp(1, tp);
+    if (pEnd == tp && tp > 3) pStart = pEnd - 2;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text('Rows:', style: GoogleFonts.jetBrainsMono(
-          color: AppColors.textSecondary, fontSize: res.fontSize(12),
-        )),
-        const SizedBox(width: 8),
-        Container(
-          height: 32,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            border: Border.all(color: AppColors.surfaceBright),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<int>(
-              dropdownColor: AppColors.background,
-              value: vm.tableRowsPerPage,
-              icon: const Icon(Icons.keyboard_arrow_down,
-                color: AppColors.textSecondary, size: 16),
-              style: GoogleFonts.jetBrainsMono(
-                color: AppColors.textPrimary, fontSize: res.fontSize(12)),
-              borderRadius: BorderRadius.circular(8),
-              onChanged: (v) { if (v != null) vm.setTableRowsPerPage(v); },
-              items: DefiLlamaViewModel.tableRowsOptions
-                  .map((v) => DropdownMenuItem(value: v, child: Text('$v')))
-                  .toList(),
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        _pgBtn(res, icon: Icons.chevron_left,
-          enabled: currentPage > 1,
-          onTap: () => vm.setTablePage(currentPage - 1)),
-        const SizedBox(width: 8),
-        ...List.generate(end - start + 1, (i) {
-          final p = start + i;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 3),
-            child: _pgBtn(res, text: '$p', active: p == currentPage,
-              onTap: () => vm.setTablePage(p)),
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final colW = constraints.maxWidth / 2;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: colW,
+                    child: Column(
+                      children: [
+                        _tableHeaderCell(dateHeader, width: colW, align: Alignment.centerLeft, leftPad: 16),
+                        ...rows.map((row) => Container(
+                          height: 52,
+                          width: colW,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: const BoxDecoration(
+                            border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+                          ),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(vm.tableDateLabel(row.date),
+                              style: GoogleFonts.jetBrainsMono(
+                                color: AppColors.textPrimary, fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              )),
+                          ),
+                        )),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: 48,
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                            child: Row(children: [
+                              _tableHeaderCell(vm.tabLabel, width: colW),
+                            ]),
+                          ),
+                          ...rows.map((row) => Container(
+                            height: 52,
+                            decoration: const BoxDecoration(
+                              border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+                            ),
+                            child: Row(children: [
+                              SizedBox(
+                                width: colW,
+                                child: Text(vm.fmtCompact(row.value),
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.jetBrainsMono(
+                                    color: scopeColor, fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  )),
+                              ),
+                            ]),
+                          )),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (totalPages > 1) ...[
+                const Divider(color: AppColors.surfaceBright, height: 1),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Showing $startRow\u2013$endRow of $totalRows',
+                        style: GoogleFonts.jetBrainsMono(
+                          color: AppColors.textSecondary, fontSize: 10,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          _pageBtn(icon: Icons.chevron_left, isEnabled: currentPage > 1, isActive: false,
+                            onTap: () => vm.setTablePage(currentPage - 1)),
+                          const SizedBox(width: 6),
+                          ...List.generate(pEnd - pStart + 1, (i) {
+                            final p = pStart + i;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 3),
+                              child: _pageBtn(text: '$p', isActive: p == currentPage, isEnabled: true,
+                                onTap: () => vm.setTablePage(p)),
+                            );
+                          }),
+                          const SizedBox(width: 6),
+                          _pageBtn(icon: Icons.chevron_right, isEnabled: currentPage < totalPages, isActive: false,
+                            onTap: () => vm.setTablePage(currentPage + 1)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           );
-        }),
-        const SizedBox(width: 8),
-        _pgBtn(res, icon: Icons.chevron_right,
-          enabled: currentPage < totalPages,
-          onTap: () => vm.setTablePage(currentPage + 1)),
-      ],
+        },
+      ),
     );
   }
 
-  Widget _pgBtn(Responsive res, {
-    IconData? icon, String? text,
-    bool active = false, bool enabled = true,
+  Widget _tableHeaderCell(String label, {required double width, Alignment align = Alignment.center, double leftPad = 0}) {
+    return Container(
+      width: width,
+      height: 48,
+      padding: EdgeInsets.only(left: leftPad),
+      alignment: align,
+      child: Text(label.toUpperCase(),
+        textAlign: TextAlign.center,
+        style: GoogleFonts.jetBrainsMono(
+          color: AppColors.textSecondary, fontSize: 11,
+        )),
+    );
+  }
+
+  Widget _pageBtn({
+    String? text, IconData? icon,
+    required bool isActive, required bool isEnabled,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
-      onTap: enabled || active ? onTap : null,
+      onTap: isEnabled ? onTap : null,
       child: Opacity(
-        opacity: (!enabled && !active && icon != null) ? 0.35 : 1.0,
+        opacity: isEnabled ? 1.0 : 0.35,
         child: Container(
-          width: 30, height: 30,
+          width: 28, height: 28,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: active ? AppColors.brandAccent : AppColors.background,
-            border: active ? null : Border.all(color: AppColors.surfaceBright),
+            color: isActive ? AppColors.brandAccent : AppColors.background,
+            border: Border.all(
+              color: isActive ? AppColors.brandAccent : AppColors.surfaceBright,
+            ),
             borderRadius: BorderRadius.circular(4),
           ),
-          child: Center(
-            child: icon != null
-                ? Icon(icon, size: 16,
-                    color: active ? Colors.black : Colors.white)
-                : Text(text ?? '',
-                    style: GoogleFonts.jetBrainsMono(
-                      color: active ? Colors.black : Colors.white,
-                      fontSize: res.fontSize(11),
-                      fontWeight: FontWeight.bold,
-                    )),
-          ),
+          child: text != null
+              ? Text(text,
+                  style: GoogleFonts.jetBrainsMono(
+                    color: isActive ? Colors.black : AppColors.textPrimary,
+                    fontSize: 11,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  ))
+              : Icon(icon, size: 14, color: AppColors.textPrimary),
         ),
       ),
     );
   }
 
   // ════════════════════════════════════════════════════════════
-  //  PERIOD BREAKDOWN TABLE
+  //  PERIOD BREAKDOWN TABLE  (spot-balances style)
   // ════════════════════════════════════════════════════════════
   Widget _periodBreakdownTable(DefiLlamaViewModel vm, Responsive res) {
     final bd     = vm.periodBreakdowns;
@@ -901,108 +915,104 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
 
     if (bd.isEmpty) return _emptyBox(res, 80);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        border: Border.all(color: AppColors.surfaceBright),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          // ── Header ──
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: res.spacing(14), vertical: 10,
-            ),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.surfaceBright)),
-            ),
-            child: Row(children: [
-              SizedBox(
-                width: 54,
-                child: Text('Period',
-                  style: GoogleFonts.jetBrainsMono(
-                    color: AppColors.textSecondary,
-                    fontSize: res.fontSize(10),
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.4,
-                  )),
-              ),
-              Expanded(child: Text('Perps', textAlign: TextAlign.right,
-                style: GoogleFonts.jetBrainsMono(
-                  color: kColorPerps, fontSize: res.fontSize(10),
-                  fontWeight: FontWeight.bold,
-                ))),
-              Expanded(child: Text('Spot', textAlign: TextAlign.right,
-                style: GoogleFonts.jetBrainsMono(
-                  color: kColorSpot, fontSize: res.fontSize(10),
-                  fontWeight: FontWeight.bold,
-                ))),
-              Expanded(child: Text('HLP', textAlign: TextAlign.right,
-                style: GoogleFonts.jetBrainsMono(
-                  color: kColorHLP, fontSize: res.fontSize(10),
-                  fontWeight: FontWeight.bold,
-                ))),
-            ]),
-          ),
-          // ── Data rows ──
-          ...List.generate(keys.length, (i) {
-            final p      = bd[keys[i]];
-            final isLast = i == keys.length - 1;
-            return Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: res.spacing(14), vertical: 13,
-              ),
-              decoration: BoxDecoration(
-                border: isLast
-                    ? null
-                    : const Border(
-                        bottom: BorderSide(
-                          color: AppColors.surfaceBright, width: 0.5,
-                        ),
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final colW = constraints.maxWidth / 3;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: colW,
+                    child: Column(
+                      children: [
+                        _tableHeaderCell('Period', width: colW, align: Alignment.centerLeft, leftPad: 16),
+                        ...List.generate(keys.length, (i) {
+                          final isLast = i == keys.length - 1;
+                          return Container(
+                            height: 52,
+                            width: colW,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              border: isLast ? null : const Border(
+                                bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5),
+                              ),
+                            ),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(labels[i].toUpperCase(),
+                                style: GoogleFonts.jetBrainsMono(
+                                  color: AppColors.textPrimary, fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                )),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: 48,
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                            child: Row(children: [
+                              _tableHeaderCell('Perps', width: colW),
+                              _tableHeaderCell('Spot', width: colW),
+                            ]),
+                          ),
+                          ...List.generate(keys.length, (i) {
+                            final k      = keys[i];
+                            final p      = bd[k];
+                            final isLast = i == keys.length - 1;
+                            return Container(
+                              height: 52,
+                              decoration: BoxDecoration(
+                                border: isLast ? null : const Border(
+                                  bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5),
+                                ),
+                              ),
+                              child: Row(children: [
+                                SizedBox(
+                                  width: colW,
+                                  child: Text(
+                                    p != null ? vm.fmtCompact(p.perps) : '-',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.jetBrainsMono(
+                                      color: kColorPerps, fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    )),
+                                ),
+                                SizedBox(
+                                  width: colW,
+                                  child: Text(
+                                    p != null ? vm.fmtCompact(p.spot) : '-',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.jetBrainsMono(
+                                      color: kColorSpot, fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    )),
+                                ),
+                              ]),
+                            );
+                          }),
+                        ],
                       ),
+                    ),
+                  ),
+                ],
               ),
-              child: Row(children: [
-                SizedBox(
-                  width: 54,
-                  child: Text(labels[i],
-                    style: GoogleFonts.jetBrainsMono(
-                      color: Colors.white,
-                      fontSize: res.fontSize(11),
-                      fontWeight: FontWeight.w600,
-                    )),
-                ),
-                Expanded(child: Text(
-                  p != null ? vm.fmtCompact(p.perps) : '-',
-                  textAlign: TextAlign.right,
-                  style: GoogleFonts.jetBrainsMono(
-                    color: kColorPerps,
-                    fontSize: res.fontSize(11),
-                    fontWeight: FontWeight.w600,
-                  ),
-                )),
-                Expanded(child: Text(
-                  p != null ? vm.fmtCompact(p.spot) : '-',
-                  textAlign: TextAlign.right,
-                  style: GoogleFonts.jetBrainsMono(
-                    color: kColorSpot,
-                    fontSize: res.fontSize(11),
-                    fontWeight: FontWeight.w600,
-                  ),
-                )),
-                Expanded(child: Text(
-                  p != null ? vm.fmtCompact(p.hlp) : '-',
-                  textAlign: TextAlign.right,
-                  style: GoogleFonts.jetBrainsMono(
-                    color: kColorHLP,
-                    fontSize: res.fontSize(11),
-                    fontWeight: FontWeight.w600,
-                  ),
-                )),
-              ]),
-            );
-          }),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -1010,13 +1020,8 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
   // ════════════════════════════════════════════════════════════
   //  HELPERS
   // ════════════════════════════════════════════════════════════
-  Widget _emptyBox(Responsive res, double h) => Container(
+  Widget _emptyBox(Responsive res, double h) => AppCard(
     height: h,
-    decoration: BoxDecoration(
-      color: AppColors.background,
-      border: Border.all(color: AppColors.surfaceBright),
-      borderRadius: BorderRadius.circular(8),
-    ),
     child: Center(child: Text('No data',
       style: GoogleFonts.jetBrainsMono(
         color: AppColors.textSecondary, fontSize: res.fontSize(12),
@@ -1044,65 +1049,54 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
   // ════════════════════════════════════════════════════════════
   Widget _buildLoading(Responsive res) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF1E222D),
-      highlightColor: const Color(0xFF2A2F3E),
-      period: const Duration(milliseconds: 1200),
-      child: Padding(
-        padding: EdgeInsets.all(res.spacing(12)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _sh(res, 38, 0),
-            _sh(res, 12, 0),
-            _sh(res, 10, 60),
-            _sh(res, 6, 0),
-            Row(children: [
-              Expanded(child: _sh(res, 76, 0)),
-              SizedBox(width: res.spacing(8)),
-              Expanded(child: _sh(res, 76, 0)),
-              SizedBox(width: res.spacing(8)),
-              Expanded(child: _sh(res, 76, 0)),
-            ]),
-            _sh(res, 8, 0),
-            Row(children: [
-              Expanded(child: _sh(res, 76, 0)),
-              SizedBox(width: res.spacing(8)),
-              Expanded(child: _sh(res, 76, 0)),
-              SizedBox(width: res.spacing(8)),
-              Expanded(child: _sh(res, 76, 0)),
-            ]),
-            _sh(res, 20, 0),
-            _sh(res, 10, 60),
-            _sh(res, 6, 0),
-            _sh(res, 260, 0),
-            _sh(res, 20, 0),
-            _sh(res, 10, 60),
-            _sh(res, 6, 0),
-            _sh(res, 150, 0),
-          ],
+      baseColor: const Color(0xFF2C2F3A),
+      highlightColor: const Color(0xFF3F4452),
+      period: const Duration(milliseconds: 1400),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: EdgeInsets.all(res.spacing(12)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _sh(res, 48, 0, radius: 14),
+              SizedBox(height: res.spacing(20)),
+              _sh(res, 12, 0),
+              SizedBox(height: res.spacing(16)),
+              Row(children: [
+                Expanded(child: _sh(res, 90, 0, radius: 20)),
+                SizedBox(width: res.spacing(12)),
+                Expanded(child: _sh(res, 90, 0, radius: 20)),
+                SizedBox(width: res.spacing(12)),
+                Expanded(child: _sh(res, 90, 0, radius: 20)),
+              ]),
+              SizedBox(height: res.spacing(12)),
+              Row(children: [
+                Expanded(child: _sh(res, 90, 0, radius: 20)),
+                SizedBox(width: res.spacing(12)),
+                Expanded(child: _sh(res, 90, 0, radius: 20)),
+                SizedBox(width: res.spacing(12)),
+                Expanded(child: _sh(res, 90, 0, radius: 20)),
+              ]),
+              SizedBox(height: res.spacing(32)),
+              _sh(res, 12, 0),
+              SizedBox(height: res.spacing(16)),
+              _sh(res, 420, 0, radius: 24), // Large consolidated dashboard card
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _sh(Responsive res, double h, double inset) => Container(
+  Widget _sh(Responsive res, double h, double inset, {double radius = 16}) => Container(
     height: h,
-    margin: EdgeInsets.symmetric(
-      vertical: 3,
-      horizontal: inset > 0 ? res.spacing(inset) : 0,
-    ),
+    margin: const EdgeInsets.symmetric(vertical: 4),
     decoration: BoxDecoration(
-      color: Colors.white.withOpacity(0.03),
-      borderRadius: BorderRadius.circular(6),
+      color: Colors.white.withOpacity(0.18),
+      borderRadius: BorderRadius.circular(radius),
     ),
   );
-}
-
-// ─── Simple data holder for protocol card rows ───────────────
-class _ProtocolRow {
-  final String period;
-  final String value;
-  const _ProtocolRow({required this.period, required this.value});
 }
 
 // ─── Chart with pinned Y-axis + scrollable content ───────────
@@ -1112,14 +1106,14 @@ class _ChartWithPinnedYAxis extends StatefulWidget {
   final double yAxisW;
   final double canvasW;
   final Widget yAxisWidget;
-  final Widget chartWidget;
+  final Widget Function(double chartWidth) chartBuilder;
 
   const _ChartWithPinnedYAxis({
     required this.height,
     required this.yAxisW,
     required this.canvasW,
     required this.yAxisWidget,
-    required this.chartWidget,
+    required this.chartBuilder,
   });
 
   @override
@@ -1130,13 +1124,13 @@ class _ChartWithPinnedYAxisState extends State<_ChartWithPinnedYAxis> {
   final ScrollController _sc = ScrollController();
   double _zoomScale = 1.0;      // current zoom multiplier
   double _scaleStart = 1.0;     // zoom at gesture start
-  static const double _minZoom = 0.5;
+  static const double _minZoom = 1.0;
   static const double _maxZoom = 8.0;
 
   @override
   void initState() {
     super.initState();
-    _scrollToStart();
+    _scrollToEnd();
   }
 
   @override
@@ -1144,16 +1138,21 @@ class _ChartWithPinnedYAxisState extends State<_ChartWithPinnedYAxis> {
     super.didUpdateWidget(old);
     if (old.canvasW != widget.canvasW) {
       _zoomScale = 1.0; // reset zoom on range/scope change
-      _scrollToStart();
+      _scrollToEnd();
     }
   }
 
-  void _scrollToStart() {
+  void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_sc.hasClients && _sc.position.hasContentDimensions) {
-        _sc.jumpTo(0);
+        _sc.jumpTo(_sc.position.maxScrollExtent);
       }
     });
+  }
+
+  void _setZoom(double value, {bool keepLatestVisible = false}) {
+    setState(() => _zoomScale = value.clamp(_minZoom, _maxZoom).toDouble());
+    if (keepLatestVisible) _scrollToEnd();
   }
 
   @override
@@ -1168,13 +1167,11 @@ class _ChartWithPinnedYAxisState extends State<_ChartWithPinnedYAxis> {
 
     return Container(
       height: widget.height,
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        border: Border.all(color: AppColors.surfaceBright),
-        borderRadius: BorderRadius.circular(8),
+      decoration: const BoxDecoration(
+        color: Colors.transparent,
       ),
       child: Padding(
-        padding: const EdgeInsets.only(top: 10, bottom: 4),
+        padding: const EdgeInsets.only(top: 30, bottom: 6),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1182,27 +1179,28 @@ class _ChartWithPinnedYAxisState extends State<_ChartWithPinnedYAxis> {
             SizedBox(width: widget.yAxisW, child: widget.yAxisWidget),
             // ── Zoomable + scrollable chart ──
             Expanded(
-              child: GestureDetector(
-                // Pinch to zoom
-                onScaleStart: (d) {
-                  _scaleStart = _zoomScale;
-                },
-                onScaleUpdate: (d) {
-                  if (d.pointerCount < 2) return; // only pinch, not single drag
-                  setState(() {
-                    _zoomScale = (_scaleStart * d.scale)
-                        .clamp(_minZoom, _maxZoom);
-                  });
-                },
-                child: SingleChildScrollView(
-                  controller: _sc,
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  child: SizedBox(
-                    width: effectiveW,
-                    child: widget.chartWidget,
+              child: Stack(
+                children: [
+                  SingleChildScrollView(
+                    controller: _sc,
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: GestureDetector(
+                      // Pinch to zoom
+                      onScaleStart: (d) {
+                        _scaleStart = _zoomScale;
+                      },
+                      onScaleUpdate: (d) {
+                        if (d.pointerCount < 2) return; // only pinch, not single drag
+                        _setZoom(_scaleStart * d.scale);
+                      },
+                      child: SizedBox(
+                        width: effectiveW,
+                        child: widget.chartBuilder(effectiveW),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ],

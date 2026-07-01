@@ -164,6 +164,64 @@ class Hip4ViewModel extends ChangeNotifier {
     });
   }
 
+  Future<Hip4AggregatedOi?> fetchOutcomeDetail(int marketId) async {
+    try {
+      final detailUrl = AppConfig.hip4DetailBaseUrl;
+      final uri = Uri.parse('$detailUrl/api/hip4/outcomes/$marketId');
+      debugPrint('fetchOutcomeDetail: GET $uri');
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      print('=== [OUTCOME DETAIL (VOLUME/OI) API RESPONSE] ===');
+      print('URI: $uri');
+      print('Status: ${response.statusCode}');
+      print('Body: ${response.body}');
+      print('==================================================');
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is Map && decoded['success'] == true && decoded['data'] != null) {
+          final data = decoded['data'];
+          if (data['aggregated_oi'] != null) {
+            return Hip4AggregatedOi.fromJson(data['aggregated_oi']);
+          }
+          debugPrint('fetchOutcomeDetail: no aggregated_oi in response');
+        } else {
+          debugPrint('fetchOutcomeDetail: unexpected response format: $decoded');
+        }
+      } else {
+        debugPrint('fetchOutcomeDetail: non-200 response: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('fetchOutcomeDetail exception: $e');
+    }
+    return null;
+  }
+
+  Future<List<Hip4Candle>?> fetchCandles(int marketId, String side, {int limit = 24}) async {
+    try {
+      final detailUrl = AppConfig.hip4DetailBaseUrl;
+      final uri = Uri.parse('$detailUrl/api/hip4/candles/$side/$marketId?limit=$limit');
+      debugPrint('fetchCandles: GET $uri');
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      print('=== [CANDLES API RESPONSE] ===');
+      print('URI: $uri');
+      print('Status: ${response.statusCode}');
+      print('Body: ${response.body}');
+      print('===============================');
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is Map && decoded['success'] == true && decoded['data'] is List) {
+          return (decoded['data'] as List).map((c) => Hip4Candle.fromJson(c)).toList();
+        } else {
+          debugPrint('fetchCandles: unexpected response format: $decoded');
+        }
+      } else {
+        debugPrint('fetchCandles($side): non-200 response: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('fetchCandles exception: $e');
+    }
+    return null;
+  }
+
   @override
   void dispose() {
     _refreshTimer?.cancel();

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
+import 'responsive.dart';
 
 class DotGridPainter extends CustomPainter {
   final Color dotColor;
@@ -114,6 +116,154 @@ class AppBackground extends StatelessWidget {
         // The actual foreground content
         child,
       ],
+    );
+  }
+}
+
+// ─── Section label ─────────────────────────────────────────────
+class SectionLabel extends StatelessWidget {
+  final String text;
+  const SectionLabel({super.key, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: GoogleFonts.jetBrainsMono(
+        color: AppColors.textSecondary.withOpacity(0.5),
+        fontSize: 10,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 2.0,
+      ),
+    );
+  }
+}
+
+// ─── Generic card container matching profile style ─────────────
+class AppCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final double? height;
+  final double borderRadius;
+
+  const AppCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.height,
+    this.borderRadius = 20,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      padding: padding ?? const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBright.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: child,
+    );
+  }
+}
+
+// ─── Stat card matching Profile screen design ──────────────────
+class StatCardWidget extends StatelessWidget {
+  final String label;
+  final String value;
+  final String? badge;
+  final bool badgeUp;
+  final bool showBadge;
+  final Color? accentColor;
+
+  const StatCardWidget({
+    super.key,
+    required this.label,
+    required this.value,
+    this.badge,
+    this.badgeUp = true,
+    this.showBadge = false,
+    this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final res = Responsive(context);
+    final accent = accentColor ?? AppColors.brandAccent;
+
+    return Container(
+      padding: EdgeInsets.all(res.spacing(12)),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBright.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: GoogleFonts.inter(
+                  color: AppColors.textSecondary,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              if (showBadge && badge != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: (badgeUp ? AppColors.brandAccent : AppColors.lossRed).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    badge!,
+                    style: GoogleFonts.jetBrainsMono(
+                      color: badgeUp ? AppColors.brandAccent : AppColors.lossRed,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: GoogleFonts.jetBrainsMono(
+                    color: Colors.white,
+                    fontSize: res.fontSize(18),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Container(
+                width: 14,
+                height: 2,
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

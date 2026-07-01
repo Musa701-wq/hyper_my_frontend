@@ -8,7 +8,7 @@ import '../models/hip4_model.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
 import 'hip4_probability_bar.dart';
-import 'hip4_detail_dialog.dart';
+import 'hip4_detail_screen.dart';
 import 'hip4_market_row.dart';
 
 class Hip4MarketsPanel extends StatefulWidget {
@@ -41,14 +41,22 @@ class _Hip4MarketsPanelState extends State<Hip4MarketsPanel> {
     final res = Responsive(context);
     final vm  = context.watch<Hip4ViewModel>();
 
+    final screenW     = MediaQuery.of(context).size.width;
+    final leftWidth   = res.isMobile
+        ? (screenW * 0.42).clamp(140.0, 185.0)
+        : (screenW * 0.45).clamp(240.0, 420.0);
+    final probWidth   = res.columnWidth(180);
+    final expiryWidth = res.columnWidth(130);
+    final rightContentW = probWidth + 16 + expiryWidth + 24 + 16; // +chevron area
+
     if (vm.isLoading && vm.markets.isEmpty) {
-      return _buildShimmer();
+      return _buildShimmer(res, leftWidth, probWidth, expiryWidth, rightContentW);
     }
     if (vm.errorMessage.isNotEmpty && vm.markets.isEmpty) {
       return Center(
           child: Column(children: [
         Text(vm.errorMessage,
-            style: GoogleFonts.jetBrainsMono(color: AppColors.trendRed)),
+             style: GoogleFonts.jetBrainsMono(color: AppColors.trendRed)),
         TextButton(
             onPressed: () => vm.fetchMarkets(), child: const Text('Retry')),
       ]));
@@ -63,11 +71,6 @@ class _Hip4MarketsPanelState extends State<Hip4MarketsPanel> {
     }
 
     final markets     = vm.filteredMarkets;
-    final screenW     = MediaQuery.of(context).size.width;
-    final leftWidth   = (screenW * 0.42).clamp(140.0, 185.0);
-    final probWidth   = res.columnWidth(180);
-    final expiryWidth = res.columnWidth(130);
-    final rightContentW = probWidth + 16 + expiryWidth + 24 + 16; // +chevron area
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,36 +150,81 @@ class _Hip4MarketsPanelState extends State<Hip4MarketsPanel> {
     );
   }
 
-  Widget _buildShimmer() {
-    return LayoutBuilder(builder: (context, constraints) {
-      final w = constraints.maxWidth > 0
-          ? constraints.maxWidth
-          : MediaQuery.of(context).size.width;
-      return Shimmer.fromColors(
-        baseColor: const Color(0xFF1E222D),
-        highlightColor: const Color(0xFF3A3F4E),
-        period: const Duration(milliseconds: 1500),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: List.generate(12, (i) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            child: Row(
-              children: [
-                _pill(24, 10),
-                const SizedBox(width: 8),
-                _pill(20, 20), // icon circle
-                const SizedBox(width: 8),
-                _pill(w * 0.28, 10),
-                const SizedBox(width: 12),
-                Expanded(child: _pill(double.infinity, 8)),
-                const SizedBox(width: 12),
-                _pill(w * 0.20, 9),
-              ],
-            ),
-          )),
-        ),
-      );
-    });
+  Widget _buildShimmer(Responsive res, double leftWidth, double probWidth, double expiryWidth, double rightContentW) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFF1E222D),
+      highlightColor: const Color(0xFF3A3F4E),
+      period: const Duration(milliseconds: 1500),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(12, (i) => Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: Colors.white, width: 0.5)),
+          ),
+          child: Row(
+            children: [
+              // Left fixed skeleton
+              SizedBox(
+                width: leftWidth,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    children: [
+                      _pill(24, 10),
+                      const SizedBox(width: 4),
+                      _pill(20, 20), // icon
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _pill(double.infinity, 10), // title line 1
+                            const SizedBox(height: 5),
+                            _pill(40, 8), // badge
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Right scrollable skeleton (synced layout)
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: SizedBox(
+                    width: rightContentW,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: probWidth,
+                            child: _pill(double.infinity, 8), // probability bar
+                          ),
+                          const SizedBox(width: 16),
+                          SizedBox(
+                            width: expiryWidth,
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: _pill(75, 9), // expiry date
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        )),
+      ),
+    );
   }
 
   Widget _pill(double width, double height) => Container(
@@ -206,9 +254,14 @@ class _Hip4MarketsPanelState extends State<Hip4MarketsPanel> {
     final iconSize = res.fontSize(20);
 
     return GestureDetector(
-      onTap: () => showDialog(
-          context: context,
-          builder: (_) => Hip4DetailDialog(market: market)),
+      onTap: () => Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                Hip4DetailScreen(market: market),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          )),
       behavior: HitTestBehavior.opaque,
       child: IntrinsicHeight(
         child: Row(

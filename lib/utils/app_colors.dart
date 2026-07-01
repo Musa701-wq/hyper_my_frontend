@@ -5,6 +5,7 @@ class AppColors {
   
   static const Color background = Color(0xFF111417);
   static const Color brandAccent = Color(0xFF2EE2BA);
+  static const Color surface = Color(0xFF1B1D21);
   static const Color surfaceBright = Color(0xFF37393D);
   static const Color textPrimary = Colors.white;
   static const Color textSecondary = Colors.grey;

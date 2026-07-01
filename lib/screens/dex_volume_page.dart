@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 import '../models/dex_volume_model.dart';
+import '../utils/common_widgets.dart';
 import '../viewmodels/dex_volume_viewmodel.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
@@ -33,141 +35,159 @@ class _DexVolumePageState extends State<DexVolumePage> {
   @override
   Widget build(BuildContext context) {
     final res = Responsive(context);
-    final vm = context.watch<DexVolumeViewModel>();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
+    return AppBackground(
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          'Hyperliquid DEX Volume',
-          style: GoogleFonts.jetBrainsMono(
-            color: AppColors.brandAccent,
-            fontSize: res.fontSize(16),
-            fontWeight: FontWeight.bold,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
+          ),
+          title: Text(
+            'Hyperliquid DEX Volume',
+            style: GoogleFonts.jetBrainsMono(
+              color: AppColors.brandAccent,
+              fontSize: res.fontSize(16),
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
           ),
         ),
-      ),
-      body: vm.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.brandAccent))
-          : vm.errorMessage.isNotEmpty
-              ? ErrorStateWidget(
-                  errorMessage: vm.errorMessage,
-                  onRetry: () => vm.fetchAllData(),
-                )
-              : RefreshIndicator(
-                  onRefresh: () => vm.fetchAllData(),
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
-                      children: [
-                        // Section 1: Metric Cards
-                        if (vm.metrics != null) ...[
-                          _buildMetricCards(vm.metrics!),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // Section 1.5: External Toggles (Moved from Chart Container)
-                        _buildExternalToggles(vm),
-                        const SizedBox(height: 12),
-
-                        // Section 2: Main Chart
-                        VolumeChartWidget(
-                          data: vm.chartData,
-                          selectedScope: vm.selectedScope,
-                          selectedTimeRange: vm.selectedTimeRange,
-                          selectedChartType: vm.selectedChartType,
-                          onChartTypeChanged: (type) => vm.setChartType(type),
+        body: Consumer<DexVolumeViewModel>(
+          builder: (context, viewModel, child) {
+            if (viewModel.isLoading) {
+              return _buildLoading(res);
+            }
+            if (viewModel.errorMessage.isNotEmpty) {
+              return ErrorStateWidget(
+                errorMessage: viewModel.errorMessage,
+                onRetry: () => viewModel.fetchAllData(),
+              );
+            }
+            if (viewModel.metrics == null) {
+              return const Center(child: Text('No data available'));
+            }
+            return RefreshIndicator(
+              onRefresh: () => viewModel.fetchAllData(),
+              color: AppColors.brandAccent,
+              backgroundColor: AppColors.background,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: EdgeInsets.all(res.spacing(16)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildMetricCards(viewModel.metrics!),
+                      SizedBox(height: res.spacing(16)),
+                      VolumeChartWidget(
+                        data: viewModel.chartData,
+                        selectedScope: 'All',
+                        selectedTimeRange: viewModel.selectedTimeRange,
+                        selectedChartType: viewModel.selectedChartType,
+                        onChartTypeChanged: (type) => viewModel.setChartType(type),
+                        onTimeRangeChanged: (range) => viewModel.setTimeRange(range),
+                      ),
+                      SizedBox(height: res.spacing(16)),
+                      if (viewModel.adoption != null) ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GrowthBanner(
+                                title: 'MoM Growth',
+                                growth: viewModel.adoption!.monthOverMonthGrowth ?? 0,
+                              ),
+                            ),
+                            SizedBox(width: res.spacing(10)),
+                            Expanded(
+                              child: GrowthBanner(
+                                title: 'QoQ Growth',
+                                growth: viewModel.adoption!.quarterOverQuarterGrowth ?? 0,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-
-                        // Section 3: Growth Signal Banners
-                        if (vm.adoption != null) ...[
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GrowthBanner(
-                                  title: 'MoM Growth',
-                                  growth: vm.adoption!.monthOverMonthGrowth ?? 0,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: GrowthBanner(
-                                  title: 'QoQ Growth',
-                                  growth: vm.adoption!.quarterOverQuarterGrowth ?? 0,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // Section 4: Adoption Snapshot
-                        if (vm.adoption != null) ...[
-                          _buildAdoptionCards(vm.adoption!),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // Section 5: Trend Charts
-                        if (vm.adoption != null) ...[
-                          TrendChartWidget(
-                            title: 'Monthly Volume Trend',
-                            subtitle: 'Historical performance',
-                            trend: vm.adoption!.monthlyTrend,
-                            color: const Color(0xFF10B981),
-                          ),
-                          const SizedBox(height: 12),
-                          TrendChartWidget(
-                            title: 'Quarterly Volume Trend',
-                            subtitle: 'Strategic growth',
-                            trend: vm.adoption!.quarterlyTrend,
-                            color: const Color(0xFF8B5CF6),
-                            filterCurrent: true,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // Section 6: Monthly Table
-                        if (vm.adoption != null) ...[
-                          MonthlyVolumeTable(
-                            monthlyTrend: vm.adoption!.monthlyTrend,
-                            sixMonthAvg: vm.adoption!.sixMonthAverageVolume,
-                          ),
-                          const SizedBox(height: 32),
-                        ],
+                        SizedBox(height: res.spacing(12)),
+                        _buildAdoptionCards(viewModel.adoption!),
+                        SizedBox(height: res.spacing(12)),
+                        TrendChartWidget(
+                          title: 'Monthly Volume Trend',
+                          subtitle: 'Historical performance',
+                          trend: viewModel.adoption!.monthlyTrend,
+                          color: const Color(0xFF10B981),
+                        ),
+                        SizedBox(height: res.spacing(12)),
+                        TrendChartWidget(
+                          title: 'Quarterly Volume Trend',
+                          subtitle: 'Strategic growth',
+                          trend: viewModel.adoption!.quarterlyTrend,
+                          color: const Color(0xFF8B5CF6),
+                          filterCurrent: true,
+                        ),
+                        SizedBox(height: res.spacing(12)),
+                        MonthlyVolumeTable(
+                          monthlyTrend: viewModel.adoption!.monthlyTrend,
+                          sixMonthAvg: viewModel.adoption!.sixMonthAverageVolume,
+                        ),
+                        SizedBox(height: res.spacing(24)),
                       ],
-                    ),
+                    ],
                   ),
                 ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
   Widget _buildMetricCards(DexVolumeMetrics metrics) {
-    return Column(
-      children: [
-        Row(
+    final res = Responsive(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth > 700;
+        if (isWide) {
+          return Row(
+            children: [
+              Expanded(child: MetricCard(title: '24h Volume', value: metrics.total24h, change: metrics.change1d)),
+              SizedBox(width: res.spacing(10)),
+              Expanded(child: MetricCard(title: '7d Volume', value: metrics.total7d, change: metrics.change7d)),
+              SizedBox(width: res.spacing(10)),
+              Expanded(child: MetricCard(title: '30d Volume', value: metrics.total30d, change: metrics.change1m)),
+              SizedBox(width: res.spacing(10)),
+              Expanded(child: MetricCard(title: 'Cumulative', value: metrics.totalAllTime, isCumulative: true)),
+            ],
+          );
+        }
+        return Column(
           children: [
-            Expanded(child: MetricCard(title: '24h Volume', value: metrics.total24h, change: metrics.change1d)),
-            const SizedBox(width: 12),
-            Expanded(child: MetricCard(title: '7d Volume', value: metrics.total7d, change: metrics.change7d)),
+            Row(
+              children: [
+                Expanded(child: MetricCard(title: '24h Volume', value: metrics.total24h, change: metrics.change1d)),
+                SizedBox(width: res.spacing(10)),
+                Expanded(child: MetricCard(title: '7d Volume', value: metrics.total7d, change: metrics.change7d)),
+              ],
+            ),
+            SizedBox(height: res.spacing(10)),
+            Row(
+              children: [
+                Expanded(child: MetricCard(title: '30d Volume', value: metrics.total30d, change: metrics.change1m)),
+                SizedBox(width: res.spacing(10)),
+                Expanded(child: MetricCard(title: 'Cumulative', value: metrics.totalAllTime, isCumulative: true)),
+              ],
+            ),
           ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: MetricCard(title: '30d Volume', value: metrics.total30d, change: metrics.change1m)),
-            const SizedBox(width: 12),
-            Expanded(child: MetricCard(title: 'Cumulative', value: metrics.totalAllTime, isCumulative: true)),
-          ],
-        ),
-      ],
+        );
+      },
     );
   }
 
   Widget _buildAdoptionCards(AdoptionMetrics adoption) {
+    final res = Responsive(context);
     return Column(
       children: [
         Row(
@@ -180,7 +200,7 @@ class _DexVolumePageState extends State<DexVolumePage> {
                 growth: adoption.monthOverMonthGrowth,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: res.spacing(10)),
             Expanded(
               child: AdoptionCard(
                 title: 'Previous Month',
@@ -190,7 +210,7 @@ class _DexVolumePageState extends State<DexVolumePage> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: res.spacing(10)),
         Row(
           children: [
             Expanded(
@@ -200,7 +220,7 @@ class _DexVolumePageState extends State<DexVolumePage> {
                 value: adoption.sixMonthAverageVolume ?? 0,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: res.spacing(10)),
             Expanded(
               child: AdoptionCard(
                 title: 'ATH Month',
@@ -214,65 +234,61 @@ class _DexVolumePageState extends State<DexVolumePage> {
     );
   }
 
-  Widget _buildExternalToggles(DexVolumeViewModel vm) {
-    return Column(
-      children: [
-        _buildToggleGroup(
-          [
-            _ToggleItem(label: 'All', value: 'All'),
-            _ToggleItem(label: 'D', value: 'D'),
-            _ToggleItem(label: 'W', value: 'W'),
-            _ToggleItem(label: 'M', value: 'M'),
-            _ToggleItem(label: 'Y', value: 'Y'),
-          ],
-          vm.selectedTimeRange,
-          (val) => vm.setTimeRange(val),
+}
+
+  Widget _buildLoading(Responsive res) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFF2C2F3A),
+      highlightColor: const Color(0xFF3F4452),
+      period: const Duration(milliseconds: 1400),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: EdgeInsets.all(res.spacing(16)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Expanded(child: _sh(res, 85, 0)),
+                const SizedBox(width: 12),
+                Expanded(child: _sh(res, 85, 0)),
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: _sh(res, 85, 0)),
+                const SizedBox(width: 12),
+                Expanded(child: _sh(res, 85, 0)),
+              ]),
+              const SizedBox(height: 24),
+              _sh(res, 40, 0, radius: 10), // Toggles
+              const SizedBox(height: 16),
+              _sh(res, 280, 0, radius: 16), // Chart
+              const SizedBox(height: 24),
+              Row(children: [
+                Expanded(child: _sh(res, 70, 0, radius: 12)),
+                const SizedBox(width: 12),
+                Expanded(child: _sh(res, 70, 0, radius: 12)),
+              ]),
+              const SizedBox(height: 16),
+              _sh(res, 120, 0, radius: 16), // Adoption card
+              const SizedBox(height: 16),
+              _sh(res, 180, 0, radius: 16), // Trend chart
+            ],
+          ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildToggleGroup(List<_ToggleItem> items, String currentValue, Function(String) onChanged) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: items.map((item) {
-          final bool isActive = currentValue == item.value;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onChanged(item.value),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: isActive ? const Color(0xFF10B981) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    item.label,
-                    style: GoogleFonts.jetBrainsMono(
-                      color: isActive ? Colors.black : AppColors.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
       ),
     );
   }
-}
 
-class _ToggleItem {
-  final String label;
-  final String value;
-  _ToggleItem({required this.label, required this.value});
-}
+  Widget _sh(Responsive res, double h, double inset, {double radius = 12}) => Container(
+    height: h,
+    margin: EdgeInsets.symmetric(
+      vertical: 3,
+      horizontal: inset > 0 ? res.spacing(inset) : 0,
+    ),
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.18),
+      borderRadius: BorderRadius.circular(radius),
+    ),
+  );
+

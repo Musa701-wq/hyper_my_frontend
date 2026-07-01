@@ -26,7 +26,42 @@ class TrendChartWidget extends StatefulWidget {
 }
 
 class _TrendChartWidgetState extends State<TrendChartWidget> {
-  String _style = 'Bar';
+  String _style = 'Area';
+  final ScrollController _scrollController = ScrollController();
+  double _zoomScale = 1.0;
+  double _scaleStart = 1.0;
+
+  static const double _minZoom = 1.0;
+  static const double _maxZoom = 8.0;
+
+  @override
+  void didUpdateWidget(covariant TrendChartWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.trend.length != widget.trend.length ||
+        oldWidget.title != widget.title ||
+        oldWidget.filterCurrent != widget.filterCurrent) {
+      _zoomScale = 1.0;
+      _scrollToEnd();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients && _scrollController.position.hasContentDimensions) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
+  }
+
+  void _setZoom(double value) {
+    setState(() => _zoomScale = value.clamp(_minZoom, _maxZoom).toDouble());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,65 +71,94 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
     if (widget.filterCurrent && displayTrend.isNotEmpty) {
       displayTrend = displayTrend.sublist(0, displayTrend.length - 1);
     }
+    final baseChartWidth = (displayTrend.length * 45.0)
+        .clamp(MediaQuery.of(context).size.width - 64, 2000.0)
+        .toDouble();
+    final chartWidth = baseChartWidth * _zoomScale;
+    final pointWidth = displayTrend.isEmpty ? 45.0 : chartWidth / displayTrend.length;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withOpacity(0.1),
+        color: AppColors.surface.withOpacity(0.12),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.title,
-                      style: GoogleFonts.jetBrainsMono(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.title,
+                            style: GoogleFonts.jetBrainsMono(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.subtitle,
+                            style: GoogleFonts.jetBrainsMono(
+                              color: AppColors.textSecondary.withOpacity(0.5),
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.subtitle,
-                      style: GoogleFonts.jetBrainsMono(
-                        color: AppColors.textSecondary,
-                        fontSize: 10,
-                      ),
-                    ),
+                    _buildStyleToggle(),
                   ],
                 ),
-              ),
-              _buildStyleToggle(),
-            ],
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 200,
-            child: Row(
-              children: [
-                _buildFixedYAxis(displayTrend),
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: (displayTrend.length * 45.0).clamp(MediaQuery.of(context).size.width - 64, 2000.0),
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 20),
-                        child: _style == 'Bar' 
-                          ? BarChart(_buildBarData(displayTrend))
-                          : LineChart(_buildLineData(displayTrend)),
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 200,
+                  child: Row(
+                    children: [
+                      _buildFixedYAxis(displayTrend),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          controller: _scrollController,
+                          scrollDirection: Axis.horizontal,
+                          child: GestureDetector(
+                            onScaleStart: (details) {
+                              _scaleStart = _zoomScale;
+                            },
+                            onScaleUpdate: (details) {
+                              if (details.pointerCount < 2) return;
+                              _setZoom(_scaleStart * details.scale);
+                            },
+                            child: SizedBox(
+                              width: chartWidth,
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 20),
+                                child: _style == 'Bar'
+                                  ? BarChart(_buildBarData(displayTrend, pointWidth))
+                                  : LineChart(_buildLineData(displayTrend)),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],
@@ -121,7 +185,7 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: isActive ? widget.color : Colors.transparent,
+                color: isActive ? const Color(0xFF10B981) : Colors.transparent,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -139,7 +203,7 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
     );
   }
 
-  BarChartData _buildBarData(List<TrendItem> trend) {
+  BarChartData _buildBarData(List<TrendItem> trend, double pointWidth) {
     return BarChartData(
       gridData: const FlGridData(show: false),
       titlesData: _titlesData(trend),
@@ -151,7 +215,7 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
             BarChartRodData(
               toY: entry.value.volume,
               color: widget.color,
-              width: 18.0, // Increased for a more solid, premium look
+              width: (pointWidth * 0.42).clamp(8.0, 28.0).toDouble(),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(5)),
             ),
           ],
@@ -222,10 +286,10 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
     double maxVal = trend.map((e) => e.volume).reduce((a, b) => a > b ? a : b);
     if (maxVal == 0) maxVal = 1e6;
     maxVal = maxVal * 1.15; // Add 15% headroom for tooltips
-    
+
     return Container(
-      width: 45,
-      padding: const EdgeInsets.only(bottom: 24, top: 0),
+      width: 52,
+      padding: const EdgeInsets.only(left: 8, bottom: 24, top: 0),
       child: LineChart(
         LineChartData(
           minY: 0,
@@ -237,12 +301,15 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 45,
+                reservedSize: 44,
                 getTitlesWidget: (value, meta) {
                   if (value >= meta.max * 0.98 || value <= meta.min) return const SizedBox.shrink();
-                  return Text(
-                    _formatPrice(value),
-                    style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 7),
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 10),
+                    child: Text(
+                      _formatPrice(value),
+                      style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 7),
+                    ),
                   );
                 },
               ),
@@ -271,10 +338,10 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
           getTitlesWidget: (value, meta) {
             final index = value.toInt();
             if (index < 0 || index >= trend.length) return const SizedBox.shrink();
-            
+
             final item = trend[index];
             String displayLabel = item.label;
-            
+
             // Try formatting more cleanly if it's a date-like label
             if (item.label.contains('-')) {
                try {
@@ -286,7 +353,7 @@ class _TrendChartWidgetState extends State<TrendChartWidget> {
                  displayLabel = DateFormat('MMM \'yy').format(dt);
                } catch (_) {}
             }
-            
+
             return Padding(
               padding: const EdgeInsets.only(top: 8.0),
               child: Text(

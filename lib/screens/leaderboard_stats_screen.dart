@@ -54,14 +54,7 @@ class _LeaderboardStatsScreenState extends State<LeaderboardStatsScreen>
         backgroundColor: Colors.transparent,
         body: SafeArea(
           child: LeaderboardStatsBody(
-            onBack: () => Navigator.of(context).pushReplacement(
-              PageRouteBuilder(
-                pageBuilder: (_, __, ___) => const HomeScreen(),
-                transitionDuration: Duration.zero,
-                reverseTransitionDuration: Duration.zero,
-                transitionsBuilder: (_, __, ___, child) => child,
-              ),
-            ),
+            onBack: () => Navigator.of(context).pop(),
             showTopBar: true,
           ),
         ),
@@ -1293,8 +1286,11 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => ProfileScreen(walletAddress: addr),
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => ProfileScreen(walletAddress: addr),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+          transitionsBuilder: (_, __, ___, child) => child,
         ),
       ),
       child: Container(
@@ -1348,8 +1344,11 @@ class _TopTradersSectionState extends State<_TopTradersSection> {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => ProfileScreen(walletAddress: t.ethAddress),
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => ProfileScreen(walletAddress: t.ethAddress),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+          transitionsBuilder: (_, __, ___, child) => child,
         ),
       ),
       child: Container(
