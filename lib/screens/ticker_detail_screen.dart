@@ -99,7 +99,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> with SingleTick
       final data = await CandlesService.fetchCandles(
         coin: widget.ticker.symbol,
         interval: '1h',
-        daysBack: 7,
+        daysBack: 1,
       );
       if (mounted) {
         setState(() {

@@ -30,6 +30,7 @@ import '../widgets/hip4_markets_panel.dart';
 import '../viewmodels/hip4_viewmodel.dart';
 import 'dex_volume_page.dart';
 import 'open_interest_screen.dart';
+import 'fee_intelligence_screen.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -1103,94 +1104,109 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          const SizedBox(height: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  _sectionLabel('NAVIGATION'),
+                  ...navItems.asMap().entries.map((e) {
+                    final isActive = (e.key == _selectedIndex);
+                    return _DrawerNavItem(
+                      data: e.value,
+                      isActive: isActive,
+                    );
+                  }),
 
-          _sectionLabel('NAVIGATION'),
-          ...navItems.asMap().entries.map((e) {
-            final isActive = (e.key == _selectedIndex);
-            return _DrawerNavItem(
-              data: e.value,
-              isActive: isActive,
-            );
-          }),
+                  const SizedBox(height: 4),
 
-          const SizedBox(height: 4),
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      icon: Icons.analytics_rounded,
+                      label: 'Fees & Revenue',
+                      subtitle: 'Protocol earnings',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const DefiLlamaScreen()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
 
-          _DrawerNavItem(
-            data: _DrawerItemData(
-              icon: Icons.analytics_rounded,
-              label: 'Fees & Revenue',
-              subtitle: 'Protocol earnings',
-              onTap: () {
-                Navigator.of(context).push(_smoothRoute(const DefiLlamaScreen()));
-              },
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      icon: Icons.insights_rounded,
+                      label: 'Fee Intelligence',
+                      subtitle: 'Advanced fee analytics',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const FeeIntelligenceScreen()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
+
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      icon: Icons.bar_chart_rounded,
+                      label: 'Stats',
+                      subtitle: 'Market overview',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const LeaderboardStatsScreen()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
+
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      icon: Icons.pie_chart_rounded,
+                      label: 'DEX Volume',
+                      subtitle: 'Protocol volume',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const DexVolumePage()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
+
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      icon: Icons.account_balance_wallet_rounded,
+                      label: 'Protocol TVL',
+                      subtitle: 'DeFi ecosystem liquidity',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const ProtocolsScreen()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
+
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      icon: Icons.currency_exchange_rounded,
+                      label: 'Hyperliquid TVL',
+                      subtitle: 'HL protocol value locked',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const HlTvlScreen()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
+
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      icon: Icons.analytics_rounded,
+                      label: 'Open Interest',
+                      subtitle: 'Derivatives open interest',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const OpenInterestScreen()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
+                ],
+              ),
             ),
-            isActive: false,
           ),
 
-          _DrawerNavItem(
-            data: _DrawerItemData(
-              icon: Icons.bar_chart_rounded,
-              label: 'Stats',
-              subtitle: 'Market overview',
-              onTap: () {
-                Navigator.of(context).push(_smoothRoute(const LeaderboardStatsScreen()));
-              },
-            ),
-            isActive: false,
-          ),
-
-          _DrawerNavItem(
-            data: _DrawerItemData(
-              icon: Icons.pie_chart_rounded,
-              label: 'DEX Volume',
-              subtitle: 'Protocol volume',
-              onTap: () {
-                Navigator.of(context).push(_smoothRoute(const DexVolumePage()));
-              },
-            ),
-            isActive: false,
-          ),
-
-          _DrawerNavItem(
-            data: _DrawerItemData(
-              icon: Icons.account_balance_wallet_rounded,
-              label: 'Protocol TVL',
-              subtitle: 'DeFi ecosystem liquidity',
-              onTap: () {
-                Navigator.of(context).push(_smoothRoute(const ProtocolsScreen()));
-              },
-            ),
-            isActive: false,
-          ),
-
-          _DrawerNavItem(
-            data: _DrawerItemData(
-              icon: Icons.currency_exchange_rounded,
-              label: 'Hyperliquid TVL',
-              subtitle: 'HL protocol value locked',
-              onTap: () {
-                Navigator.of(context).push(_smoothRoute(const HlTvlScreen()));
-              },
-            ),
-            isActive: false,
-          ),
-
-          _DrawerNavItem(
-            data: _DrawerItemData(
-              icon: Icons.analytics_rounded,
-              label: 'Open Interest',
-              subtitle: 'Derivatives open interest',
-              onTap: () {
-                Navigator.of(context).push(_smoothRoute(const OpenInterestScreen()));
-              },
-            ),
-            isActive: false,
-          ),
-
-          const SizedBox(height: 4),
-
-          const Spacer(),
 
           // ── Bottom: wallet + settings ───────────────────────────────────
           Container(

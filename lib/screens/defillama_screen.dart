@@ -39,7 +39,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
           elevation: 0,
           leading: GestureDetector(
             onTap: () => Navigator.pop(context),
-            child: const Icon(Icons.arrow_back, color: AppColors.brandAccent),
+            child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
           ),
           title: Consumer<DefiLlamaViewModel>(
             builder: (_, vm, __) => Text(
