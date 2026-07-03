@@ -19,6 +19,7 @@ String fmtNum(double v) {
 }
 
 String fmtPx(double v) {
+  if (v.isNaN || v.isInfinite) return '—';
   if (v <= 0) return '—';
   if (v >= 1000) return '\$${v.toStringAsFixed(2)}';
   if (v >= 1) return '\$${v.toStringAsFixed(4)}';

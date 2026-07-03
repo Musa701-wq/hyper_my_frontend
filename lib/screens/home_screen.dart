@@ -20,6 +20,7 @@ import '../widgets/live_markets_drawer.dart' show LiveMarketsBody;
 import '../widgets/sparkline_widget.dart';
 import '../widgets/ticker_detail_dialog.dart';
 import 'hl_tvl_screen.dart';
+import 'ticker_detail_screen.dart';
 import 'profile_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/responsive.dart';
@@ -28,6 +29,7 @@ import '../widgets/account_management_sheet.dart';
 import '../widgets/hip4_markets_panel.dart';
 import '../viewmodels/hip4_viewmodel.dart';
 import 'dex_volume_page.dart';
+import 'open_interest_screen.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -53,9 +55,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showTickerDetail(TickerModel ticker) {
     AnalyticsService.logTickerClick(ticker.symbol);
-    showDialog(
-      context: context,
-      builder: (context) => TickerDetailDialog(ticker: ticker),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TickerDetailScreen(ticker: ticker),
+      ),
     );
   }
 
@@ -1167,6 +1171,18 @@ class _HomeScreenState extends State<HomeScreen> {
               subtitle: 'HL protocol value locked',
               onTap: () {
                 Navigator.of(context).push(_smoothRoute(const HlTvlScreen()));
+              },
+            ),
+            isActive: false,
+          ),
+
+          _DrawerNavItem(
+            data: _DrawerItemData(
+              icon: Icons.analytics_rounded,
+              label: 'Open Interest',
+              subtitle: 'Derivatives open interest',
+              onTap: () {
+                Navigator.of(context).push(_smoothRoute(const OpenInterestScreen()));
               },
             ),
             isActive: false,

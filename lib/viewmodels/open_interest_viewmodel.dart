@@ -126,7 +126,7 @@ class OpenInterestViewModel extends ChangeNotifier {
   }
 
   int get totalPages {
-    final count = filteredProtocols.length;
+    final count = _mainTabIndex == 0 ? filteredProtocols.length : sortedChains.length;
     if (count == 0) return 1;
     return (count / _itemsPerPage).ceil();
   }
@@ -141,9 +141,21 @@ class OpenInterestViewModel extends ChangeNotifier {
 
   // Chain view data sorted by totalOI descending
   List<OpenInterestChain> get sortedChains {
-    final list = List<OpenInterestChain>.from(_chains);
+    var list = List<OpenInterestChain>.from(_chains);
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      list = list.where((c) => c.chain.toLowerCase().contains(q)).toList();
+    }
     list.sort((a, b) => b.totalOI.compareTo(a.totalOI));
     return list;
+  }
+
+  List<OpenInterestChain> get paginatedChains {
+    final list = sortedChains;
+    final start = (_currentPage - 1) * _itemsPerPage;
+    if (start >= list.length) return [];
+    final end = (start + _itemsPerPage).clamp(0, list.length);
+    return list.sublist(start, end);
   }
 
   // Actions

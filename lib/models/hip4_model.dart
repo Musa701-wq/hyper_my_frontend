@@ -157,15 +157,15 @@ class Hip4Candle {
 
     return Hip4Candle(
       timestamp: parsedTime,
-      open: double.tryParse(json['open']?.toString() ?? '') ?? 0.0,
-      high: double.tryParse(json['high']?.toString() ?? '') ?? 0.0,
-      low: double.tryParse(json['low']?.toString() ?? '') ?? 0.0,
-      close: double.tryParse(json['close']?.toString() ?? '') ?? 0.0,
-      volume: double.tryParse(json['volume']?.toString() ?? '') ?? 0.0,
+      open: double.tryParse(json['open']?.toString() ?? json['o']?.toString() ?? '') ?? 0.0,
+      high: double.tryParse(json['high']?.toString() ?? json['h']?.toString() ?? '') ?? 0.0,
+      low: double.tryParse(json['low']?.toString() ?? json['l']?.toString() ?? '') ?? 0.0,
+      close: double.tryParse(json['close']?.toString() ?? json['c']?.toString() ?? '') ?? 0.0,
+      volume: double.tryParse(json['volume']?.toString() ?? json['v']?.toString() ?? '') ?? 0.0,
       quoteVolume: double.tryParse(json['quote_volume']?.toString() ?? '') ?? 0.0,
       tradeCount: json['trade_count'] is int
           ? json['trade_count']
-          : int.tryParse(json['trade_count']?.toString() ?? '') ?? 0,
+          : int.tryParse(json['trade_count']?.toString() ?? json['n']?.toString() ?? '') ?? 0,
     );
   }
 }
