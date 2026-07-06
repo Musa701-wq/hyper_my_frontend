@@ -959,20 +959,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final navItems = [
       _DrawerItemData(
-        icon: Icons.home_rounded,
+        iconAsset: 'assets/appicons/home.png',
         label: 'Home',
         subtitle: 'Markets & screener',
         onTap: () { Navigator.pop(context); setState(() => _selectedIndex = 0); },
       ),
       _DrawerItemData(
-        icon: Icons.bar_chart_rounded,
+        iconAsset: 'assets/appicons/market.png',
         label: 'Markets',
         subtitle: 'Live gainers/losers',
         onTap: () { Navigator.pop(context); setState(() => _selectedIndex = 1); },
       ),
       /*
       _DrawerItemData(
-        icon: Icons.leaderboard_rounded,
+        iconAsset: 'assets/appicons/stats.png',
         label: 'Leaderboard',
         subtitle: 'Global performance',
         onTap: () { Navigator.pop(context); setState(() => _selectedIndex = 2); },
@@ -980,7 +980,7 @@ class _HomeScreenState extends State<HomeScreen> {
       */
       /*
       _DrawerItemData(
-        icon: Icons.account_balance_wallet_rounded,
+        iconAsset: 'assets/appicons/protocoltvl.png',
         label: 'Portfolio',
         subtitle: 'Your positions',
         onTap: () {
@@ -992,25 +992,45 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return Drawer(
-      backgroundColor: const Color(0xFF0D1014),
-      child: Column(
+      backgroundColor: AppColors.background,
+      child: Stack(
         children: [
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                gradient: RadialGradient(
+                  center: const Alignment(0.0, 1.0),
+                  radius: 0.8,
+                  colors: [
+                    AppColors.brandAccent.withOpacity(0.1),
+                    AppColors.background.withOpacity(0.0),
+                  ],
+                  stops: const [0.0, 1.0],
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: DotGridPainter(
+                dotColor: AppColors.surfaceBright.withOpacity(0.5),
+                spacing: 35.0,
+              ),
+            ),
+          ),
+          Column(
+            children: [
           // ── Header ──────────────────────────────────────────────────────
           Container(
             width: double.infinity,
             padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 24, 24, 28),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.brandAccent.withOpacity(0.12),
-                  const Color(0xFF0D1014),
-                ],
-              ),
+              color: Colors.transparent,
               border: Border(
                 bottom: BorderSide(
-                  color: AppColors.brandAccent.withOpacity(0.15),
+                  color: AppColors.surfaceBright.withOpacity(0.3),
+                  width: 0.8,
                 ),
               ),
             ),
@@ -1121,7 +1141,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   _DrawerNavItem(
                     data: _DrawerItemData(
-                      icon: Icons.analytics_rounded,
+                      iconAsset: 'assets/appicons/feeandrevenue.png',
                       label: 'Fees & Revenue',
                       subtitle: 'Protocol earnings',
                       onTap: () {
@@ -1133,7 +1153,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   _DrawerNavItem(
                     data: _DrawerItemData(
-                      icon: Icons.insights_rounded,
+                      iconAsset: 'assets/appicons/feeintelligence.png',
                       label: 'Fee Intelligence',
                       subtitle: 'Advanced fee analytics',
                       onTap: () {
@@ -1145,7 +1165,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   _DrawerNavItem(
                     data: _DrawerItemData(
-                      icon: Icons.bar_chart_rounded,
+                      iconAsset: 'assets/appicons/stats.png',
                       label: 'Stats',
                       subtitle: 'Market overview',
                       onTap: () {
@@ -1157,7 +1177,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   _DrawerNavItem(
                     data: _DrawerItemData(
-                      icon: Icons.pie_chart_rounded,
+                      iconAsset: 'assets/appicons/dexvolume.png',
                       label: 'DEX Volume',
                       subtitle: 'Protocol volume',
                       onTap: () {
@@ -1169,7 +1189,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   _DrawerNavItem(
                     data: _DrawerItemData(
-                      icon: Icons.account_balance_wallet_rounded,
+                      iconAsset: 'assets/appicons/protocoltvl.png',
                       label: 'Protocol TVL',
                       subtitle: 'DeFi ecosystem liquidity',
                       onTap: () {
@@ -1181,7 +1201,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   _DrawerNavItem(
                     data: _DrawerItemData(
-                      icon: Icons.currency_exchange_rounded,
+                      iconAsset: 'assets/appicons/hyperliquidtvl.png',
                       label: 'Hyperliquid TVL',
                       subtitle: 'HL protocol value locked',
                       onTap: () {
@@ -1193,7 +1213,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   _DrawerNavItem(
                     data: _DrawerItemData(
-                      icon: Icons.analytics_rounded,
+                      iconAsset: 'assets/appicons/openinterst.png',
                       label: 'Open Interest',
                       subtitle: 'Derivatives open interest',
                       onTap: () {
@@ -1283,6 +1303,8 @@ class _HomeScreenState extends State<HomeScreen> {
           //   isActive: false,
           // ),
           SizedBox(height: MediaQuery.of(context).padding.bottom + 12),
+            ],
+          ),
         ],
       ),
     );
@@ -1426,12 +1448,12 @@ class _HomeScreenState extends State<HomeScreen> {
 // Drawer helper data class
 // ─────────────────────────────────────────────────────────────────────────────
 class _DrawerItemData {
-  final IconData icon;
+  final String iconAsset;
   final String label;
   final String subtitle;
   final VoidCallback onTap;
   const _DrawerItemData({
-    required this.icon,
+    required this.iconAsset,
     required this.label,
     required this.subtitle,
     required this.onTap,
@@ -1494,13 +1516,17 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
                   : null,
               color: widget.isActive
                   ? null
-                  : AppColors.brandAccent.withOpacity(_bg.value * 0.07),
+                  : Color.lerp(
+                      AppColors.surfaceBright.withOpacity(0.15),
+                      AppColors.surfaceBright.withOpacity(0.28),
+                      _bg.value,
+                    ),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: widget.isActive
                     ? AppColors.brandAccent.withOpacity(0.3)
-                    : AppColors.surfaceBright.withOpacity(0.3),
-                width: widget.isActive ? 0.8 : 0.8,
+                    : AppColors.surfaceBright.withOpacity(0.20),
+                width: 0.8,
               ),
               boxShadow: widget.isActive
                   ? [
@@ -1546,28 +1572,30 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              AppColors.brandAccent.withOpacity(0.2),
-                              AppColors.brandAccent.withOpacity(0.08),
+                              AppColors.brandAccent.withOpacity(0.25),
+                              AppColors.brandAccent.withOpacity(0.10),
                             ],
                           )
                         : null,
                     color: widget.isActive
                         ? null
-                        : AppColors.surfaceBright.withOpacity(0.6),
+                        : AppColors.surfaceBright.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
-                    border: widget.isActive
-                        ? Border.all(
-                            color: AppColors.brandAccent.withOpacity(0.2),
-                            width: 0.5,
-                          )
-                        : null,
+                    border: Border.all(
+                      color: widget.isActive
+                          ? AppColors.brandAccent.withOpacity(0.35)
+                          : AppColors.surfaceBright.withOpacity(0.30),
+                      width: 0.8,
+                    ),
                   ),
-                  child: Icon(
-                    widget.data.icon,
-                    size: 17,
-                    color: widget.isActive
-                        ? AppColors.brandAccent
-                        : AppColors.textSecondary,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(5.0),
+                      child: Image.asset(
+                        widget.data.iconAsset,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),

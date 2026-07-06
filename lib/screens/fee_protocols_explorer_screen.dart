@@ -41,6 +41,7 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
   String _searchQuery = '';
   String _selectedCategory = 'ALL';
   bool _collapseSubProtocols = true;
+  final Set<String> _expandedParentSlugs = {};
 
   String _sortBy = 'fees24h';
   String _sortOrder = 'desc';
@@ -115,10 +116,8 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
       String? dataType;
       if (_selectedType == 'chains') {
         dataType = 'chains';
-      } else if (_selectedType == 'dapps') {
-        dataType = _collapseSubProtocols ? 'parents' : 'all';
       } else {
-        dataType = null;
+        dataType = _collapseSubProtocols ? 'parents' : 'all';
       }
 
       if (_searchQuery.trim().isNotEmpty) {
@@ -340,6 +339,13 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
               setState(() {
                 _collapseSubProtocols = !_collapseSubProtocols;
                 _currentPage = 1;
+                if (_collapseSubProtocols) {
+                  _expandedParentSlugs.clear();
+                } else {
+                  _expandedParentSlugs.addAll(
+                    _protocols.where((p) => p.childrenSlugs.isNotEmpty).map((p) => p.slug)
+                  );
+                }
               });
               _loadData();
             },
@@ -699,9 +705,65 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
     }
 
     final double leftWidth = res.columnWidth(170.0);
-    final double rightWidth = res.columnWidth(635.0);
+    final double rightWidth = res.columnWidth(745.0);
     const double headerH = 40.0;
     const double rowH = 56.0;
+
+    final Map<String, FeeTopProtocol> protocolMap = {
+      for (var p in _protocols) p.slug: p
+    };
+
+    final Set<String> childSlugs = _protocols.expand((p) => p.childrenSlugs).toSet();
+    final List<FeeTopProtocol> parents = _protocols.where((p) => !childSlugs.contains(p.slug)).toList();
+
+    final List<_ExplorerTableRow> rows = [];
+    int rankCounter = 1;
+
+    for (final parent in parents) {
+      rows.add(_ExplorerTableRow(
+        protocol: parent,
+        isSubProtocol: false,
+        rank: (_currentPage - 1) * _limit + rankCounter,
+      ));
+      rankCounter++;
+
+      final hasChildren = parent.childrenSlugs.isNotEmpty;
+      final isExpanded = _expandedParentSlugs.contains(parent.slug);
+
+      if (!_collapseSubProtocols && hasChildren && isExpanded) {
+        for (int i = 0; i < parent.childrenSlugs.length; i++) {
+          final childSlug = parent.childrenSlugs[i];
+          final childName = parent.children[i];
+
+          final childProtocol = protocolMap[childSlug] ?? FeeTopProtocol(
+            name: childName,
+            slug: childSlug,
+            category: parent.category,
+            chains: parent.chains,
+            logo: null,
+            fees24h: 0.0,
+            change1d: 0.0,
+            change7d: 0.0,
+            change30d: 0.0,
+            fees7d: 0.0,
+            fees30d: 0.0,
+            fees1y: 0.0,
+            feesAllTime: 0.0,
+            children: [],
+            childrenSlugs: [],
+            protocolType: 'protocol',
+            annualized1y: 0.0,
+            average1y: 0.0,
+          );
+
+          rows.add(_ExplorerTableRow(
+            protocol: childProtocol,
+            isSubProtocol: true,
+            parent: parent,
+          ));
+        }
+      }
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -736,10 +798,9 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                   ),
                 ),
                 // Left Items list
-                ..._protocols.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final p = entry.value;
-                  final rank = (_currentPage - 1) * _limit + idx + 1;
+                ...rows.map((row) {
+                  final p = row.protocol;
+                  final isSub = row.isSubProtocol;
 
                   return GestureDetector(
                     onTap: () {
@@ -762,14 +823,54 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                         children: [
                           SizedBox(
                             width: res.columnWidth(30.0),
-                            child: Text(
-                              rank.toString(),
-                              style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)),
-                            ),
+                            child: row.rank != null
+                                ? Text(
+                                    row.rank.toString(),
+                                    style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)),
+                                  )
+                                : const SizedBox.shrink(),
                           ),
                           Expanded(
                             child: Row(
                               children: [
+                                if (isSub)
+                                  CustomPaint(
+                                    size: const Size(22, 56),
+                                    painter: _TreeBranchPainter(
+                                      isLast: row.parent != null &&
+                                          row.parent!.childrenSlugs.isNotEmpty &&
+                                          row.parent!.childrenSlugs.last == p.slug,
+                                    ),
+                                  )
+                                else if (p.childrenSlugs.isNotEmpty)
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        if (_expandedParentSlugs.contains(p.slug)) {
+                                          _expandedParentSlugs.remove(p.slug);
+                                        } else {
+                                          _expandedParentSlugs.add(p.slug);
+                                          _collapseSubProtocols = false;
+                                        }
+                                      });
+                                      if (!_collapseSubProtocols) {
+                                        _loadData();
+                                      }
+                                    },
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Container(
+                                      padding: const EdgeInsets.only(right: 6),
+                                      child: Icon(
+                                        _expandedParentSlugs.contains(p.slug)
+                                            ? Icons.keyboard_arrow_down_rounded
+                                            : Icons.keyboard_arrow_right_rounded,
+                                        color: AppColors.brandAccent,
+                                        size: res.fontSize(16),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  const SizedBox(width: 22),
                                 Container(
                                   width: 24,
                                   height: 24,
@@ -799,22 +900,14 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 2),
-                                      if (p.category.isNotEmpty)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                          decoration: BoxDecoration(
-                                            color: _getCategoryColor(p.category).withOpacity(0.12),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            p.category.toUpperCase(),
-                                            style: GoogleFonts.jetBrainsMono(
-                                              color: _getCategoryColor(p.category),
-                                              fontSize: res.fontSize(8),
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                                      Text(
+                                        p.chains.isNotEmpty ? p.chains.join(', ') : 'Off Chain',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          color: AppColors.textSecondary,
+                                          fontSize: res.fontSize(8.5),
                                         ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -840,7 +933,7 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Right Header Cells (24H FEES, 1D, 7D, 7D FEES, 30D FEES, 1Y FEES, ALL TIME)
+                    // Right Header Cells (CATEGORY, 24H FEES, 1D, 7D, 7D FEES, 30D FEES, 1Y FEES, ALL TIME)
                     Container(
                       height: headerH,
                       decoration: const BoxDecoration(
@@ -848,6 +941,7 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                       ),
                       child: Row(
                         children: [
+                          _buildHeaderCell('CATEGORY', res, 'category', width: res.columnWidth(110.0)),
                           _buildHeaderCell('24H FEES', res, 'fees24h', width: res.columnWidth(90.0)),
                           _buildHeaderCell('1D CHANGE', res, 'change1d', width: res.columnWidth(80.0)),
                           _buildHeaderCell('7D CHANGE', res, 'change7d', width: res.columnWidth(80.0)),
@@ -859,8 +953,8 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                       ),
                     ),
                     // Right Content Rows
-                    ..._protocols.asMap().entries.map((entry) {
-                      final p = entry.value;
+                    ...rows.map((row) {
+                      final p = row.protocol;
 
                       return GestureDetector(
                         onTap: () {
@@ -881,6 +975,38 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                           ),
                           child: Row(
                             children: [
+                              Container(
+                                width: res.columnWidth(110.0),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    right: BorderSide(color: AppColors.surfaceBright.withOpacity(0.15), width: 0.5),
+                                  ),
+                                ),
+                                child: p.category.isNotEmpty
+                                    ? Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: _getCategoryColor(p.category).withOpacity(0.12),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          p.category.toUpperCase(),
+                                          style: GoogleFonts.jetBrainsMono(
+                                            color: _getCategoryColor(p.category),
+                                            fontSize: res.fontSize(8.5),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      )
+                                    : Text(
+                                        '-',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          color: AppColors.textSecondary,
+                                          fontSize: res.fontSize(11),
+                                        ),
+                                      ),
+                              ),
                               // 24H Fees
                               Container(
                                 width: res.columnWidth(90.0),
@@ -895,9 +1021,9 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                                   style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: res.fontSize(11.5), fontWeight: FontWeight.bold),
                                 ),
                               ),
-                              // 1D Change (Heat-map)
+                              // 1D Change
                               _buildChangeCell(p.change1d, res, width: res.columnWidth(80.0)),
-                              // 7D Change (Heat-map)
+                              // 7D Change
                               _buildChangeCell(p.change7d, res, width: res.columnWidth(80.0)),
                               // 7D Fees
                               Container(
@@ -1342,4 +1468,44 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
       onRetry: _loadData,
     );
   }
+}
+
+class _ExplorerTableRow {
+  final FeeTopProtocol protocol;
+  final bool isSubProtocol;
+  final FeeTopProtocol? parent;
+  final int? rank;
+
+  _ExplorerTableRow({
+    required this.protocol,
+    required this.isSubProtocol,
+    this.parent,
+    this.rank,
+  });
+}
+
+class _TreeBranchPainter extends CustomPainter {
+  final bool isLast;
+  _TreeBranchPainter({required this.isLast});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.surfaceBright.withOpacity(0.35)
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+
+    final path = Path();
+    // Vertical line: top center to middle or bottom
+    path.moveTo(size.width / 2, 0);
+    path.lineTo(size.width / 2, isLast ? size.height / 2 : size.height);
+    // Horizontal line: middle center to right end
+    path.moveTo(size.width / 2, size.height / 2);
+    path.lineTo(size.width, size.height / 2);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TreeBranchPainter oldDelegate) => oldDelegate.isLast != isLast;
 }
