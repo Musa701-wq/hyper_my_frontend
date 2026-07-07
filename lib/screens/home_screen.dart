@@ -19,6 +19,7 @@ import '../widgets/funding_legend_dialog.dart';
 import '../widgets/live_markets_drawer.dart' show LiveMarketsBody;
 import '../widgets/sparkline_widget.dart';
 import '../widgets/ticker_detail_dialog.dart';
+import '../widgets/day_movers_ticker.dart';
 import 'hl_tvl_screen.dart';
 import 'ticker_detail_screen.dart';
 import 'profile_screen.dart';
@@ -31,6 +32,8 @@ import '../viewmodels/hip4_viewmodel.dart';
 import 'dex_volume_page.dart';
 import 'open_interest_screen.dart';
 import 'fee_intelligence_screen.dart';
+import 'top_by_fees_screen.dart';
+
 
 
 class HomeScreen extends StatefulWidget {
@@ -249,15 +252,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Market Screener',
-                    style: GoogleFonts.jetBrainsMono(
-                      color: AppColors.textPrimary,
-                      fontSize: res.fontSize(20),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: res.spacing(16)),
+                  const DayMoversTicker(),
+                  SizedBox(height: res.spacing(12)),
 
                   // Search Bar
                   Container(
@@ -1162,6 +1158,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     isActive: false,
                   ),
+
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      iconAsset: 'assets/appicons/feeintelligence.png',
+                      label: 'L1 Top Fees',
+                      subtitle: 'Top L1 protocols by fees',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const TopByFeesScreen()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
+
 
                   _DrawerNavItem(
                     data: _DrawerItemData(

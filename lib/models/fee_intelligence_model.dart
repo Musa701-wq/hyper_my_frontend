@@ -268,3 +268,65 @@ class FeeCompareResponse {
     );
   }
 }
+
+class TopByFeesProtocol {
+  final String displayName;
+  final String? logo;
+  final FeeTopProtocolMetrics metrics;
+
+  TopByFeesProtocol({
+    required this.displayName,
+    this.logo,
+    required this.metrics,
+  });
+
+  factory TopByFeesProtocol.fromJson(Map<String, dynamic> json) {
+    return TopByFeesProtocol(
+      displayName: json['displayName'] ?? '',
+      logo: json['logo'],
+      metrics: FeeTopProtocolMetrics.fromJson(json['metrics'] ?? {}),
+    );
+  }
+}
+
+class FeeTopProtocolMetrics {
+  final double total24h;
+  final double total7d;
+  final double total30d;
+  final double total1y;
+  final double totalAllTime;
+  final double change1d;
+  final double change7d;
+  final double change30d;
+  final double annualized1y;
+  final double average1y;
+
+  FeeTopProtocolMetrics({
+    required this.total24h,
+    required this.total7d,
+    required this.total30d,
+    required this.total1y,
+    required this.totalAllTime,
+    required this.change1d,
+    required this.change7d,
+    required this.change30d,
+    required this.annualized1y,
+    required this.average1y,
+  });
+
+  factory FeeTopProtocolMetrics.fromJson(Map<String, dynamic> json) {
+    return FeeTopProtocolMetrics(
+      total24h: (json['total24h'] ?? 0.0).toDouble(),
+      total7d: (json['total7d'] ?? 0.0).toDouble(),
+      total30d: (json['total30d'] ?? 0.0).toDouble(),
+      total1y: (json['total1y'] ?? 0.0).toDouble(),
+      totalAllTime: (json['totalAllTime'] ?? 0.0).toDouble(),
+      change1d: (json['change1d'] ?? 0.0).toDouble(),
+      change7d: (json['change7d'] ?? 0.0).toDouble(),
+      change30d: (json['change30d'] ?? 0.0).toDouble(),
+      annualized1y: (json['annualized1y'] ?? 0.0).toDouble(),
+      average1y: (json['average1y'] ?? 0.0).toDouble(),
+    );
+  }
+}
+

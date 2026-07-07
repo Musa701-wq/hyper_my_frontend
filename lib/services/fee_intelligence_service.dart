@@ -116,4 +116,19 @@ class FeeIntelligenceService {
     }
     throw Exception('Failed to load comparison data (${response.statusCode})');
   }
+
+  Future<List<TopByFeesProtocol>> fetchTopByFees() async {
+    final uri = Uri.parse('$_baseUrl/api/v1/fees/top-by-fees');
+    debugPrint('FeeIntelligenceService: GET $uri');
+
+    final response = await http.get(uri).timeout(const Duration(seconds: 15));
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      if (decoded is List) {
+        return decoded.map((e) => TopByFeesProtocol.fromJson(e as Map<String, dynamic>)).toList();
+      }
+      throw Exception('Unexpected top-by-fees response format');
+    }
+    throw Exception('Failed to load top-by-fees protocols (${response.statusCode})');
+  }
 }

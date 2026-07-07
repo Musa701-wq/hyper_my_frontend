@@ -66,14 +66,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             automaticallyImplyLeading: false,
-            leading: (vm.hasData && !isMe) 
+            leading: Navigator.of(context).canPop()
               ? IconButton(
                   icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
                   onPressed: () => Navigator.of(context).pop(),
                 )
               : null,
             centerTitle: false,
-            titleSpacing: (vm.hasData && !isMe) ? 0 : 16,
+            titleSpacing: Navigator.of(context).canPop() ? 0 : 16,
             title: vm.hasData 
               ? Row(
                   children: [
