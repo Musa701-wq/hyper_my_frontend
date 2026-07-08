@@ -20,6 +20,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:shimmer/shimmer.dart';
 import '../models/funding_history_model.dart';
 import '../services/funding_history_service.dart';
+import '../widgets/predicted_funding_card.dart';
 
 class TickerDetailScreen extends StatefulWidget {
   final TickerModel ticker;
@@ -1378,6 +1379,7 @@ class _FundingHistoryContentState extends State<_FundingHistoryContent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        PredictedFundingCard(coin: _selectedCoin),
         alertWidget,
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
