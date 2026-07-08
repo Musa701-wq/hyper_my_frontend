@@ -15,6 +15,7 @@ import 'viewmodels/hip4_viewmodel.dart';
 import 'viewmodels/dex_volume_viewmodel.dart';
 import 'viewmodels/protocol_viewmodel.dart';
 import 'viewmodels/hl_tvl_viewmodel.dart';
+import 'viewmodels/open_interest_viewmodel.dart';
 import 'screens/hl_tvl_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -47,6 +48,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => DexVolumeViewModel()),
         ChangeNotifierProvider(create: (_) => ProtocolViewModel()),
         ChangeNotifierProvider(create: (_) => HlTvlViewModel()),
+        ChangeNotifierProvider(create: (_) => OpenInterestViewModel()),
         ChangeNotifierProvider(create: (_) => WalletViewModel(prefs: prefs)),
       ],
       child: const MyApp(),

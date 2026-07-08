@@ -56,9 +56,9 @@ class _ProtocolDetailScreenState extends State<ProtocolDetailScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: res.fontSize(20)),
         ),
         title: Text(
           'TVL Dashboard',
