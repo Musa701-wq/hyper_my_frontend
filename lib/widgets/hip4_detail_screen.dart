@@ -270,10 +270,6 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
                         if (_showOhlc) _ohlcValues(res),
                         if (_showOhlc) const SizedBox(height: 10),
 
-                        // Open Interest card only
-                        _statsCard(res),
-                        const SizedBox(height: 12),
-
                         _outcomesHeader(res, sorted.length),
                         const SizedBox(height: 6),
                         ...sorted.asMap().entries.map(
@@ -582,6 +578,12 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
 
   // ─── Yes / No toggle ──────────────────────────────────────────
   Widget _sideToggle(Responsive res) {
+    final labelYes = widget.market.outcomes.isNotEmpty
+        ? widget.market.outcomes[0].label
+        : 'Yes';
+    final labelNo = widget.market.outcomes.length > 1
+        ? widget.market.outcomes[1].label
+        : 'No';
     return Container(
       decoration: BoxDecoration(
         color: AppColors.background,
@@ -590,7 +592,7 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
       ),
       padding: const EdgeInsets.all(4),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        _sidePill('Yes', _showPositive, AppColors.trendGreen,
+        _sidePill(labelYes, _showPositive, AppColors.trendGreen,
             () => setState(() {
                   _showPositive = true;
                   _selectedIdx = null;
@@ -600,7 +602,7 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
                   }
                 })),
         const SizedBox(width: 4),
-        _sidePill('No', !_showPositive, const Color(0xFFB886FF),
+        _sidePill(labelNo, !_showPositive, const Color(0xFFB886FF),
             () => setState(() {
                   _showPositive = false;
                   _selectedIdx = null;
@@ -707,8 +709,8 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
           const SizedBox(width: 8),
           Text(
             _showOhlc
-                ? 'OHLC · ${_showPositive ? "YES" : "NO"}'
-                : 'VOLUME · ${_showPositive ? "YES" : "NO"}',
+                ? 'OHLC · ${(_activeOutcome?.label ?? (_showPositive ? "YES" : "NO")).toUpperCase()}'
+                : 'VOLUME · ${(_activeOutcome?.label ?? (_showPositive ? "YES" : "NO")).toUpperCase()}',
             style: GoogleFonts.jetBrainsMono(
               color: Colors.white54, fontSize: 9,
               fontWeight: FontWeight.bold, letterSpacing: 1.2,
@@ -1003,86 +1005,6 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
     );
   }
 
-  // ─── Stats card — Open Interest only ──────────────────────────
-  Widget _statsCard(Responsive res) {
-    final oiYes = _oi?.side0OpenInterestContracts ?? 0;
-    final oiNo  = _oi?.side1OpenInterestContracts ?? 0;
-    final oiTotal = oiYes + oiNo;
-    final hasOi = _oi != null && oiTotal > 0;
-    if (!hasOi) return const SizedBox();
-
-    return AppCard(
-      borderRadius: 14,
-      padding: const EdgeInsets.all(16),
-      child: Column(children: [
-        _statsHeader('OPEN INTEREST', _oi!.currency, res),
-        const SizedBox(height: 12),
-        _statRow('Yes', oiYes, oiTotal, AppColors.trendGreen, res),
-        const SizedBox(height: 8),
-        _statRow('No', oiNo, oiTotal, const Color(0xFFB886FF), res),
-        const SizedBox(height: 8),
-        Text(
-          'Total: ${NumberFormat('#,##0').format(oiTotal)} Contracts',
-          style: GoogleFonts.jetBrainsMono(
-              color: Colors.white30, fontSize: res.fontSize(9)),
-        ),
-      ]),
-    );
-  }
-
-  Widget _statsHeader(String label, String unit, Responsive res) {
-    return Row(children: [
-      Text(label,
-          style: GoogleFonts.jetBrainsMono(
-              color: Colors.white30,
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2)),
-      const Spacer(),
-      Text(unit,
-          style: GoogleFonts.jetBrainsMono(
-              color: Colors.white24, fontSize: 8, fontWeight: FontWeight.bold)),
-    ]);
-  }
-
-  Widget _statRow(
-      String label, int value, int total, Color color, Responsive res) {
-    final pct = total > 0 ? (value / total * 100) : 0.0;
-    return Row(children: [
-      Container(
-          width: 6,
-          height: 6,
-          margin: const EdgeInsets.only(right: 10),
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-      SizedBox(
-        width: 28,
-        child: Text(label,
-            style: GoogleFonts.jetBrainsMono(
-                color: Colors.white.withValues(alpha: 0.5), fontSize: res.fontSize(10))),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: Container(
-          height: 5,
-          decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(3)),
-          child: FractionallySizedBox(
-            alignment: Alignment.centerLeft,
-            widthFactor: pct / 100,
-            child: Container(
-              decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.75),
-                  borderRadius: BorderRadius.circular(3)),
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(width: 10),
-      SizedBox(
-        width: 60,
-        child: Text(NumberFormat('#,##0').format(value),
-            textAlign: TextAlign.right,
             style: GoogleFonts.jetBrainsMono(
                 color: Colors.white,
                 fontSize: res.fontSize(11),
