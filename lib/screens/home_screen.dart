@@ -24,6 +24,7 @@ import 'hl_tvl_screen.dart';
 import 'ticker_detail_screen.dart';
 import 'profile_screen.dart';
 import 'liquidatable_page.dart';
+import 'leverage_margin_page.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/responsive.dart';
 import '../analytics/analytics_service.dart';
@@ -1286,6 +1287,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       subtitle: 'Positions at risk',
                       onTap: () {
                         Navigator.of(context).push(_smoothRoute(const LiquidatablePage()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
+
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      iconAsset: 'assets/appicons/openinterst.png',
+                      label: 'Leverage & Margin',
+                      subtitle: 'Margin tiers & requirements',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const LeverageMarginPage()));
                       },
                     ),
                     isActive: false,

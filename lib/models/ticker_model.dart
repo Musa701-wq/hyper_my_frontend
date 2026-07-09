@@ -52,6 +52,7 @@ class TickerModel {
 
   // ── Perp specifics ───────────────────────────────────────────────
   final int maxLeverage;
+  final int? marginTableId;
   final String growthMode;
 
   TickerModel({
@@ -99,6 +100,7 @@ class TickerModel {
     this.deployerTradingFeeShare,
     // perp
     this.maxLeverage = 0,
+    this.marginTableId,
     this.growthMode = '',
     this.tokenIndex,
   });
@@ -154,6 +156,7 @@ class TickerModel {
       maxLeverage: (json['maxLeverage'] ?? 0) is int
           ? (json['maxLeverage'] ?? 0)
           : (json['maxLeverage'] as num?)?.toInt() ?? 0,
+      marginTableId: json['marginTableId'] != null ? (json['marginTableId'] as num).toInt() : null,
       growthMode: json['growthMode']?.toString() ?? '',
     );
   }
@@ -247,6 +250,7 @@ class TickerModel {
       maxLeverage: p.containsKey('maxLeverage') && p['maxLeverage'] != null
           ? (p['maxLeverage'] as num).toInt()
           : maxLeverage,
+      marginTableId: p.containsKey('marginTableId') ? p['marginTableId'] as int? : marginTableId,
       growthMode: p['growthMode']?.toString() ?? growthMode,
       tokenIndex: p.containsKey('tokenIndex') ? p['tokenIndex'] as int? : tokenIndex,
     );

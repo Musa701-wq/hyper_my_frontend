@@ -6,6 +6,8 @@ import '../models/liquidatable_model.dart';
 import '../services/liquidatable_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
+import '../widgets/shimmer_skeleton.dart';
+import '../utils/common_widgets.dart';
 
 class LiquidatablePage extends StatefulWidget {
   const LiquidatablePage({super.key});
@@ -19,7 +21,6 @@ class _LiquidatablePageState extends State<LiquidatablePage> {
   LiquidatableResponse? _data;
   bool _loading = true;
   String? _error;
-  Timer? _refreshTimer;
   String _selectedCoin = ''; // Empty means 'All'
 
   // Text controller for filtering
@@ -29,15 +30,10 @@ class _LiquidatablePageState extends State<LiquidatablePage> {
   void initState() {
     super.initState();
     _load();
-    // 10s auto-refresh
-    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      _load(silent: true);
-    });
   }
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -108,10 +104,11 @@ class _LiquidatablePageState extends State<LiquidatablePage> {
   @override
   Widget build(BuildContext context) {
     final res = Responsive(context);
-    return Scaffold(
-      backgroundColor: const Color(0xFF0C0D0E),
-      appBar: AppBar(
+    return AppBackground(
+      child: Scaffold(
         backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
         elevation: 0,
         leading: GestureDetector(
           onTap: () => Navigator.pop(context),
@@ -213,7 +210,7 @@ class _LiquidatablePageState extends State<LiquidatablePage> {
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () => _load(),
+                  onTap: _loading ? null : () => _load(),
                   child: Container(
                     height: 38,
                     width: 38,
@@ -223,7 +220,16 @@ class _LiquidatablePageState extends State<LiquidatablePage> {
                       border: Border.all(color: AppColors.surfaceBright),
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(Icons.refresh, size: 16, color: Colors.white54),
+                    child: _loading
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.5,
+                              color: AppColors.brandAccent,
+                            ),
+                          )
+                        : const Icon(Icons.refresh, size: 16, color: Colors.white54),
                   ),
                 ),
               ],
@@ -234,12 +240,13 @@ class _LiquidatablePageState extends State<LiquidatablePage> {
           Expanded(child: _buildBody(res)),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildBody(Responsive res) {
     if (_loading && _data == null) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.brandAccent));
+      return _buildShimmerLoading(res);
     }
     if (_error != null && _data == null) {
       return Center(
@@ -260,6 +267,16 @@ class _LiquidatablePageState extends State<LiquidatablePage> {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.jetBrainsMono(color: Colors.white38, fontSize: 10),
               ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => _load(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.brandAccent,
+                  foregroundColor: Colors.black,
+                  textStyle: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+                child: const Text('RETRY'),
+              ),
             ],
           ),
         ),
@@ -267,36 +284,122 @@ class _LiquidatablePageState extends State<LiquidatablePage> {
     }
 
     if (_data == null || _data!.data.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.check_circle_outline, size: 48, color: Colors.green),
-            const SizedBox(height: 12),
-            Text(
-              'NO LIQUIDATIONS',
-              style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+      return RefreshIndicator(
+        onRefresh: () => _load(silent: true),
+        color: AppColors.brandAccent,
+        backgroundColor: AppColors.surface,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(top: 100),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.check_circle_outline, size: 48, color: Colors.green),
+                const SizedBox(height: 12),
+                Text(
+                  'NO LIQUIDATIONS',
+                  style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _selectedCoin.isNotEmpty ? 'No positions found for $_selectedCoin' : 'Market is healthy and calm right now',
+                  style: GoogleFonts.jetBrainsMono(color: Colors.white38, fontSize: 10),
+                ),
+                const SizedBox(height: 8),
+                if (_data != null)
+                  Text(
+                    'Checked: ${_data!.fetchedAt.replaceAll('T', ' ').substring(0, 19)} UTC',
+                    style: GoogleFonts.jetBrainsMono(color: Colors.white12, fontSize: 9),
+                  ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: () => _load(),
+                  icon: const Icon(Icons.refresh, size: 14),
+                  label: Text('CHECK AGAIN', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.brandAccent,
+                    side: BorderSide(color: AppColors.brandAccent.withOpacity(0.5)),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              _selectedCoin.isNotEmpty ? 'No positions found for $_selectedCoin' : 'Market is healthy and calm right now',
-              style: GoogleFonts.jetBrainsMono(color: Colors.white38, fontSize: 10),
-            ),
-            const SizedBox(height: 8),
-            if (_data != null)
-              Text(
-                'Checked: ${_data!.fetchedAt.replaceAll('T', ' ').substring(0, 19)} UTC',
-                style: GoogleFonts.jetBrainsMono(color: Colors.white12, fontSize: 9),
-              ),
-          ],
+          ),
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      itemCount: _data!.data.length,
-      itemBuilder: (context, i) => _buildAccountCard(_data!.data[i], res),
+    return RefreshIndicator(
+      onRefresh: () => _load(silent: true),
+      color: AppColors.brandAccent,
+      backgroundColor: AppColors.surface,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        itemCount: _data!.data.length,
+        itemBuilder: (context, i) => _buildAccountCard(_data!.data[i], res),
+      ),
+    );
+  }
+
+  Widget _buildShimmerLoading(Responsive res) {
+    return ShimmerSkeleton(
+      child: ListView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        itemCount: 4,
+        itemBuilder: (context, i) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.surfaceBright.withOpacity(0.4), width: 0.8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Shimmer Header
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceBright.withOpacity(0.3),
+                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ShimmerSkeleton.box(80, 10, radius: 4),
+                      ShimmerSkeleton.box(70, 10, radius: 4),
+                    ],
+                  ),
+                ),
+                // Shimmer Position Row
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      ShimmerSkeleton.box(36, 16, radius: 4),
+                      const SizedBox(width: 8),
+                      ShimmerSkeleton.box(80, 10, radius: 4),
+                      const Spacer(),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          ShimmerSkeleton.box(60, 10, radius: 4),
+                          const SizedBox(height: 4),
+                          ShimmerSkeleton.box(90, 8, radius: 4),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -304,9 +407,9 @@ class _LiquidatablePageState extends State<LiquidatablePage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF131416),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.surfaceBright, width: 0.8),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.4), width: 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,9 +417,9 @@ class _LiquidatablePageState extends State<LiquidatablePage> {
           // Header Bar
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF17191C),
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceBright.withOpacity(0.35),
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
