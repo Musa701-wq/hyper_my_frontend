@@ -12,6 +12,7 @@ class TickerModel {
   final String cryptoCategory;
   final String updatedAt;
   final String createdAt;
+  final int? tokenIndex;
 
   // ── Prices ───────────────────────────────────────────────────────
   final double lastPrice;
@@ -46,6 +47,8 @@ class TickerModel {
   final bool? isCanonical;
   final int? szDecimals;
   final int? weiDecimals;
+  final EvmContract? evmContract;
+  final String? deployerTradingFeeShare;
 
   // ── Perp specifics ───────────────────────────────────────────────
   final int maxLeverage;
@@ -92,9 +95,12 @@ class TickerModel {
     this.isCanonical,
     this.szDecimals,
     this.weiDecimals,
+    this.evmContract,
+    this.deployerTradingFeeShare,
     // perp
     this.maxLeverage = 0,
     this.growthMode = '',
+    this.tokenIndex,
   });
 
   factory TickerModel.fromJson(Map<String, dynamic> json) {
@@ -111,6 +117,7 @@ class TickerModel {
       cryptoCategory: json['cryptoCategory']?.toString() ?? json['category']?.toString() ?? '',
       updatedAt: json['updatedAt']?.toString() ?? '',
       createdAt: json['createdAt']?.toString() ?? '',
+      tokenIndex: json['tokenIndex'] != null ? (json['tokenIndex'] as num).toInt() : null,
       // prices
       lastPrice: _toDouble(json['lastPrice']),
       markPx: _toDouble(json['markPx']),
@@ -139,6 +146,10 @@ class TickerModel {
       isCanonical: json['isCanonical'] is bool ? json['isCanonical'] : null,
       szDecimals: json['szDecimals'] is int ? json['szDecimals'] : null,
       weiDecimals: json['weiDecimals'] is int ? json['weiDecimals'] : null,
+      evmContract: json['evmContract'] != null
+          ? EvmContract.fromJson(json['evmContract'] as Map<String, dynamic>)
+          : null,
+      deployerTradingFeeShare: json['deployerTradingFeeShare']?.toString(),
       // perp
       maxLeverage: (json['maxLeverage'] ?? 0) is int
           ? (json['maxLeverage'] ?? 0)
@@ -227,10 +238,43 @@ class TickerModel {
       isCanonical: p['isCanonical'] is bool ? p['isCanonical'] : isCanonical,
       szDecimals: p['szDecimals'] is int ? p['szDecimals'] : szDecimals,
       weiDecimals: p['weiDecimals'] is int ? p['weiDecimals'] : weiDecimals,
+      evmContract: p.containsKey('evmContract')
+          ? (p['evmContract'] != null ? EvmContract.fromJson(p['evmContract'] as Map<String, dynamic>) : null)
+          : evmContract,
+      deployerTradingFeeShare: p.containsKey('deployerTradingFeeShare')
+          ? p['deployerTradingFeeShare']?.toString()
+          : deployerTradingFeeShare,
       maxLeverage: p.containsKey('maxLeverage') && p['maxLeverage'] != null
           ? (p['maxLeverage'] as num).toInt()
           : maxLeverage,
       growthMode: p['growthMode']?.toString() ?? growthMode,
+      tokenIndex: p.containsKey('tokenIndex') ? p['tokenIndex'] as int? : tokenIndex,
     );
+  }
+}
+
+class EvmContract {
+  final String address;
+  final int evmExtraWeiDecimals;
+
+  EvmContract({
+    required this.address,
+    required this.evmExtraWeiDecimals,
+  });
+
+  factory EvmContract.fromJson(Map<String, dynamic> json) {
+    return EvmContract(
+      address: json['address']?.toString() ?? '',
+      evmExtraWeiDecimals: (json['evm_extra_wei_decimals'] ?? 0) is int
+          ? (json['evm_extra_wei_decimals'] ?? 0)
+          : (json['evm_extra_wei_decimals'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'address': address,
+      'evm_extra_wei_decimals': evmExtraWeiDecimals,
+    };
   }
 }

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConfig {
@@ -31,6 +30,6 @@ class AppConfig {
   }
 
   static String get hip4DetailsTabBaseUrl {
-    return dotenv.env['HIP4_DETAILS_TAB_API_URL'] ?? 'http://localhost:4001';
+    return dotenv.env['HIP4_DETAILS_TAB_API_URL'] ?? 'https://coingecko.renderonnodes.com';
   }
 }

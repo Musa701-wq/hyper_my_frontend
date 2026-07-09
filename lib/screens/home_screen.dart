@@ -23,6 +23,7 @@ import '../widgets/day_movers_ticker.dart';
 import 'hl_tvl_screen.dart';
 import 'ticker_detail_screen.dart';
 import 'profile_screen.dart';
+import 'liquidatable_page.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/responsive.dart';
 import '../analytics/analytics_service.dart';
@@ -313,6 +314,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildTab(viewModel, 'CRYPTO', res),
                           _buildTab(viewModel, 'HIP-3', res),
                           _buildTab(viewModel, 'OUTCOME', res),
+                          _buildTab(viewModel, 'WATCHLIST', res),
                         ],
                       ),
                     ),
@@ -417,7 +419,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                                 child: Row(
                                   children: [
-                                    SizedBox(width: res.columnWidth(30), child: Text('#', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
+                                    SizedBox(width: res.columnWidth(36), child: Text('#', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
                                     const SizedBox(width: 4),
                                     _buildSortableHeader(
                                       label: 'Symbol',
@@ -448,8 +450,34 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: Row(
                                     children: [
                                       SizedBox(
-                                        width: res.columnWidth(30),
-                                        child: Text(rank.toString(), style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(10)))
+                                        width: res.columnWidth(36),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () {
+                                                viewModel.toggleFavorite(ticker.symbol);
+                                              },
+                                              child: Icon(
+                                                viewModel.isFavorited(ticker.symbol) ? Icons.star : Icons.star_border,
+                                                size: res.fontSize(14),
+                                                color: viewModel.isFavorited(ticker.symbol)
+                                                    ? AppColors.brandAccent
+                                                    : AppColors.textSecondary.withOpacity(0.3),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 2),
+                                            Expanded(
+                                              child: Text(
+                                                rank.toString(),
+                                                style: GoogleFonts.jetBrainsMono(
+                                                  color: AppColors.textSecondary,
+                                                  fontSize: res.fontSize(9),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                       const SizedBox(width: 4),
                                       SizedBox(
@@ -511,18 +539,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                         width: res.columnWidth(85),
                                         textAlign: TextAlign.center,
                                       ),
-                                      _buildSortableHeader(
-                                        label: '8h Fund',
-                                        columnKey: 'funding8hPct',
-                                        viewModel: viewModel,
-                                        width: res.columnWidth(85),
-                                        textAlign: TextAlign.center,
-                                        hasInfo: true,
-                                        onInfoTap: () => showDialog(
-                                          context: context,
-                                          builder: (context) => const FundingLegendDialog(),
+                                      if (viewModel.selectedTab != 'SPOT')
+                                        _buildSortableHeader(
+                                          label: '8h Fund',
+                                          columnKey: 'funding8hPct',
+                                          viewModel: viewModel,
+                                          width: res.columnWidth(85),
+                                          textAlign: TextAlign.center,
+                                          hasInfo: true,
+                                          onInfoTap: () => showDialog(
+                                            context: context,
+                                            builder: (context) => const FundingLegendDialog(),
+                                          ),
                                         ),
-                                      ),
                                       _buildSortableHeader(
                                         label: 'Vol 24H',
                                         columnKey: 'volume24hUSD',
@@ -530,13 +559,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                         width: res.columnWidth(80),
                                         textAlign: TextAlign.center,
                                       ),
-                                      _buildSortableHeader(
-                                        label: 'Open Int.',
-                                        columnKey: 'openInterestUSD',
-                                        viewModel: viewModel,
-                                        width: res.columnWidth(90),
-                                        textAlign: TextAlign.center,
-                                      ),
+                                      if (viewModel.selectedTab != 'SPOT')
+                                        _buildSortableHeader(
+                                          label: 'Open Int.',
+                                          columnKey: 'openInterestUSD',
+                                          viewModel: viewModel,
+                                          width: res.columnWidth(90),
+                                          textAlign: TextAlign.center,
+                                        ),
                                       SizedBox(width: res.columnWidth(50), child: Text('Trend', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
                                     ],
                                   ),
@@ -548,13 +578,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                   final formattedChange = '${ticker.change24hPct >= 0 ? '+' : ''}${ticker.change24hPct.toStringAsFixed(2)}%';
                                   final formattedFunding = '${ticker.funding8hPct.toStringAsFixed(4)}%';
                                   final formattedOI = '\$${(ticker.openInterestUSD / 1e6).toStringAsFixed(1)}M';
+                                  final isSpotOnly = viewModel.selectedTab == 'SPOT';
 
                                   return GestureDetector(
                                     onTap: () => _showTickerDetail(ticker),
                                     behavior: HitTestBehavior.opaque,
                                     child: Container(
                                     height: res.value(mobile: 56.0, tablet: 64.0),
-                                    width: res.columnWidth(490),
+                                    width: isSpotOnly ? res.columnWidth(315) : res.columnWidth(490),
                                     padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 10.0),
                                     decoration: const BoxDecoration(
                                       border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
@@ -563,9 +594,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                       children: [
                                         SizedBox(width: res.columnWidth(85), child: Text(ticker.lastPrice.toStringAsFixed(4), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: viewModel.sortColumn == 'lastPrice' ? Colors.white : AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'lastPrice' ? FontWeight.bold : FontWeight.normal))),
                                         SizedBox(width: res.columnWidth(85), child: Text(formattedChange, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: changeColor, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'change24hPct' ? FontWeight.bold : FontWeight.normal))),
-                                        SizedBox(width: res.columnWidth(85), child: Text(formattedFunding, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: ticker.funding8hPct >= 0 ? AppColors.trendGreen : AppColors.trendRed, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'funding8hPct' ? FontWeight.bold : FontWeight.normal))),
+                                        if (!isSpotOnly)
+                                          SizedBox(width: res.columnWidth(85), child: Text(formattedFunding, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: ticker.funding8hPct >= 0 ? AppColors.trendGreen : AppColors.trendRed, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'funding8hPct' ? FontWeight.bold : FontWeight.normal))),
                                         SizedBox(width: res.columnWidth(80), child: Text(_formatVolume(ticker.volume24hUSD), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: viewModel.sortColumn == 'volume24hUSD' ? Colors.white : AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'volume24hUSD' ? FontWeight.bold : FontWeight.normal))),
-                                        SizedBox(width: res.columnWidth(90), child: Text(formattedOI, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: viewModel.sortColumn == 'openInterestUSD' ? Colors.white : AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'openInterestUSD' ? FontWeight.bold : FontWeight.normal))),
+                                        if (!isSpotOnly)
+                                          SizedBox(width: res.columnWidth(90), child: Text(formattedOI, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: viewModel.sortColumn == 'openInterestUSD' ? Colors.white : AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'openInterestUSD' ? FontWeight.bold : FontWeight.normal))),
                                         SizedBox(
                                           width: res.columnWidth(50),
                                           child: Center(
@@ -760,6 +793,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildTab(HomeViewModel viewModel, String title, Responsive res) {
     bool isActive = viewModel.selectedTab == title;
+    final displayTitle = title == 'WATCHLIST' ? 'WATCHLIST' : title;
     return GestureDetector(
       onTap: () {
         viewModel.setTab(title);
@@ -767,19 +801,32 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: res.spacing(20)),
+        padding: EdgeInsets.symmetric(horizontal: res.spacing(14)),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isActive ? AppColors.surfaceBright : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Text(
-          title,
-          style: GoogleFonts.jetBrainsMono(
-            color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
-            fontSize: res.fontSize(12),
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (title == 'WATCHLIST') ...[
+              Icon(
+                Icons.star,
+                size: res.fontSize(13),
+                color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              displayTitle,
+              style: GoogleFonts.jetBrainsMono(
+                color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
+                fontSize: res.fontSize(12),
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1227,6 +1274,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       subtitle: 'Derivatives open interest',
                       onTap: () {
                         Navigator.of(context).push(_smoothRoute(const OpenInterestScreen()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
+
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      iconAsset: 'assets/appicons/openinterst.png',
+                      label: 'Liquidations',
+                      subtitle: 'Positions at risk',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const LiquidatablePage()));
                       },
                     ),
                     isActive: false,

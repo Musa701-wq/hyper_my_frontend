@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
+import 'package:provider/provider.dart';
+import '../viewmodels/home_viewmodel.dart';
 
 import '../models/orderbook_model.dart';
 import '../models/ticker_model.dart';
@@ -106,6 +108,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> with SingleTick
         coin: widget.ticker.symbol,
         interval: '1h',
         daysBack: 1,
+        tokenIndex: widget.ticker.tokenIndex,
       );
       if (mounted) {
         setState(() {
@@ -188,6 +191,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> with SingleTick
   @override
   Widget build(BuildContext context) {
     final res = Responsive(context);
+    final homeVm = context.watch<HomeViewModel>();
 
     return Scaffold(
       backgroundColor: const Color(0xFF0C0D0E),
@@ -209,6 +213,16 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> with SingleTick
           ),
         ),
         actions: [
+          IconButton(
+            icon: Icon(
+              homeVm.isFavorited(widget.ticker.symbol) ? Icons.star : Icons.star_border,
+              color: homeVm.isFavorited(widget.ticker.symbol) ? AppColors.brandAccent : AppColors.textSecondary,
+              size: res.fontSize(20),
+            ),
+            onPressed: () {
+              homeVm.toggleFavorite(widget.ticker.symbol);
+            },
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12.0),
             child: Center(
@@ -985,6 +999,8 @@ class _FundingHistoryContentState extends State<_FundingHistoryContent> {
   String _error = '';
   int? _selectedCandleIdx;
   int? _selectedLineIdx;
+  int _currentPage = 0;
+  static const int _pageSize = 10;
 
   final _coinSearchController = TextEditingController();
   final _candleScrollController = ScrollController();
@@ -1010,6 +1026,7 @@ class _FundingHistoryContentState extends State<_FundingHistoryContent> {
   Future<void> _fetchData() async {
     setState(() {
       _isLoading = true;
+      _currentPage = 0;
       _error = '';
     });
     try {
@@ -1380,6 +1397,22 @@ class _FundingHistoryContentState extends State<_FundingHistoryContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         PredictedFundingCard(coin: _selectedCoin),
+        Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 18, bottom: 8),
+          child: Row(
+            children: [
+              Text(
+                '📊 HISTORICAL FUNDING',
+                style: GoogleFonts.jetBrainsMono(
+                  color: Colors.white70,
+                  fontSize: res.fontSize(9.5),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
         alertWidget,
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -1418,6 +1451,19 @@ class _FundingHistoryContentState extends State<_FundingHistoryContent> {
           ),
         ),
         const SizedBox(height: 12),
+        if (_selectedView != 'Table')
+          Padding(
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 8),
+            child: Text(
+              'FUNDING RATE CHART',
+              style: GoogleFonts.inter(
+                color: AppColors.textSecondary.withOpacity(0.8),
+                fontSize: res.fontSize(8.5),
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
         _selectedView == 'Table'
             ? Expanded(
                 child: Padding(
@@ -1472,10 +1518,12 @@ class _FundingHistoryContentState extends State<_FundingHistoryContent> {
     }).toList();
 
     final rates = _data.map((e) => e.fundingRate * 100).toList();
-    final double minY = rates.reduce((a, b) => a < b ? a : b) * 1.15;
-    final double maxY = rates.reduce((a, b) => a > b ? a : b) * 1.15;
-    final double minVal = minY == 0 && maxY == 0 ? -0.05 : minY;
-    final double maxVal = minY == 0 && maxY == 0 ? 0.05 : maxY;
+    final double rawMin = rates.reduce((a, b) => a < b ? a : b);
+    final double rawMax = rates.reduce((a, b) => a > b ? a : b);
+    final double diff = (rawMax - rawMin).abs();
+    final double pad = diff > 0 ? diff * 0.15 : 0.0005;
+    double minVal = rawMin - pad;
+    double maxVal = rawMax + pad;
 
     final double viewportW = MediaQuery.of(context).size.width - 32 - 52.0;
     final double chartW = (spots.length * 8.0).clamp(viewportW, 1200.0);
@@ -1632,10 +1680,19 @@ class _FundingHistoryContentState extends State<_FundingHistoryContent> {
     final double canvasW = (candles.length * slotW + 56.0).clamp(viewportW, 1200.0);
 
     final rates = candles.expand((c) => [c.open, c.close, c.high, c.low]).toList()..sort();
-    final double minY = rates.isEmpty ? -0.05 : rates.first * 1.15;
-    final double maxY = rates.isEmpty ? 0.05 : rates.last * 1.15;
-    final double minVal = minY == 0 && maxY == 0 ? -0.05 : minY;
-    final double maxVal = minY == 0 && maxY == 0 ? 0.05 : maxY;
+    double minVal;
+    double maxVal;
+    if (rates.isEmpty) {
+      minVal = -0.05;
+      maxVal = 0.05;
+    } else {
+      final double rawMin = rates.first;
+      final double rawMax = rates.last;
+      final double diff = (rawMax - rawMin).abs();
+      final double pad = diff > 0 ? diff * 0.15 : 0.0005;
+      minVal = rawMin - pad;
+      maxVal = rawMax + pad;
+    }
 
     return Container(
       height: chartH,
@@ -1711,6 +1768,11 @@ class _FundingHistoryContentState extends State<_FundingHistoryContent> {
     }
     
     final reversed = _data.reversed.toList();
+    final totalEntries = reversed.length;
+    final totalPages = (totalEntries / _pageSize).ceil();
+    final pageStart = _currentPage * _pageSize;
+    final pageEnd = (pageStart + _pageSize).clamp(0, totalEntries);
+    final pageItems = reversed.sublist(pageStart, pageEnd);
 
     return Column(
       children: [
@@ -1734,10 +1796,10 @@ class _FundingHistoryContentState extends State<_FundingHistoryContent> {
         ),
         Expanded(
           child: ListView.builder(
-            itemCount: reversed.length,
+            itemCount: pageItems.length,
             physics: const BouncingScrollPhysics(),
             itemBuilder: (context, index) {
-              final item = reversed[index];
+              final item = pageItems[index];
               final date = DateTime.fromMillisecondsSinceEpoch(item.time);
               final dateStr = DateFormat('yyyy-MM-dd HH:mm').format(date);
               final pctRate = item.fundingRate * 100;
@@ -1772,6 +1834,95 @@ class _FundingHistoryContentState extends State<_FundingHistoryContent> {
             },
           ),
         ),
+        if (totalPages > 1) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                GestureDetector(
+                  onTap: _currentPage > 0
+                      ? () => setState(() => _currentPage--)
+                      : null,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _currentPage > 0 ? AppColors.surface : AppColors.surface.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: _currentPage > 0 ? AppColors.surfaceBright.withOpacity(0.5) : Colors.transparent,
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 10,
+                          color: _currentPage > 0 ? Colors.white : AppColors.textSecondary.withOpacity(0.4),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'PREV',
+                          style: GoogleFonts.jetBrainsMono(
+                            color: _currentPage > 0 ? Colors.white : AppColors.textSecondary.withOpacity(0.4),
+                            fontSize: res.fontSize(9),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Text(
+                  'Page ${_currentPage + 1} of $totalPages',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: AppColors.textSecondary,
+                    fontSize: res.fontSize(10),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _currentPage < totalPages - 1
+                      ? () => setState(() => _currentPage++)
+                      : null,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _currentPage < totalPages - 1 ? AppColors.surface : AppColors.surface.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: _currentPage < totalPages - 1 ? AppColors.surfaceBright.withOpacity(0.5) : Colors.transparent,
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          'NEXT',
+                          style: GoogleFonts.jetBrainsMono(
+                            color: _currentPage < totalPages - 1 ? Colors.white : AppColors.textSecondary.withOpacity(0.4),
+                            fontSize: res.fontSize(9),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 10,
+                          color: _currentPage < totalPages - 1 ? Colors.white : AppColors.textSecondary.withOpacity(0.4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

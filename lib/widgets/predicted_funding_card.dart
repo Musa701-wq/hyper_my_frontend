@@ -85,7 +85,25 @@ class _PredictedFundingCardState extends State<PredictedFundingCard> {
       orElse: () => _funding!.venues.first,
     );
     final now = DateTime.now().millisecondsSinceEpoch;
-    final diffMs = venue.nextFundingTime - now;
+    
+    int nextTimeMs = venue.nextFundingTime;
+    // Auto-detect seconds and scale to milliseconds if needed
+    if (nextTimeMs > 0 && nextTimeMs < 999999999999) {
+      nextTimeMs *= 1000;
+    }
+    
+    // If the next funding time is in the past (e.g. from cached server response), 
+    // project it forward dynamically using the funding interval.
+    if (nextTimeMs > 0 && nextTimeMs <= now) {
+      final intervalMs = venue.fundingIntervalHours * 3600000;
+      if (intervalMs > 0) {
+        while (nextTimeMs <= now) {
+          nextTimeMs += intervalMs;
+        }
+      }
+    }
+
+    final diffMs = nextTimeMs - now;
 
     if (diffMs <= 0) {
       if (mounted) {

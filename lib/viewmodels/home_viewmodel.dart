@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_config.dart';
 import '../models/ticker_model.dart';
 import '../models/trader_distribution_model.dart';
@@ -14,6 +15,43 @@ class HomeViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String _errorMessage = '';
   WebSocketChannel? _channel;
+
+  // Watchlist favorites
+  List<String> _watchlistSymbols = [];
+  List<String> get watchlistSymbols => _watchlistSymbols;
+
+  HomeViewModel() {
+    loadWatchlist();
+  }
+
+  Future<void> loadWatchlist() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _watchlistSymbols = prefs.getStringList('watchlist') ?? [];
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading watchlist: $e');
+    }
+  }
+
+  bool isFavorited(String symbol) {
+    return _watchlistSymbols.contains(symbol);
+  }
+
+  Future<void> toggleFavorite(String symbol) async {
+    if (_watchlistSymbols.contains(symbol)) {
+      _watchlistSymbols.remove(symbol);
+    } else {
+      _watchlistSymbols.add(symbol);
+    }
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('watchlist', _watchlistSymbols);
+    } catch (e) {
+      debugPrint('Error saving watchlist: $e');
+    }
+  }
 
   // Per-tab cache to speed up switching
   final Map<String, List<TickerModel>> _tabCache = {};
@@ -67,6 +105,11 @@ class HomeViewModel extends ChangeNotifier {
 
   List<TickerModel> get filteredTickers {
     List<TickerModel> list = _tickers;
+
+    // Watchlist Filter
+    if (_selectedTab == 'WATCHLIST') {
+      list = list.where((t) => _watchlistSymbols.contains(t.symbol)).toList();
+    }
     
     // Dex Filter
     if (_selectedDex != 'All') {
@@ -216,7 +259,7 @@ class HomeViewModel extends ChangeNotifier {
         final baseUrl = AppConfig.baseUrl;
         final hipBaseUrl = AppConfig.hipBaseUrl;
 
-        final url = _selectedTab == 'ALL'
+        final url = (_selectedTab == 'ALL' || _selectedTab == 'WATCHLIST')
             ? '$baseUrl/all'
             : _selectedTab == 'HIP-3'
                 ? '$hipBaseUrl/hip3/all'
@@ -478,7 +521,7 @@ class HomeViewModel extends ChangeNotifier {
     } else {
       // Logic for adding new tickers from WS:
       // Only add if it matches the current tab's characteristics
-      bool shouldAdd = _selectedTab == 'ALL';
+      bool shouldAdd = _selectedTab == 'ALL' || _selectedTab == 'WATCHLIST';
       if (_selectedTab == 'HIP-3' && updateData['dex'] != null) shouldAdd = true;
       if (_selectedTab == 'CRYPTO' && updateData['cryptoCategory'] != null) shouldAdd = true;
       
