@@ -127,7 +127,7 @@ class _LiquidatablePageState extends State<LiquidatablePage> {
           child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
         ),
         title: Text(
-          '⚡ LIQUIDATIONS',
+          'LIQUIDATIONS',
           style: GoogleFonts.jetBrainsMono(
             color: AppColors.brandAccent,
             fontSize: res.fontSize(16),

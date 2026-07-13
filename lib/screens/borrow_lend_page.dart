@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../models/borrow_lend_model.dart';
 import '../viewmodels/borrow_lend_viewmodel.dart';
 import '../viewmodels/home_viewmodel.dart';
@@ -250,7 +251,7 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
             child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
           ),
           title: Text(
-            '🏛️ BORROW & LEND POOLS',
+            'BORROW & LEND POOLS',
             style: GoogleFonts.jetBrainsMono(
               color: AppColors.brandAccent,
               fontSize: res.fontSize(16),
@@ -420,7 +421,7 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                             children: [
                               // 1. Static left side (POOL)
                               SizedBox(
-                                width: res.columnWidth(110),
+                                width: res.columnWidth(150),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -433,14 +434,18 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                                         'POOL',
                                         style: GoogleFonts.jetBrainsMono(
                                           color: AppColors.textSecondary,
-                                          fontSize: res.fontSize(9),
+                                          fontSize: res.fontSize(11),
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     // POOL Data Rows
-                                    ...list.map((pool) {
+                                    ...list.asMap().entries.map((entry) {
+                                      final index = entry.key;
+                                      final pool = entry.value;
+                                      final iconUrl = _findIconUrl(pool.tokenName);
+
                                       return GestureDetector(
                                         onTap: () => _showDetailDialog(pool),
                                         behavior: HitTestBehavior.opaque,
@@ -450,16 +455,57 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                                           decoration: const BoxDecoration(
                                             border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
                                           ),
-                                          alignment: Alignment.centerLeft,
-                                          child: Text(
-                                            pool.tokenName,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.jetBrainsMono(
-                                              color: Colors.white,
-                                              fontSize: res.fontSize(10.5),
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                          child: Row(
+                                            children: [
+                                              // Index / Numbering
+                                              SizedBox(
+                                                width: 16,
+                                                child: Text(
+                                                  (index + 1).toString(),
+                                                  style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(9)),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              // Token Icon
+                                              Container(
+                                                width: res.fontSize(28),
+                                                height: res.fontSize(28),
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: AppColors.surfaceBright.withOpacity(0.3),
+                                                ),
+                                                child: ClipOval(
+                                                  child: iconUrl.isEmpty
+                                                      ? Icon(Icons.token, color: AppColors.textSecondary, size: res.fontSize(14))
+                                                      : iconUrl.toLowerCase().contains('.svg')
+                                                          ? SvgPicture.network(
+                                                              iconUrl,
+                                                              fit: BoxFit.cover,
+                                                              placeholderBuilder: (context) => Icon(Icons.token, size: res.fontSize(14), color: AppColors.textSecondary),
+                                                              errorBuilder: (context, error, stackTrace) => Icon(Icons.token, size: res.fontSize(14), color: AppColors.textSecondary),
+                                                            )
+                                                          : Image.network(
+                                                              iconUrl,
+                                                              fit: BoxFit.cover,
+                                                              errorBuilder: (context, error, stackTrace) => Icon(Icons.token, size: res.fontSize(14), color: AppColors.textSecondary),
+                                                            ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              // Token Name
+                                              Expanded(
+                                                child: Text(
+                                                  pool.tokenName,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: GoogleFonts.jetBrainsMono(
+                                                    color: Colors.white,
+                                                    fontSize: res.fontSize(11),
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       );
@@ -489,7 +535,7 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                                                     'PRICE',
                                                     style: GoogleFonts.jetBrainsMono(
                                                       color: AppColors.textSecondary,
-                                                      fontSize: res.fontSize(9),
+                                                      fontSize: res.fontSize(11),
                                                       fontWeight: FontWeight.bold,
                                                     ),
                                                   ),
@@ -502,7 +548,7 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                                                     'AVAILABLE (QTY)',
                                                     style: GoogleFonts.jetBrainsMono(
                                                       color: AppColors.textSecondary,
-                                                      fontSize: res.fontSize(8.5),
+                                                      fontSize: res.fontSize(11),
                                                       fontWeight: FontWeight.bold,
                                                     ),
                                                   ),
@@ -515,7 +561,7 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                                                     'SUPPLY',
                                                     style: GoogleFonts.jetBrainsMono(
                                                       color: AppColors.textSecondary,
-                                                      fontSize: res.fontSize(9),
+                                                      fontSize: res.fontSize(11),
                                                       fontWeight: FontWeight.bold,
                                                     ),
                                                   ),
@@ -528,7 +574,7 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                                                     'BORROW',
                                                     style: GoogleFonts.jetBrainsMono(
                                                       color: AppColors.textSecondary,
-                                                      fontSize: res.fontSize(9),
+                                                      fontSize: res.fontSize(11),
                                                       fontWeight: FontWeight.bold,
                                                     ),
                                                   ),
@@ -541,7 +587,7 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                                                     'UTIL',
                                                     style: GoogleFonts.jetBrainsMono(
                                                       color: AppColors.textSecondary,
-                                                      fontSize: res.fontSize(9),
+                                                      fontSize: res.fontSize(11),
                                                       fontWeight: FontWeight.bold,
                                                     ),
                                                   ),
@@ -572,7 +618,7 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                                                         maxLines: 1,
                                                         style: GoogleFonts.jetBrainsMono(
                                                           color: Colors.white70,
-                                                          fontSize: res.fontSize(10.5),
+                                                          fontSize: res.fontSize(11),
                                                         ),
                                                       ),
                                                     ),
@@ -585,7 +631,7 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                                                         maxLines: 1,
                                                         style: GoogleFonts.jetBrainsMono(
                                                           color: Colors.white,
-                                                          fontSize: res.fontSize(10.5),
+                                                          fontSize: res.fontSize(11),
                                                           fontWeight: FontWeight.bold,
                                                         ),
                                                       ),
@@ -599,7 +645,7 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                                                         maxLines: 1,
                                                         style: GoogleFonts.jetBrainsMono(
                                                           color: AppColors.trendGreen,
-                                                          fontSize: res.fontSize(10.5),
+                                                          fontSize: res.fontSize(11),
                                                           fontWeight: FontWeight.bold,
                                                         ),
                                                       ),
@@ -613,7 +659,7 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                                                         maxLines: 1,
                                                         style: GoogleFonts.jetBrainsMono(
                                                           color: AppColors.trendRed,
-                                                          fontSize: res.fontSize(10.5),
+                                                          fontSize: res.fontSize(11),
                                                           fontWeight: FontWeight.bold,
                                                         ),
                                                       ),
@@ -627,7 +673,7 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                                                         maxLines: 1,
                                                         style: GoogleFonts.jetBrainsMono(
                                                           color: Colors.white70,
-                                                          fontSize: res.fontSize(10.5),
+                                                          fontSize: res.fontSize(11),
                                                         ),
                                                       ),
                                                     ),
@@ -720,7 +766,14 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                   ),
                   child: Row(
                     children: [
-                      ShimmerSkeleton.box(60, 12, radius: 3),
+                      // Index loader
+                      ShimmerSkeleton.box(10, 10, radius: 2),
+                      const SizedBox(width: 10),
+                      // Icon loader
+                      ShimmerSkeleton.box(res.fontSize(28), res.fontSize(28), radius: res.fontSize(28) / 2),
+                      const SizedBox(width: 8),
+                      // Token name loader
+                      ShimmerSkeleton.box(40, 12, radius: 3),
                       const Spacer(),
                       ShimmerSkeleton.box(50, 12, radius: 3),
                       const SizedBox(width: 24),

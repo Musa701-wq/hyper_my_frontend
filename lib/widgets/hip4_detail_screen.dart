@@ -419,7 +419,7 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
       surfaceTintColor: Colors.transparent,
       leading: GestureDetector(
         onTap: () => Navigator.pop(context),
-        child: const Icon(Icons.arrow_back, color: AppColors.brandAccent),
+        child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
       ),
       title: Text(
         widget.market.name,

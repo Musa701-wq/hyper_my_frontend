@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../models/ticker_model.dart';
 import '../services/margin_service.dart';
 import '../utils/app_colors.dart';
@@ -163,11 +164,21 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
                 Row(
                   children: [
                     if (ticker.iconUrl.isNotEmpty)
-                      Image.network(
-                        ticker.iconUrl,
+                      SizedBox(
                         width: 32,
                         height: 32,
-                        errorBuilder: (ctx, err, stack) => const Icon(Icons.token, color: AppColors.textSecondary, size: 32),
+                        child: ticker.iconUrl.toLowerCase().contains('.svg')
+                            ? SvgPicture.network(
+                                ticker.iconUrl,
+                                fit: BoxFit.cover,
+                                placeholderBuilder: (context) => const Icon(Icons.token, size: 32, color: AppColors.textSecondary),
+                                errorBuilder: (context, error, stackTrace) => const Icon(Icons.token, size: 32, color: AppColors.textSecondary),
+                              )
+                            : Image.network(
+                                ticker.iconUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const Icon(Icons.token, size: 32, color: AppColors.textSecondary),
+                              ),
                       )
                     else
                       const Icon(Icons.token, color: AppColors.textSecondary, size: 32),
@@ -382,7 +393,7 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
             child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
           ),
           title: Text(
-            '🏛️ LEVERAGE & MARGIN',
+            'LEVERAGE & MARGIN',
             style: GoogleFonts.jetBrainsMono(
               color: AppColors.brandAccent,
               fontSize: res.fontSize(16),
@@ -542,7 +553,7 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
                   flex: 3,
                   child: Text(
                     'ASSET',
-                    style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11), fontWeight: FontWeight.bold),
                   ),
                 ),
                 Expanded(
@@ -551,7 +562,7 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
                     alignment: Alignment.centerRight,
                     child: Text(
                       'MARK PRICE',
-                      style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11), fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -561,7 +572,7 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
                     alignment: Alignment.centerRight,
                     child: Text(
                       'MAX LEV',
-                      style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11), fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -571,7 +582,7 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
                     alignment: Alignment.centerRight,
                     child: Text(
                       'BASE MM',
-                      style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11), fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -632,17 +643,20 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
                   flex: 3,
                   child: Row(
                     children: [
-                      ShimmerSkeleton.box(12, 10, radius: 2),
-                      const SizedBox(width: 12),
-                      ShimmerSkeleton.box(24, 24, radius: 12),
+                      ShimmerSkeleton.box(8, 10, radius: 2),
                       const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ShimmerSkeleton.box(60, 12, radius: 3),
-                          const SizedBox(height: 6),
-                          ShimmerSkeleton.box(40, 8, radius: 2),
-                        ],
+                      ShimmerSkeleton.box(res.fontSize(28), res.fontSize(28), radius: res.fontSize(28) / 2),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ShimmerSkeleton.box(40, 10, radius: 3),
+                            const SizedBox(height: 6),
+                            ShimmerSkeleton.box(25, 8, radius: 2),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -699,25 +713,36 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
                     width: 20,
                     child: Text(
                       rank.toString(),
-                      style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10),
+                      style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(9)),
                     ),
                   ),
                   const SizedBox(width: 4),
                   Container(
-                    width: 24,
-                    height: 24,
+                    width: res.fontSize(28),
+                    height: res.fontSize(28),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: AppColors.surfaceBright.withOpacity(0.3),
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: ticker.iconUrl.isNotEmpty
-                          ? Image.network(
-                              ticker.iconUrl,
-                              errorBuilder: (ctx, err, stack) => const Icon(Icons.token, color: AppColors.textSecondary, size: 14),
-                            )
-                          : const Icon(Icons.token, color: AppColors.textSecondary, size: 14),
+                    child: ClipOval(
+                      child: ticker.iconUrl.isEmpty
+                          ? Icon(Icons.token, color: AppColors.textSecondary, size: res.fontSize(16))
+                          : ticker.iconUrl.toLowerCase().contains('.svg')
+                              ? SvgPicture.network(
+                                  ticker.iconUrl,
+                                  fit: BoxFit.cover,
+                                  placeholderBuilder: (context) => Icon(Icons.token, size: res.fontSize(16), color: AppColors.textSecondary),
+                                  errorBuilder: (context, error, stackTrace) => Icon(Icons.token, size: res.fontSize(16), color: AppColors.textSecondary),
+                                )
+                              : Image.network(
+                                  ticker.iconUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Icon(Icons.token, size: res.fontSize(16), color: AppColors.textSecondary),
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(child: CircularProgressIndicator(strokeWidth: 1, valueColor: AlwaysStoppedAnimation<Color>(AppColors.brandAccent.withOpacity(0.3))));
+                                  },
+                                ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -728,7 +753,7 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
                         displaySymbol,
                         style: GoogleFonts.jetBrainsMono(
                           color: Colors.white,
-                          fontSize: 12,
+                          fontSize: res.fontSize(11),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -736,7 +761,7 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
                         'Table ${ticker.marginTableId ?? "—"}',
                         style: GoogleFonts.jetBrainsMono(
                           color: AppColors.textSecondary,
-                          fontSize: 9,
+                          fontSize: res.fontSize(9),
                         ),
                       ),
                     ],
@@ -754,7 +779,7 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
                   _formatPrice(ticker.markPx),
                   style: GoogleFonts.jetBrainsMono(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: res.fontSize(11),
                   ),
                 ),
               ),
@@ -776,7 +801,7 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
                     '${ticker.maxLeverage}x',
                     style: GoogleFonts.jetBrainsMono(
                       color: AppColors.brandAccent,
-                      fontSize: 10,
+                      fontSize: res.fontSize(11),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -793,7 +818,7 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
                   '${mmRate.toStringAsFixed(2)}%',
                   style: GoogleFonts.jetBrainsMono(
                     color: Colors.white70,
-                    fontSize: 12,
+                    fontSize: res.fontSize(11),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
