@@ -1449,164 +1449,208 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
             ],
           ),
           SizedBox(height: res.spacing(14)),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6.0, left: 4.0, right: 4.0),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: res.spacing(24) + 4 + res.spacing(18) + 8,
-                  child: Text(
-                    '#',
-                    style: GoogleFonts.inter(
-                      color: AppColors.textSecondary,
-                      fontSize: res.fontSize(8.5),
-                      fontWeight: FontWeight.bold,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: SizedBox(
+              width: res.isMobile ? 580.0 : 720.0,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6.0),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: (res.isMobile ? 580.0 : 720.0) * 0.28,
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: res.columnWidth(36.0),
+                                child: Text(
+                                  '#',
+                                  style: GoogleFonts.inter(
+                                    color: AppColors.textSecondary,
+                                    fontSize: res.fontSize(8.5),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'PROTOCOL',
+                                style: GoogleFonts.inter(
+                                  color: AppColors.textSecondary,
+                                  fontSize: res.fontSize(8.5),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          width: (res.isMobile ? 580.0 : 720.0) * 0.26,
+                          child: Center(
+                            child: Text(
+                              _dataType == 'holders-revenue'
+                                  ? '24H HOLDERS REVENUE'
+                                  : (_isRevenue ? '24H REVENUE' : '24H FEES'),
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary,
+                                fontSize: res.fontSize(8.5),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        SizedBox(
+                          width: (res.isMobile ? 580.0 : 720.0) * 0.16,
+                          child: Center(
+                            child: Text(
+                              '1D CHANGE',
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary,
+                                fontSize: res.fontSize(8.5),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'CATEGORY',
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary,
+                                fontSize: res.fontSize(8.5),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                Expanded(
-                  flex: 4,
-                  child: Text(
-                    'PROTOCOL',
-                    style: GoogleFonts.inter(
-                      color: AppColors.textSecondary,
-                      fontSize: res.fontSize(8.5),
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Divider(color: Colors.white.withOpacity(0.08), height: 1),
+                  const SizedBox(height: 6),
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: list.length,
+                    separatorBuilder: (_, __) => Divider(color: Colors.white.withOpacity(0.04), height: 12),
+                    itemBuilder: (context, index) {
+                      final p = list[index];
+                      final isUp = p.change1d >= 0;
+                      final double tableWidth = res.isMobile ? 580.0 : 720.0;
+                      return Row(
+                        children: [
+                          SizedBox(
+                            width: tableWidth * 0.28,
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: res.columnWidth(36.0),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.star_border,
+                                        size: res.fontSize(14),
+                                        color: AppColors.textSecondary.withOpacity(0.3),
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Expanded(
+                                        child: Text(
+                                          '${index + 1}',
+                                          style: GoogleFonts.jetBrainsMono(
+                                            color: AppColors.textSecondary,
+                                            fontSize: res.fontSize(9),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Image.network(
+                                    p.logo ?? '',
+                                    width: res.spacing(18),
+                                    height: res.spacing(18),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      width: res.spacing(18),
+                                      height: res.spacing(18),
+                                      color: AppColors.surfaceBright.withOpacity(0.12),
+                                      child: const Icon(Icons.token_outlined, color: AppColors.brandAccent, size: 10),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    p.name,
+                                    style: GoogleFonts.inter(
+                                      color: Colors.white,
+                                      fontSize: res.fontSize(10.5),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(
+                            width: tableWidth * 0.26,
+                            child: Center(
+                              child: Text(
+                                _fmtMoney(p.fees24h),
+                                style: GoogleFonts.jetBrainsMono(
+                                  color: Colors.white,
+                                  fontSize: res.fontSize(10.5),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: tableWidth * 0.16,
+                            child: Center(
+                              child: Text(
+                                '${isUp ? '+' : ''}${p.change1d.toStringAsFixed(2)}%',
+                                style: GoogleFonts.jetBrainsMono(
+                                  color: isUp ? AppColors.trendGreen : AppColors.trendRed,
+                                  fontSize: res.fontSize(9.5),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                p.category,
+                                style: GoogleFonts.inter(
+                                  color: AppColors.textSecondary,
+                                  fontSize: res.fontSize(9.5),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    'CATEGORY',
-                    style: GoogleFonts.inter(
-                      color: AppColors.textSecondary,
-                      fontSize: res.fontSize(8.5),
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.end,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  _dataType == 'holders-revenue'
-                      ? '24H HOLDERS REVENUE'
-                      : (_isRevenue ? '24H REVENUE' : '24H FEES'),
-                  style: GoogleFonts.inter(
-                    color: AppColors.textSecondary,
-                    fontSize: res.fontSize(8.5),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: res.spacing(45),
-                  child: Text(
-                    '1D CHANGE',
-                    style: GoogleFonts.inter(
-                      color: AppColors.textSecondary,
-                      fontSize: res.fontSize(8.5),
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.end,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Divider(color: Colors.white.withOpacity(0.08), height: 1),
-          const SizedBox(height: 6),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: list.length,
-            separatorBuilder: (_, __) => Divider(color: Colors.white.withOpacity(0.04), height: 12),
-            itemBuilder: (context, index) {
-              final p = list[index];
-              final isUp = p.change1d >= 0;
-              return Container(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: res.spacing(24),
-                      child: Text(
-                        '#${index + 1}',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: AppColors.textSecondary,
-                          fontSize: res.fontSize(10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Image.network(
-                        p.logo ?? '',
-                        width: res.spacing(18),
-                        height: res.spacing(18),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          width: res.spacing(18),
-                          height: res.spacing(18),
-                          color: AppColors.surfaceBright.withOpacity(0.12),
-                          child: const Icon(Icons.token_outlined, color: AppColors.brandAccent, size: 10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 4,
-                      child: Text(
-                        p.name,
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: res.fontSize(10.5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        p.category,
-                        style: GoogleFonts.inter(
-                          color: AppColors.textSecondary,
-                          fontSize: res.fontSize(9.5),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.end,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      _fmtMoney(p.fees24h),
-                      style: GoogleFonts.jetBrainsMono(
-                        color: Colors.white,
-                        fontSize: res.fontSize(10.5),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: res.spacing(45),
-                      child: Text(
-                        '${isUp ? '+' : ''}${p.change1d.toStringAsFixed(2)}%',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: isUp ? AppColors.trendGreen : AppColors.trendRed,
-                          fontSize: res.fontSize(9.5),
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.end,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
           ),
         ],
       ),

@@ -203,111 +203,116 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
   Widget _statCards(DefiLlamaViewModel vm, Responsive res) {
     final change = vm.change1d;
     final isUp = change >= 0;
-    return Row(
-      children: [
-        Expanded(child: _profileStatCard(
-          title: '24H',
-          value: vm.fmtCompact(vm.stat24h),
-          icon: Icons.trending_up,
-          accent: AppColors.brandAccent,
-          badge: vm.fmtPct(change),
-          badgeUp: isUp,
-        )),
-        SizedBox(width: res.spacing(10)),
-        Expanded(child: _profileStatCard(
-          title: '7D',
-          value: vm.fmtCompact(vm.stat7d),
-          icon: Icons.date_range,
-          accent: AppColors.brandAccent,
-        )),
-        SizedBox(width: res.spacing(10)),
-        Expanded(child: _profileStatCard(
-          title: 'ALL TIME',
-          value: vm.fmtCompact(vm.statAllTime),
-          icon: Icons.history,
-          accent: AppColors.brandAccent,
-        )),
-      ],
-    );
-  }
 
-  Widget _profileStatCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color accent,
-    String? badge,
-    bool badgeUp = true,
-  }) {
-    return Container(
-      padding: EdgeInsets.all(responsive(context).spacing(12)),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(responsive(context).value(mobile: 16, tablet: 14, desktop: 20)),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final item1 = _kpiItem(
+      title: '24H',
+      value: vm.fmtCompact(vm.stat24h),
+      bottomWidget: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title,
-                style: GoogleFonts.inter(
-                  color: AppColors.textSecondary,
-                  fontSize: responsive(context).value(mobile: 9, tablet: 8, desktop: 10),
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                )),
-              Container(
-                padding: EdgeInsets.all(responsive(context).value(mobile: 6, tablet: 4, desktop: 6)),
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: accent,
-                  size: responsive(context).value(mobile: 14, tablet: 12, desktop: 16)),
-              ),
-            ],
+          Icon(
+            isUp ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+            color: isUp ? AppColors.trendGreen : AppColors.trendRed,
+            size: res.fontSize(14),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(value,
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: responsive(context).value(mobile: 16, tablet: 13, desktop: 16),
-                    fontWeight: FontWeight.bold,
-                  )),
-              ),
-              if (badge != null) ...[
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(badgeUp ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                      color: badgeUp ? AppColors.trendGreen : AppColors.trendRed,
-                      size: responsive(context).value(mobile: 14, tablet: 11, desktop: 14)),
-                    const SizedBox(width: 2),
-                    Text(badge,
-                      style: GoogleFonts.inter(
-                        color: badgeUp ? AppColors.trendGreen : AppColors.trendRed,
-                        fontSize: responsive(context).value(mobile: 10, tablet: 8, desktop: 10),
-                        fontWeight: FontWeight.w500,
-                      )),
-                  ],
-                ),
-              ],
-            ],
+          const SizedBox(width: 2),
+          Text(
+            vm.fmtPct(change),
+            style: GoogleFonts.inter(
+              color: isUp ? AppColors.trendGreen : AppColors.trendRed,
+              fontSize: res.fontSize(10),
+              fontWeight: FontWeight.bold,
+            ),
           ),
+        ],
+      ),
+      res: res,
+    );
+
+    final item2 = _kpiItem(
+      title: '7D',
+      value: vm.fmtCompact(vm.stat7d),
+      bottomWidget: Text(
+        'Weekly cumulative',
+        style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: res.fontSize(9.5)),
+      ),
+      res: res,
+    );
+
+    final item3 = _kpiItem(
+      title: 'ALL TIME',
+      value: vm.fmtCompact(vm.statAllTime),
+      bottomWidget: Text(
+        'Historical total',
+        style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: res.fontSize(9.5)),
+      ),
+      res: res,
+    );
+
+    return AppCard(
+      padding: EdgeInsets.symmetric(
+        horizontal: res.spacing(16),
+        vertical: res.spacing(14),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: item1),
+          Container(
+            width: 1,
+            height: res.spacing(55),
+            margin: EdgeInsets.symmetric(horizontal: res.spacing(14)),
+            color: Colors.white.withOpacity(0.06),
+          ),
+          Expanded(child: item2),
+          Container(
+            width: 1,
+            height: res.spacing(55),
+            margin: EdgeInsets.symmetric(horizontal: res.spacing(14)),
+            color: Colors.white.withOpacity(0.06),
+          ),
+          Expanded(child: item3),
         ],
       ),
     );
   }
 
-  Responsive responsive(BuildContext context) => Responsive(context);
+  Widget _kpiItem({
+    required String title,
+    required String value,
+    required Widget bottomWidget,
+    required Responsive res,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.inter(
+            color: AppColors.textSecondary,
+            fontSize: res.fontSize(8.5),
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: GoogleFonts.jetBrainsMono(
+              color: Colors.white,
+              fontSize: res.fontSize(16),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        bottomWidget,
+      ],
+    );
+  }
 
   // ════════════════════════════════════════════════════════════
   //  SCOPE TABS  — All / Perps / Spot / HLP  (OHLC-style)

@@ -536,18 +536,23 @@ class _FeeCompareScreenState extends State<FeeCompareScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                widget.dataType == 'holders-revenue'
-                    ? 'Holders Revenue Comparison (${_selectedRange.toUpperCase()})'
-                    : (widget.isRevenue 
-                        ? 'Revenue Comparison (${_selectedRange.toUpperCase()})' 
-                        : 'Fee Comparison (${_selectedRange.toUpperCase()})'),
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: res.fontSize(13),
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  widget.dataType == 'holders-revenue'
+                      ? 'Holders Revenue ${res.isMobile ? 'Comp.' : 'Comparison'} (${_selectedRange.toUpperCase()})'
+                      : (widget.isRevenue 
+                          ? 'Revenue ${res.isMobile ? 'Comp.' : 'Comparison'} (${_selectedRange.toUpperCase()})' 
+                          : 'Fee ${res.isMobile ? 'Comp.' : 'Comparison'} (${_selectedRange.toUpperCase()})'),
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: res.fontSize(13),
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ),
+              const SizedBox(width: 8),
               _buildRangeSwitches(res),
             ],
           ),

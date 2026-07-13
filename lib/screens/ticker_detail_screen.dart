@@ -23,6 +23,7 @@ import 'package:shimmer/shimmer.dart';
 import '../models/funding_history_model.dart';
 import '../services/funding_history_service.dart';
 import '../widgets/predicted_funding_card.dart';
+import '../utils/common_widgets.dart';
 
 class TickerDetailScreen extends StatefulWidget {
   final TickerModel ticker;
@@ -216,7 +217,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> with SingleTick
           IconButton(
             icon: Icon(
               homeVm.isFavorited(widget.ticker.symbol) ? Icons.star : Icons.star_border,
-              color: homeVm.isFavorited(widget.ticker.symbol) ? AppColors.brandAccent : AppColors.textSecondary,
+              color: homeVm.isFavorited(widget.ticker.symbol) ? Colors.amber : AppColors.textSecondary,
               size: res.fontSize(20),
             ),
             onPressed: () {
@@ -1416,38 +1417,72 @@ class _FundingHistoryContentState extends State<_FundingHistoryContent> {
         alertWidget,
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          child: Row(
-            children: [
-              Expanded(
-                child: _statsCard(
-                  title: 'AVG HOURLY',
-                  value: '${avgPct >= 0 ? '+' : ''}${avgPct.toStringAsFixed(5)}%',
-                  subText: 'rate per hour',
-                  valueColor: avgPct >= 0 ? AppColors.trendGreen : AppColors.trendRed,
-                  res: res,
+          child: AppCard(
+            padding: EdgeInsets.symmetric(
+              horizontal: res.spacing(16),
+              vertical: res.spacing(14),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _kpiItem(
+                    title: 'AVG HOURLY',
+                    value: '${avgPct >= 0 ? '+' : ''}${avgPct.toStringAsFixed(5)}%',
+                    bottomWidget: Text(
+                      'rate per hour',
+                      style: GoogleFonts.inter(
+                        color: AppColors.textSecondary.withOpacity(0.5),
+                        fontSize: res.fontSize(8),
+                      ),
+                    ),
+                    valueColor: avgPct >= 0 ? AppColors.trendGreen : AppColors.trendRed,
+                    res: res,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _statsCard(
-                  title: 'ANNUAL EST',
-                  value: '${apr >= 0 ? '+' : ''}${apr.toStringAsFixed(1)}%',
-                  subText: 'apr yield',
-                  valueColor: apr >= 0 ? AppColors.trendGreen : AppColors.trendRed,
-                  res: res,
+                Container(
+                  width: 1,
+                  height: res.spacing(55),
+                  margin: EdgeInsets.symmetric(horizontal: res.spacing(14)),
+                  color: Colors.white.withOpacity(0.06),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _statsCard(
-                  title: 'CUMULATIVE',
-                  value: '${cumulative >= 0 ? '+' : ''}${cumulative.toStringAsFixed(3)}%',
-                  subText: 'total cost %',
-                  valueColor: cumulative >= 0 ? AppColors.trendGreen : AppColors.trendRed,
-                  res: res,
+                Expanded(
+                  child: _kpiItem(
+                    title: 'ANNUAL EST',
+                    value: '${apr >= 0 ? '+' : ''}${apr.toStringAsFixed(1)}%',
+                    bottomWidget: Text(
+                      'apr yield',
+                      style: GoogleFonts.inter(
+                        color: AppColors.textSecondary.withOpacity(0.5),
+                        fontSize: res.fontSize(8),
+                      ),
+                    ),
+                    valueColor: apr >= 0 ? AppColors.trendGreen : AppColors.trendRed,
+                    res: res,
+                  ),
                 ),
-              ),
-            ],
+                Container(
+                  width: 1,
+                  height: res.spacing(55),
+                  margin: EdgeInsets.symmetric(horizontal: res.spacing(14)),
+                  color: Colors.white.withOpacity(0.06),
+                ),
+                Expanded(
+                  child: _kpiItem(
+                    title: 'CUMULATIVE',
+                    value: '${cumulative >= 0 ? '+' : ''}${cumulative.toStringAsFixed(3)}%',
+                    bottomWidget: Text(
+                      'total cost %',
+                      style: GoogleFonts.inter(
+                        color: AppColors.textSecondary.withOpacity(0.5),
+                        fontSize: res.fontSize(8),
+                      ),
+                    ),
+                    valueColor: cumulative >= 0 ? AppColors.trendGreen : AppColors.trendRed,
+                    res: res,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -1484,27 +1519,42 @@ class _FundingHistoryContentState extends State<_FundingHistoryContent> {
     );
   }
 
-  Widget _statsCard({required String title, required String value, required String subText, required Color valueColor, required Responsive res}) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3), width: 0.8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: res.fontSize(8), fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-          const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(value, style: GoogleFonts.jetBrainsMono(color: valueColor, fontSize: res.fontSize(14), fontWeight: FontWeight.bold)),
+  Widget _kpiItem({
+    required String title,
+    required String value,
+    required Widget bottomWidget,
+    required Color valueColor,
+    required Responsive res,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.inter(
+            color: AppColors.textSecondary,
+            fontSize: res.fontSize(8),
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
           ),
-          const SizedBox(height: 4),
-          Text(subText, style: GoogleFonts.inter(color: AppColors.textSecondary.withOpacity(0.5), fontSize: res.fontSize(8))),
-        ],
-      ),
+        ),
+        const SizedBox(height: 6),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: GoogleFonts.jetBrainsMono(
+              color: valueColor,
+              fontSize: res.fontSize(14),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        bottomWidget,
+      ],
     );
   }
 

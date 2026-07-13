@@ -301,38 +301,72 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
                 // Overview stats cards
                 Padding(
                   padding: const EdgeInsets.all(12.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _buildSummaryCard(
-                          'TOTAL DEPOSITS',
-                          _formatUsd(totalSuppliedUsd),
-                          'supplied in pools',
-                          AppColors.trendGreen,
-                          res,
+                  child: AppCard(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: res.spacing(16),
+                      vertical: res.spacing(14),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _kpiItem(
+                            title: 'TOTAL DEPOSITS',
+                            value: _formatUsd(totalSuppliedUsd),
+                            bottomWidget: Text(
+                              'supplied in pools',
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary.withOpacity(0.5),
+                                fontSize: res.fontSize(8),
+                              ),
+                            ),
+                            valueColor: AppColors.trendGreen,
+                            res: res,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildSummaryCard(
-                          'AVG UTILIZATION',
-                          '${(avgUtil * 100).toStringAsFixed(1)}%',
-                          'active borrowed',
-                          AppColors.brandAccent,
-                          res,
+                        Container(
+                          width: 1,
+                          height: res.spacing(55),
+                          margin: EdgeInsets.symmetric(horizontal: res.spacing(14)),
+                          color: Colors.white.withOpacity(0.06),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildSummaryCard(
-                          'BEST YIELD',
-                          '${(topYieldRate * 100).toStringAsFixed(1)}%',
-                          'pool: $topYieldToken',
-                          AppColors.trendGreen,
-                          res,
+                        Expanded(
+                          child: _kpiItem(
+                            title: 'AVG UTILIZATION',
+                            value: '${(avgUtil * 100).toStringAsFixed(1)}%',
+                            bottomWidget: Text(
+                              'active borrowed',
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary.withOpacity(0.5),
+                                fontSize: res.fontSize(8),
+                              ),
+                            ),
+                            valueColor: AppColors.brandAccent,
+                            res: res,
+                          ),
                         ),
-                      ),
-                    ],
+                        Container(
+                          width: 1,
+                          height: res.spacing(55),
+                          margin: EdgeInsets.symmetric(horizontal: res.spacing(14)),
+                          color: Colors.white.withOpacity(0.06),
+                        ),
+                        Expanded(
+                          child: _kpiItem(
+                            title: 'BEST YIELD',
+                            value: '${(topYieldRate * 100).toStringAsFixed(1)}%',
+                            bottomWidget: Text(
+                              'pool: $topYieldToken',
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary.withOpacity(0.5),
+                                fontSize: res.fontSize(8),
+                              ),
+                            ),
+                            valueColor: AppColors.trendGreen,
+                            res: res,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -700,27 +734,42 @@ class _BorrowLendPageState extends State<BorrowLendPage> {
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, String subtitle, Color valueColor, Responsive res) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3), width: 0.8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: res.fontSize(8), fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-          const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(value, style: GoogleFonts.jetBrainsMono(color: valueColor, fontSize: res.fontSize(14), fontWeight: FontWeight.bold)),
+  Widget _kpiItem({
+    required String title,
+    required String value,
+    required Widget bottomWidget,
+    required Color valueColor,
+    required Responsive res,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.inter(
+            color: AppColors.textSecondary,
+            fontSize: res.fontSize(8),
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
           ),
-          const SizedBox(height: 4),
-          Text(subtitle, style: GoogleFonts.inter(color: AppColors.textSecondary.withOpacity(0.5), fontSize: res.fontSize(8))),
-        ],
-      ),
+        ),
+        const SizedBox(height: 6),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: GoogleFonts.jetBrainsMono(
+              color: valueColor,
+              fontSize: res.fontSize(14),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        bottomWidget,
+      ],
     );
   }
   Widget _buildShimmerLoading(Responsive res) {

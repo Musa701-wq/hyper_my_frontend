@@ -91,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
         key: _scaffoldKey,
         backgroundColor: Colors.transparent,
         drawer: _buildDrawer(context, res),
-        appBar: AppBar(
+        appBar: _selectedIndex == 3 ? null : AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: GestureDetector(
@@ -217,9 +217,26 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() => _selectedIndex = index);
           },
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), label: 'Markets'),
-            BottomNavigationBarItem(icon: Icon(Icons.leaderboard_outlined), label: 'Leaderboard'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.candlestick_chart_outlined),
+              activeIcon: Icon(Icons.candlestick_chart),
+              label: 'Markets',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.emoji_events_outlined),
+              activeIcon: Icon(Icons.emoji_events),
+              label: 'Leaderboard',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.account_balance_outlined),
+              activeIcon: Icon(Icons.account_balance),
+              label: 'HL TVL',
+            ),
             // BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Portfolio'),
           ],
         ),
@@ -235,6 +252,8 @@ class _HomeScreenState extends State<HomeScreen> {
       case 2:
         return const LeaderboardScreen();
       case 3:
+        return const HlTvlScreen(isTab: true);
+      case 4:
         return Consumer<PortfolioViewModel>(
           builder: (context, portfolioVm, _) => _buildPortfolioBody(portfolioVm),
         );
@@ -464,7 +483,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 viewModel.isFavorited(ticker.symbol) ? Icons.star : Icons.star_border,
                                                 size: res.fontSize(14),
                                                 color: viewModel.isFavorited(ticker.symbol)
-                                                    ? AppColors.brandAccent
+                                                    ? Colors.amber
                                                     : AppColors.textSecondary.withOpacity(0.3),
                                               ),
                                             ),
@@ -816,7 +835,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Icon(
                 Icons.star,
                 size: res.fontSize(13),
-                color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
+                color: Colors.amber,
               ),
               const SizedBox(width: 4),
             ],
@@ -1237,7 +1256,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   _DrawerNavItem(
                     data: _DrawerItemData(
-                      iconAsset: 'assets/appicons/openinterst.png',
+                      iconAsset: 'assets/appicons/liquidation.png',
                       label: 'Liquidations',
                       subtitle: 'Positions at risk',
                       onTap: () {
@@ -1249,7 +1268,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   _DrawerNavItem(
                     data: _DrawerItemData(
-                      iconAsset: 'assets/appicons/openinterst.png',
+                      iconAsset: 'assets/appicons/balance.png',
                       label: 'Leverage & Margin',
                       subtitle: 'Margin tiers & requirements',
                       onTap: () {
@@ -1261,7 +1280,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   _DrawerNavItem(
                     data: _DrawerItemData(
-                      iconAsset: 'assets/appicons/openinterst.png',
+                      iconAsset: 'assets/appicons/balance.png',
                       label: 'Borrow & Lend',
                       subtitle: 'Hyperliquid reserve states & rates',
                       onTap: () {

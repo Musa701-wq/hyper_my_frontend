@@ -30,6 +30,21 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
   String _searchQuery = '';
   String _sortBy = 'symbol'; // 'symbol', 'leverage_desc', 'leverage_asc', 'table_id'
 
+  int _currentPage = 1;
+  int _itemsPerPage = 10;
+
+  int get _totalPages {
+    if (_filteredTickers.isEmpty) return 1;
+    return (_filteredTickers.length / _itemsPerPage).ceil();
+  }
+
+  List<TickerModel> get _paginatedTickers {
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    if (startIndex >= _filteredTickers.length) return [];
+    final endIndex = startIndex + _itemsPerPage;
+    return _filteredTickers.sublist(startIndex, endIndex.clamp(0, _filteredTickers.length));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -102,6 +117,7 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
     }
 
     _filteredTickers = list;
+    _currentPage = 1;
   }
 
   double _calculateMmRate(int maxLeverage) {
@@ -592,6 +608,19 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
 
           // Main body list
           Expanded(child: _buildBody(res)),
+
+          // Bottom Pagination Bar
+          if (!_loading && _error == null && _filteredTickers.isNotEmpty)
+            AppPaginationBar(
+              currentPage: _currentPage,
+              itemsPerPage: _itemsPerPage,
+              totalItems: _filteredTickers.length,
+              onPageChanged: (page) => setState(() => _currentPage = page),
+              onItemsPerPageChanged: (limit) => setState(() {
+                _itemsPerPage = limit;
+                _currentPage = 1;
+              }),
+            ),
         ],
       ),
     ),
@@ -618,10 +647,16 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
       );
     }
 
+    final paginatedList = _paginatedTickers;
+
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      itemCount: _filteredTickers.length,
-      itemBuilder: (context, i) => _buildTickerRow(_filteredTickers[i], i + 1, res),
+      itemCount: paginatedList.length,
+      itemBuilder: (context, i) {
+        final ticker = paginatedList[i];
+        final rank = (_currentPage - 1) * _itemsPerPage + i + 1;
+        return _buildTickerRow(ticker, rank, res);
+      },
     );
   }
 
@@ -862,4 +897,5 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
       ),
     );
   }
+
 }

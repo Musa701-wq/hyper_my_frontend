@@ -26,6 +26,21 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
 
+  int _currentPage = 1;
+  int _itemsPerPage = 10;
+
+  int get _totalPages {
+    if (_filteredProtocols.isEmpty) return 1;
+    return (_filteredProtocols.length / _itemsPerPage).ceil();
+  }
+
+  List<TopByFeesProtocol> get _paginatedProtocols {
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    if (startIndex >= _filteredProtocols.length) return [];
+    final endIndex = startIndex + _itemsPerPage;
+    return _filteredProtocols.sublist(startIndex, endIndex.clamp(0, _filteredProtocols.length));
+  }
+
   // Selector States
   String _selectedFeeMetric = '24H FEES'; // '24H FEES', '7D FEES', '30D FEES', '1Y FEES', 'ALL TIME'
   String _selectedChangeMetric = '24H CHANGE'; // '24H CHANGE', '7D CHANGE', '30D CHANGE'
@@ -77,6 +92,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
       final data = await _service.fetchTopByFees(isRevenue: widget.isRevenue);
       setState(() {
         _protocols = data;
+        _currentPage = 1;
         _isLoading = false;
       });
     } catch (e) {
@@ -198,6 +214,17 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
                         ? _buildErrorView(res)
                         : _buildTableLayout(res),
               ),
+              if (!_isLoading && _error.isEmpty && _filteredProtocols.isNotEmpty)
+                AppPaginationBar(
+                  currentPage: _currentPage,
+                  itemsPerPage: _itemsPerPage,
+                  totalItems: _filteredProtocols.length,
+                  onPageChanged: (page) => setState(() => _currentPage = page),
+                  onItemsPerPageChanged: (limit) => setState(() {
+                    _itemsPerPage = limit;
+                    _currentPage = 1;
+                  }),
+                ),
             ],
           ),
         ),
@@ -278,6 +305,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
                 onChanged: (value) {
                   setState(() {
                     _searchQuery = value;
+                    _currentPage = 1;
                   });
                 },
                 style: GoogleFonts.jetBrainsMono(
@@ -304,6 +332,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
                   _searchController.clear();
                   setState(() {
                     _searchQuery = '';
+                    _currentPage = 1;
                   });
                 },
                 child: Icon(Icons.close, color: AppColors.textSecondary, size: res.fontSize(16)),
@@ -413,6 +442,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
               onChanged: (val) {
                 setState(() {
                   _selectedFeeMetric = val;
+                  _currentPage = 1;
                 });
               },
             ),
@@ -425,6 +455,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
               onChanged: (val) {
                 setState(() {
                   _selectedChangeMetric = val;
+                  _currentPage = 1;
                 });
               },
             ),
@@ -437,6 +468,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
               onChanged: (val) {
                 setState(() {
                   _selectedAnnualMetric = val;
+                  _currentPage = 1;
                 });
               },
             ),
@@ -528,8 +560,8 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
   }
 
   Widget _buildTableLayout(Responsive res) {
-    final filtered = _filteredProtocols;
-    if (filtered.isEmpty) {
+    final filtered = _paginatedProtocols;
+    if (_filteredProtocols.isEmpty) {
       return Center(
         child: Text(
           _searchQuery.isEmpty
@@ -608,7 +640,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
                               SizedBox(
                                 width: res.columnWidth(25.0),
                                 child: Text(
-                                  '${index + 1}',
+                                  '${(_currentPage - 1) * _itemsPerPage + index + 1}',
                                   style: GoogleFonts.jetBrainsMono(
                                     color: AppColors.textSecondary,
                                     fontSize: res.fontSize(11),
@@ -765,4 +797,5 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
       ),
     );
   }
+
 }

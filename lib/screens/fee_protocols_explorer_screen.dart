@@ -794,12 +794,17 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                   child: Row(
                     children: [
                       SizedBox(
-                        width: res.columnWidth(30.0),
+                        width: res.columnWidth(36.0),
                         child: Text(
                           '#',
-                          style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(10), fontWeight: FontWeight.bold),
+                          style: GoogleFonts.jetBrainsMono(
+                            color: AppColors.textSecondary,
+                            fontSize: res.fontSize(10),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 4),
                       Expanded(
                         child: _buildSortableHeader('PROTOCOL', 'name'),
                       ),
@@ -834,18 +839,37 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                       ),
                       child: Row(
                         children: [
-                          SizedBox(
-                            width: res.columnWidth(30.0),
-                            child: row.rank != null
-                                ? Text(
-                                    row.rank.toString(),
-                                    style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
                           Expanded(
                             child: Row(
                               children: [
+                                if (row.rank != null) ...[
+                                  SizedBox(
+                                    width: res.columnWidth(36.0),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.star_border,
+                                          size: res.fontSize(14),
+                                          color: AppColors.textSecondary.withOpacity(0.3),
+                                        ),
+                                        const SizedBox(width: 2),
+                                        Expanded(
+                                          child: Text(
+                                            row.rank.toString(),
+                                            style: GoogleFonts.jetBrainsMono(
+                                              color: AppColors.textSecondary,
+                                              fontSize: res.fontSize(9),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                ] else ...[
+                                  SizedBox(width: res.columnWidth(40.0)),
+                                ],
                                 if (isSub)
                                   CustomPaint(
                                     size: const Size(22, 56),
@@ -954,7 +978,6 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                       ),
                       child: Row(
                         children: [
-                          _buildHeaderCell('CATEGORY', res, 'category', width: res.columnWidth(110.0)),
                           _buildHeaderCell(
                             widget.dataType == 'holders-revenue' 
                                 ? '24H HOLDERS REVENUE' 
@@ -997,6 +1020,9 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                             'feesAllTime', 
                             width: res.columnWidth(100.0),
                           ),
+                          Expanded(
+                            child: _buildHeaderCell('CATEGORY', res, 'category'),
+                          ),
                         ],
                       ),
                     ),
@@ -1027,38 +1053,6 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                           ),
                           child: Row(
                             children: [
-                              Container(
-                                width: res.columnWidth(110.0),
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    right: BorderSide(color: AppColors.surfaceBright.withOpacity(0.15), width: 0.5),
-                                  ),
-                                ),
-                                child: p.category.isNotEmpty
-                                    ? Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: _getCategoryColor(p.category).withOpacity(0.12),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          p.category.toUpperCase(),
-                                          style: GoogleFonts.jetBrainsMono(
-                                            color: _getCategoryColor(p.category),
-                                            fontSize: res.fontSize(8.5),
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      )
-                                    : Text(
-                                        '-',
-                                        style: GoogleFonts.jetBrainsMono(
-                                          color: AppColors.textSecondary,
-                                          fontSize: res.fontSize(11),
-                                        ),
-                                      ),
-                              ),
                               // 24H Fees
                               Container(
                                 width: res.columnWidth(90.0),
@@ -1133,6 +1127,40 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                                   style: GoogleFonts.jetBrainsMono(color: Colors.white70, fontSize: res.fontSize(10.5)),
                                 ),
                               ),
+                              // Category (moved to last)
+                              Expanded(
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      right: BorderSide(color: AppColors.surfaceBright.withOpacity(0.15), width: 0.5),
+                                    ),
+                                  ),
+                                  child: p.category.isNotEmpty
+                                      ? Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: _getCategoryColor(p.category).withOpacity(0.12),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            p.category.toUpperCase(),
+                                            style: GoogleFonts.jetBrainsMono(
+                                              color: _getCategoryColor(p.category),
+                                              fontSize: res.fontSize(8.5),
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        )
+                                      : Text(
+                                          '-',
+                                          style: GoogleFonts.jetBrainsMono(
+                                            color: AppColors.textSecondary,
+                                            fontSize: res.fontSize(11),
+                                          ),
+                                        ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1148,28 +1176,34 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
     );
   }
 
-  Widget _buildHeaderCell(String text, Responsive res, String fieldName, {required double width}) {
+  Widget _buildHeaderCell(String text, Responsive res, String fieldName, {double? width}) {
     final isSorted = _sortBy == fieldName;
     return GestureDetector(
       onTap: () => _toggleSort(fieldName),
       behavior: HitTestBehavior.opaque,
       child: Container(
         width: width,
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
           border: Border(
             right: BorderSide(color: AppColors.surfaceBright.withOpacity(0.15), width: 0.5),
           ),
         ),
-        alignment: Alignment.center,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              text,
-              style: GoogleFonts.jetBrainsMono(
-                color: isSorted ? AppColors.brandAccent : AppColors.textSecondary,
-                fontSize: res.fontSize(10),
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.jetBrainsMono(
+                  color: isSorted ? AppColors.brandAccent : AppColors.textSecondary,
+                  fontSize: res.fontSize(8.5),
+                  fontWeight: FontWeight.bold,
+                  height: 1.1,
+                ),
               ),
             ),
             if (isSorted) ...[

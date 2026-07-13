@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 
-class ErrorStateWidget extends StatelessWidget {
+class ErrorStateWidget extends StatefulWidget {
   final String errorMessage;
   final VoidCallback? onRetry;
 
@@ -13,7 +13,123 @@ class ErrorStateWidget extends StatelessWidget {
   });
 
   @override
+  State<ErrorStateWidget> createState() => _ErrorStateWidgetState();
+}
+
+class _ErrorStateWidgetState extends State<ErrorStateWidget> {
+  bool _showRawDetails = false;
+
+  String _parseTitle(String raw) {
+    if (raw.isEmpty) return 'CONNECTION FAILED';
+    final lower = raw.toLowerCase();
+    
+    if (lower.contains('socketexception') ||
+        lower.contains('failed host lookup') ||
+        lower.contains('network is unreachable') ||
+        lower.contains('handshakeexception') ||
+        lower.contains('connection timed out') ||
+        lower.contains('connection refused') ||
+        lower.contains('clientexception') ||
+        lower.contains('offline') ||
+        lower.contains('no internet')) {
+      return 'CONNECTION FAILED';
+    }
+
+    if (lower.contains('500') ||
+        lower.contains('502') ||
+        lower.contains('503') ||
+        lower.contains('504') ||
+        lower.contains('internal server error') ||
+        lower.contains('bad gateway') ||
+        lower.contains('service unavailable') ||
+        lower.contains('gateway timeout') ||
+        lower.contains('server error')) {
+      return 'SERVER ERROR';
+    }
+
+    return 'LOAD ERROR';
+  }
+
+  IconData _parseIcon(String raw) {
+    if (raw.isEmpty) return Icons.wifi_off_rounded;
+    final lower = raw.toLowerCase();
+
+    if (lower.contains('500') ||
+        lower.contains('502') ||
+        lower.contains('503') ||
+        lower.contains('504') ||
+        lower.contains('internal server error') ||
+        lower.contains('bad gateway') ||
+        lower.contains('service unavailable') ||
+        lower.contains('gateway timeout') ||
+        lower.contains('server error')) {
+      return Icons.dns_rounded;
+    }
+
+    if (lower.contains('socketexception') ||
+        lower.contains('failed host lookup') ||
+        lower.contains('network is unreachable') ||
+        lower.contains('handshakeexception') ||
+        lower.contains('connection timed out') ||
+        lower.contains('connection refused') ||
+        lower.contains('clientexception') ||
+        lower.contains('offline') ||
+        lower.contains('no internet')) {
+      return Icons.wifi_off_rounded;
+    }
+
+    return Icons.error_outline_rounded;
+  }
+
+  String _parseError(String raw) {
+    if (raw.isEmpty) {
+      return 'We encountered a problem connecting to the server. Please check your internet connection or try again later.';
+    }
+    final lower = raw.toLowerCase();
+    
+    // 1. Connection / Internet Issues
+    if (lower.contains('socketexception') ||
+        lower.contains('failed host lookup') ||
+        lower.contains('network is unreachable') ||
+        lower.contains('handshakeexception') ||
+        lower.contains('connection timed out') ||
+        lower.contains('connection refused') ||
+        lower.contains('clientexception') ||
+        lower.contains('offline') ||
+        lower.contains('no internet')) {
+      return 'No Internet Connection. Please check your cellular data or Wi-Fi network and try again.';
+    }
+
+    // 2. Server Down / Resource issues
+    if (lower.contains('500') ||
+        lower.contains('502') ||
+        lower.contains('503') ||
+        lower.contains('504') ||
+        lower.contains('internal server error') ||
+        lower.contains('bad gateway') ||
+        lower.contains('service unavailable') ||
+        lower.contains('gateway timeout') ||
+        lower.contains('server error')) {
+      return 'Server is busy or undergoing maintenance. We are working to resolve this as quickly as possible. Please try again shortly.';
+    }
+
+    // 3. Resource Not Found / Formatting issues
+    if (lower.contains('404') || 
+        lower.contains('not found') ||
+        lower.contains('formatexception')) {
+      return 'Data loading error. The requested resource could not be found or processed correctly.';
+    }
+
+    // 4. Default user friendly fallback
+    return 'We encountered an unexpected error while fetching data. Please try again.';
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final title = _parseTitle(widget.errorMessage);
+    final iconData = _parseIcon(widget.errorMessage);
+    final userMessage = _parseError(widget.errorMessage);
+
     return Center(
       child: Container(
         padding: const EdgeInsets.all(32),
@@ -51,15 +167,15 @@ class ErrorStateWidget extends StatelessWidget {
                 color: AppColors.lossRed.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.wifi_off_rounded,
+              child: Icon(
+                iconData,
                 color: AppColors.lossRed,
                 size: 40,
               ),
             ),
             const SizedBox(height: 24),
             Text(
-              'CONNECTION FAILED',
+              title,
               style: GoogleFonts.jetBrainsMono(
                 color: Colors.white,
                 fontSize: 16,
@@ -69,9 +185,7 @@ class ErrorStateWidget extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              errorMessage.isEmpty
-                  ? 'We encountered a problem connecting to the server. Please check your internet connection or try again later.'
-                  : errorMessage,
+              userMessage,
               textAlign: TextAlign.center,
               style: GoogleFonts.jetBrainsMono(
                 color: AppColors.textSecondary,
@@ -79,10 +193,65 @@ class ErrorStateWidget extends StatelessWidget {
                 height: 1.6,
               ),
             ),
-            if (onRetry != null) ...[
-              const SizedBox(height: 32),
+            if (widget.errorMessage.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _showRawDetails = !_showRawDetails;
+                  });
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _showRawDetails ? 'HIDE DETAILS' : 'SHOW DETAILS',
+                        style: GoogleFonts.jetBrainsMono(
+                          color: AppColors.textSecondary.withOpacity(0.6),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        _showRawDetails ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                        color: AppColors.textSecondary.withOpacity(0.6),
+                        size: 14,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (_showRawDetails) ...[
+                const SizedBox(height: 8),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 120),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black38,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Text(
+                      widget.errorMessage,
+                      style: GoogleFonts.jetBrainsMono(
+                        color: Colors.white70,
+                        fontSize: 9,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+            if (widget.onRetry != null) ...[
+              const SizedBox(height: 24),
               GestureDetector(
-                onTap: onRetry,
+                onTap: widget.onRetry,
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),

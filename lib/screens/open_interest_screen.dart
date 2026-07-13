@@ -7,6 +7,7 @@ import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
 import '../utils/common_widgets.dart';
 import '../widgets/shimmer_skeleton.dart';
+import '../widgets/error_state_widget.dart';
 
 class OpenInterestScreen extends StatefulWidget {
   const OpenInterestScreen({super.key});
@@ -69,35 +70,9 @@ class _OpenInterestScreenState extends State<OpenInterestScreen> {
   }
 
   Widget _buildErrorState(OpenInterestViewModel vm) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline_rounded, color: AppColors.trendRed, size: 48),
-            const SizedBox(height: 16),
-            Text(
-              vm.errorMessage,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => vm.fetchData(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.brandAccent,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: Text(
-                'Retry',
-                style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return ErrorStateWidget(
+      errorMessage: vm.errorMessage,
+      onRetry: () => vm.fetchData(),
     );
   }
 
@@ -168,7 +143,14 @@ class _OpenInterestScreenState extends State<OpenInterestScreen> {
         ),
 
         // Pagination for both tabs (remains outside scroll view so it stays sticky)
-        _buildBottomPaginationBar(vm, res),
+        if (!vm.isLoading && vm.errorMessage.isEmpty)
+          AppPaginationBar(
+            currentPage: vm.currentPage,
+            itemsPerPage: vm.itemsPerPage,
+            totalItems: vm.mainTabIndex == 0 ? vm.filteredProtocols.length : vm.sortedChains.length,
+            onPageChanged: vm.setPage,
+            onItemsPerPageChanged: vm.setItemsPerPage,
+          ),
       ],
     );
   }
@@ -1231,194 +1213,7 @@ class _OpenInterestScreenState extends State<OpenInterestScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildBottomPaginationBar(OpenInterestViewModel vm, Responsive res) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: res.spacing(16), vertical: res.spacing(10)),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Text(
-              'Rows:',
-              style: GoogleFonts.jetBrainsMono(
-                color: AppColors.textSecondary,
-                fontSize: res.fontSize(12),
-              ),
-            ),
-            const SizedBox(width: 8),
-            _buildRowsPill(vm, res),
-            const Spacer(),
-            _buildPaginationRow(
-              currentPage: vm.currentPage,
-              totalPages: vm.totalPages,
-              onPage: vm.setPage,
-              res: res,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRowsPill(OpenInterestViewModel vm, Responsive res) {
-    return PopupMenuButton<int>(
-      offset: const Offset(0, 36),
-      elevation: 12,
-      shadowColor: Colors.black54,
-      color: const Color(0xFF0F1115),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.white.withOpacity(0.08)),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceBright.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              vm.itemsPerPage.toString(),
-              style: GoogleFonts.jetBrainsMono(
-                color: Colors.white,
-                fontSize: res.fontSize(11),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.unfold_more_rounded, color: Colors.white54, size: 14),
-          ],
-        ),
-      ),
-      onSelected: vm.setItemsPerPage,
-      itemBuilder: (context) => const [10, 20, 50, 100].map((v) {
-        final active = vm.itemsPerPage == v;
-        return PopupMenuItem<int>(
-          value: v,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-            decoration: BoxDecoration(
-              color: active ? AppColors.brandAccent.withOpacity(0.08) : Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              children: [
-                if (active)
-                  const Icon(Icons.check_circle_rounded, color: AppColors.brandAccent, size: 14)
-                else
-                  const Icon(Icons.circle_outlined, color: Colors.white24, size: 14),
-                const SizedBox(width: 8),
-                Text(
-                  v.toString(),
-                  style: GoogleFonts.jetBrainsMono(
-                    color: active ? AppColors.brandAccent : Colors.white70,
-                    fontSize: 11,
-                    fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildPaginationRow({
-    required int currentPage,
-    required int totalPages,
-    required void Function(int) onPage,
-    required Responsive res,
-  }) {
-    if (totalPages <= 1) return const SizedBox.shrink();
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildPageIcon(Icons.chevron_left, currentPage > 1 ? () => onPage(currentPage - 1) : null, res),
-        const SizedBox(width: 4),
-        ..._buildPageNumbersList(currentPage: currentPage, totalPages: totalPages, onPage: onPage, res: res),
-        const SizedBox(width: 4),
-        _buildPageIcon(Icons.chevron_right, currentPage < totalPages ? () => onPage(currentPage + 1) : null, res),
-      ],
-    );
-  }
-
-  List<Widget> _buildPageNumbersList({
-    required int currentPage,
-    required int totalPages,
-    required void Function(int) onPage,
-    required Responsive res,
-  }) {
-    final List<Widget> children = [];
-    for (int i = 1; i <= totalPages; i++) {
-      if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-        children.add(_buildPageNumberItem(i, i == currentPage, () => onPage(i), res));
-        if (i < totalPages && (i == 1 && currentPage > 3 || i == currentPage + 1 && currentPage < totalPages - 2)) {
-          children.add(Text(
-            '...',
-            style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(10)),
-          ));
-        }
-      }
-    }
-    return children;
-  }
-
-  Widget _buildPageNumberItem(int page, bool isActive, VoidCallback onTap, Responsive res) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        width: res.value(mobile: 28.0, tablet: 36.0),
-        height: res.value(mobile: 28.0, tablet: 36.0),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isActive
-              ? AppColors.brandAccent.withOpacity(0.14)
-              : AppColors.surfaceBright.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isActive
-                ? AppColors.brandAccent.withOpacity(0.4)
-                : AppColors.surfaceBright.withOpacity(0.1),
-            width: 1,
-          ),
-        ),
-        child: Text(
-          page.toString(),
-          style: GoogleFonts.jetBrainsMono(
-            color: isActive ? AppColors.brandAccent : Colors.white,
-            fontSize: res.fontSize(11),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPageIcon(IconData icon, VoidCallback? onTap, Responsive res) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(res.value(mobile: 4.0, tablet: 6.0)),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceBright.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Icon(
-          icon,
-          size: res.value(mobile: 18.0, tablet: 22.0),
-          color: onTap != null ? Colors.white : AppColors.textSecondary.withOpacity(0.3),
-        ),
-      ),
-    );
-  }
+   }
 
   String _formatOI(double oi) {
     if (oi >= 1e9) {
