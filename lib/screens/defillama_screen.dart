@@ -112,42 +112,47 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
   //  TAB TOGGLE
   // ════════════════════════════════════════════════════════════
   Widget _tabRow(DefiLlamaViewModel vm, Responsive res) {
-    return Container(
-      height: 44,
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        border: Border.all(color: AppColors.surfaceBright),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Row(children: [
-          _tabPill('Fees',    vm.tab == 'fees',    () => vm.setTab('fees'),    res),
-          _tabPill('Revenue', vm.tab == 'revenue', () => vm.setTab('revenue'), res),
-        ]),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        height: 32,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _tabPill('FEES',    vm.tab == 'fees',    () => vm.setTab('fees'),    res),
+              _tabPill('REVENUE', vm.tab == 'revenue', () => vm.setTab('revenue'), res),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _tabPill(String title, bool active, VoidCallback onTap, Responsive res) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: active ? AppColors.surfaceBright : Colors.transparent,
-            borderRadius: BorderRadius.circular(7),
-          ),
-          child: Text(title,
-            style: GoogleFonts.jetBrainsMono(
-              color: active ? AppColors.brandAccent : AppColors.textSecondary,
-              fontSize: res.fontSize(12),
-              fontWeight: FontWeight.bold,
-            )),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active ? AppColors.brandAccent : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
         ),
+        child: Text(title,
+          style: GoogleFonts.jetBrainsMono(
+            color: active ? Colors.black : AppColors.textSecondary,
+            fontSize: res.fontSize(9),
+            fontWeight: FontWeight.bold,
+          )),
       ),
     );
   }
@@ -398,8 +403,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
         child: Container(
           height: 320,
           decoration: BoxDecoration(
-            color: AppColors.surfaceBright.withOpacity(0.1),
-            border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(20),
           ),
         ),
@@ -1093,7 +1097,7 @@ class _DefiLlamaScreenState extends State<DefiLlamaScreen> {
     height: h,
     margin: const EdgeInsets.symmetric(vertical: 4),
     decoration: BoxDecoration(
-      color: Colors.white.withOpacity(0.18),
+      color: Colors.white,
       borderRadius: BorderRadius.circular(radius),
     ),
   );

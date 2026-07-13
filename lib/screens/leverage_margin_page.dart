@@ -6,6 +6,8 @@ import '../services/margin_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
 import '../utils/common_widgets.dart';
+import '../widgets/shimmer_skeleton.dart';
+import '../widgets/error_state_widget.dart';
 
 class LeverageMarginPage extends StatefulWidget {
   const LeverageMarginPage({super.key});
@@ -354,6 +356,17 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
     );
   }
 
+  String _getFriendlyErrorMessage(String error) {
+    if (error.contains('SocketException') ||
+        error.contains('Failed host lookup') ||
+        error.contains('HttpException') ||
+        error.contains('Connection refused') ||
+        error.contains('errno = 61')) {
+      return 'Connection error. Please check your internet connection or backend server status and try again.';
+    }
+    return 'Failed to load markets. Please try again later.';
+  }
+
   @override
   Widget build(BuildContext context) {
     final res = Responsive(context);
@@ -576,30 +589,12 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
 
   Widget _buildBody(Responsive res) {
     if (_loading && _allTickers.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.brandAccent));
+      return _buildShimmerLoading(res);
     }
     if (_error != null && _allTickers.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 36, color: Colors.redAccent),
-              const SizedBox(height: 8),
-              Text(
-                'Fetch Error',
-                style: GoogleFonts.jetBrainsMono(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.jetBrainsMono(color: Colors.white38, fontSize: 10),
-              ),
-            ],
-          ),
-        ),
+      return ErrorStateWidget(
+        errorMessage: _getFriendlyErrorMessage(_error!),
+        onRetry: () => _load(),
       );
     }
 
@@ -616,6 +611,68 @@ class _LeverageMarginPageState extends State<LeverageMarginPage> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       itemCount: _filteredTickers.length,
       itemBuilder: (context, i) => _buildTickerRow(_filteredTickers[i], i + 1, res),
+    );
+  }
+
+  Widget _buildShimmerLoading(Responsive res) {
+    return ShimmerSkeleton(
+      child: ListView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        itemCount: 8,
+        itemBuilder: (context, i) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Row(
+                    children: [
+                      ShimmerSkeleton.box(12, 10, radius: 2),
+                      const SizedBox(width: 12),
+                      ShimmerSkeleton.box(24, 24, radius: 12),
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ShimmerSkeleton.box(60, 12, radius: 3),
+                          const SizedBox(height: 6),
+                          ShimmerSkeleton.box(40, 8, radius: 2),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: ShimmerSkeleton.box(50, 10, radius: 3),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: ShimmerSkeleton.box(30, 10, radius: 3),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: ShimmerSkeleton.box(40, 10, radius: 3),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 

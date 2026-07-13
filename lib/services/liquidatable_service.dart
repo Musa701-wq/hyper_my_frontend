@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/liquidatable_model.dart';
+import '../utils/app_config.dart';
 
 class LiquidatableService {
   static String get baseUrl {
-    return dotenv.env['LIQUIDATION_API_URL'] ?? 'http://localhost:4001';
+    return dotenv.env['LIQUIDATION_API_URL'] ?? AppConfig.baseUrl;
   }
 
   /// Sab liquidatable positions

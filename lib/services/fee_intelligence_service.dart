@@ -7,8 +7,14 @@ import '../utils/app_config.dart';
 class FeeIntelligenceService {
   String get _baseUrl => AppConfig.baseUrl;
 
-  Future<FeeIntelligenceDashboard> fetchDashboard() async {
-    final uri = Uri.parse('$_baseUrl/api/v1/fees/dashboard');
+  String _getPrefix(bool isRevenue, [String? dataType]) {
+    if (dataType != null) return dataType;
+    return isRevenue ? 'revenue' : 'fees';
+  }
+
+  Future<FeeIntelligenceDashboard> fetchDashboard({bool isRevenue = false, String? dataType}) async {
+    final prefix = _getPrefix(isRevenue, dataType);
+    final uri = Uri.parse('$_baseUrl/api/v1/$prefix/dashboard');
     debugPrint('FeeIntelligenceService: GET $uri');
     
     final response = await http.get(uri).timeout(const Duration(seconds: 15));
@@ -19,11 +25,12 @@ class FeeIntelligenceService {
       }
       throw Exception('Unexpected dashboard response format');
     }
-    throw Exception('Failed to load fee dashboard stats (${response.statusCode})');
+    throw Exception('Failed to load dashboard stats (${response.statusCode})');
   }
 
-  Future<FeeHistoryData> fetchHistory({String range = '90d'}) async {
-    final uri = Uri.parse('$_baseUrl/api/v1/fees/history?range=$range');
+  Future<FeeHistoryData> fetchHistory({String range = '90d', bool isRevenue = false, String? dataType}) async {
+    final prefix = _getPrefix(isRevenue, dataType);
+    final uri = Uri.parse('$_baseUrl/api/v1/$prefix/history?range=$range');
     debugPrint('FeeIntelligenceService: GET $uri');
 
     final response = await http.get(uri).timeout(const Duration(seconds: 15));
@@ -32,13 +39,15 @@ class FeeIntelligenceService {
       if (decoded is Map<String, dynamic>) {
         return FeeHistoryData.fromJson(decoded);
       }
-      throw Exception('Unexpected fee history response format');
+      throw Exception('Unexpected history response format');
     }
-    throw Exception('Failed to load fee history chart (${response.statusCode})');
+    throw Exception('Failed to load history chart (${response.statusCode})');
   }
 
-  Future<List<FeeTopProtocol>> fetchProtocols({int limit = 15}) async {
-    final uri = Uri.parse('$_baseUrl/api/v1/fees/protocols?limit=$limit&sortBy=fees24h&sortOrder=desc');
+  Future<List<FeeTopProtocol>> fetchProtocols({int limit = 15, bool isRevenue = false, String? dataType}) async {
+    final prefix = _getPrefix(isRevenue, dataType);
+    final sortBy = (prefix == 'revenue' || prefix == 'holders-revenue') ? 'revenue' : 'fees24h';
+    final uri = Uri.parse('$_baseUrl/api/v1/$prefix/protocols?limit=$limit&sortBy=$sortBy&sortOrder=desc');
     debugPrint('FeeIntelligenceService: GET $uri');
 
     final response = await http.get(uri).timeout(const Duration(seconds: 15));
@@ -56,12 +65,15 @@ class FeeIntelligenceService {
   Future<FeeProtocolsPaginatedResponse> fetchProtocolsPaginated({
     int page = 1,
     int limit = 20,
-    String sortBy = 'fees24h',
+    required String sortBy,
     String sortOrder = 'desc',
     String? search,
     String? category,
-    String? dataType,
+    String? dataType, // Query parameter filter
+    bool isRevenue = false,
+    String? customPrefix, // Path prefix override ('fees', 'revenue', or 'holders-revenue')
   }) async {
+    final prefix = customPrefix ?? _getPrefix(isRevenue);
     final queryParams = <String, String>{
       'page': page.toString(),
       'limit': limit.toString(),
@@ -80,7 +92,7 @@ class FeeIntelligenceService {
     }
 
     final query = Uri(queryParameters: queryParams).query;
-    final uri = Uri.parse('$_baseUrl/api/v1/fees/protocols?$query');
+    final uri = Uri.parse('$_baseUrl/api/v1/$prefix/protocols?$query');
     debugPrint('FeeIntelligenceService: GET $uri');
 
     final response = await http.get(uri).timeout(const Duration(seconds: 15));
@@ -94,8 +106,9 @@ class FeeIntelligenceService {
     throw Exception('Failed to load protocols explorer (${response.statusCode})');
   }
 
-  Future<FeeCompareResponse> fetchCompare(List<String> slugs, {String range = '90d'}) async {
-    final uri = Uri.parse('$_baseUrl/api/v1/fees/compare');
+  Future<FeeCompareResponse> fetchCompare(List<String> slugs, {String range = '90d', bool isRevenue = false, String? dataType}) async {
+    final prefix = _getPrefix(isRevenue, dataType);
+    final uri = Uri.parse('$_baseUrl/api/v1/$prefix/compare');
     debugPrint('FeeIntelligenceService: POST $uri with slugs: $slugs, range: $range');
 
     final response = await http.post(
@@ -117,8 +130,10 @@ class FeeIntelligenceService {
     throw Exception('Failed to load comparison data (${response.statusCode})');
   }
 
-  Future<List<TopByFeesProtocol>> fetchTopByFees() async {
-    final uri = Uri.parse('$_baseUrl/api/v1/fees/top-by-fees');
+  Future<List<TopByFeesProtocol>> fetchTopByFees({bool isRevenue = false, String? dataType}) async {
+    final prefix = _getPrefix(isRevenue, dataType);
+    final pathSuffix = (prefix == 'revenue' || prefix == 'holders-revenue') ? 'top-by-revenue' : 'top-by-fees';
+    final uri = Uri.parse('$_baseUrl/api/v1/$prefix/$pathSuffix');
     debugPrint('FeeIntelligenceService: GET $uri');
 
     final response = await http.get(uri).timeout(const Duration(seconds: 15));
@@ -127,8 +142,8 @@ class FeeIntelligenceService {
       if (decoded is List) {
         return decoded.map((e) => TopByFeesProtocol.fromJson(e as Map<String, dynamic>)).toList();
       }
-      throw Exception('Unexpected top-by-fees response format');
+      throw Exception('Unexpected response format');
     }
-    throw Exception('Failed to load top-by-fees protocols (${response.statusCode})');
+    throw Exception('Failed to load top protocols (${response.statusCode})');
   }
 }

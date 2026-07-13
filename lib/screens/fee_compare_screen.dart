@@ -11,7 +11,9 @@ import '../widgets/error_state_widget.dart';
 
 
 class FeeCompareScreen extends StatefulWidget {
-  const FeeCompareScreen({super.key});
+  final bool isRevenue;
+  final String? dataType;
+  const FeeCompareScreen({super.key, this.isRevenue = false, this.dataType});
 
   @override
   State<FeeCompareScreen> createState() => _FeeCompareScreenState();
@@ -68,7 +70,11 @@ class _FeeCompareScreenState extends State<FeeCompareScreen> {
 
   Future<void> _loadSuggestionPool() async {
     try {
-      final list = await _service.fetchProtocols(limit: 50);
+      final list = await _service.fetchProtocols(
+        limit: 50, 
+        isRevenue: widget.isRevenue,
+        dataType: widget.dataType,
+      );
       setState(() {
         _suggestionPool = list;
         _filteredSuggestions = list;
@@ -118,7 +124,12 @@ class _FeeCompareScreenState extends State<FeeCompareScreen> {
 
     try {
       final slugs = _selectedProtocols.map((e) => e.slug).toList();
-      final data = await _service.fetchCompare(slugs, range: _selectedRange);
+      final data = await _service.fetchCompare(
+        slugs, 
+        range: _selectedRange, 
+        isRevenue: widget.isRevenue,
+        dataType: widget.dataType,
+      );
       setState(() {
         _compareData = data;
         _isLoading = false;
@@ -194,7 +205,9 @@ class _FeeCompareScreenState extends State<FeeCompareScreen> {
             child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
           ),
           title: Text(
-            'Head-to-Head Comparison',
+            widget.dataType == 'holders-revenue'
+                ? 'Head-to-Head Compare (Holders Rev)'
+                : (widget.isRevenue ? 'Head-to-Head Compare (Rev)' : 'Head-to-Head Comparison'),
             style: GoogleFonts.jetBrainsMono(
               color: AppColors.brandAccent,
               fontSize: res.fontSize(15),
@@ -235,7 +248,9 @@ class _FeeCompareScreenState extends State<FeeCompareScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Protocol Comparison',
+          widget.dataType == 'holders-revenue'
+              ? 'Holders Revenue Comparison'
+              : (widget.isRevenue ? 'Revenue Comparison' : 'Protocol Comparison'),
           style: GoogleFonts.inter(
             color: Colors.white,
             fontSize: res.fontSize(18),
@@ -244,7 +259,11 @@ class _FeeCompareScreenState extends State<FeeCompareScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Compare daily fee generation of up to 5 protocols.',
+          widget.dataType == 'holders-revenue'
+              ? 'Compare daily holders revenue generation of up to 5 protocols.'
+              : (widget.isRevenue 
+                  ? 'Compare daily revenue generation of up to 5 protocols.' 
+                  : 'Compare daily fee generation of up to 5 protocols.'),
           style: GoogleFonts.inter(
             color: AppColors.textSecondary,
             fontSize: res.fontSize(11),
@@ -518,7 +537,11 @@ class _FeeCompareScreenState extends State<FeeCompareScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Fee Comparison (${_selectedRange.toUpperCase()})',
+                widget.dataType == 'holders-revenue'
+                    ? 'Holders Revenue Comparison (${_selectedRange.toUpperCase()})'
+                    : (widget.isRevenue 
+                        ? 'Revenue Comparison (${_selectedRange.toUpperCase()})' 
+                        : 'Fee Comparison (${_selectedRange.toUpperCase()})'),
                 style: GoogleFonts.inter(
                   color: Colors.white,
                   fontSize: res.fontSize(13),
@@ -868,14 +891,39 @@ class _FeeCompareScreenState extends State<FeeCompareScreen> {
     final labelData = [
       {'name': 'Category', 'icon': Icons.category_rounded},
       {'name': 'Chains', 'icon': Icons.link_rounded},
-      {'name': '24H Fees', 'icon': Icons.today_rounded},
+      {
+        'name': widget.dataType == 'holders-revenue' 
+            ? '24H Holders Rev' 
+            : (widget.isRevenue ? '24H Revenue' : '24H Fees'), 
+        'icon': Icons.today_rounded
+      },
       {'name': '1D Change', 'icon': Icons.trending_up_rounded},
       {'name': '7D Change', 'icon': Icons.trending_up_rounded},
       {'name': '30D Change', 'icon': Icons.trending_up_rounded},
-      {'name': '7D Fees', 'icon': Icons.date_range_rounded},
-      {'name': '30D Fees', 'icon': Icons.calendar_month_rounded},
-      {'name': '1Y Fees', 'icon': Icons.timeline_rounded},
-      {'name': 'All-Time Fees', 'icon': Icons.all_inclusive_rounded},
+      {
+        'name': widget.dataType == 'holders-revenue' 
+            ? '7D Holders Rev' 
+            : (widget.isRevenue ? '7D Revenue' : '7D Fees'), 
+        'icon': Icons.date_range_rounded
+      },
+      {
+        'name': widget.dataType == 'holders-revenue' 
+            ? '30D Holders Rev' 
+            : (widget.isRevenue ? '30D Revenue' : '30D Fees'), 
+        'icon': Icons.calendar_month_rounded
+      },
+      {
+        'name': widget.dataType == 'holders-revenue' 
+            ? '1Y Holders Rev' 
+            : (widget.isRevenue ? '1Y Revenue' : '1Y Fees'), 
+        'icon': Icons.timeline_rounded
+      },
+      {
+        'name': widget.dataType == 'holders-revenue' 
+            ? 'All-Time Holders' 
+            : (widget.isRevenue ? 'All-Time Rev' : 'All-Time Fees'), 
+        'icon': Icons.all_inclusive_rounded
+      },
       {'name': 'Annualized', 'icon': Icons.insights_rounded},
     ];
 

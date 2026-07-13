@@ -33,6 +33,7 @@ import '../widgets/hip4_markets_panel.dart';
 import '../viewmodels/hip4_viewmodel.dart';
 import 'dex_volume_page.dart';
 import 'open_interest_screen.dart';
+import 'borrow_lend_page.dart';
 import 'fee_intelligence_screen.dart';
 import 'top_by_fees_screen.dart';
 
@@ -1001,40 +1002,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ? '0x${wallet.substring(2, 6)}...${wallet.substring(wallet.length - 4)}'
         : '';
 
-    final navItems = [
-      _DrawerItemData(
-        iconAsset: 'assets/appicons/home.png',
-        label: 'Home',
-        subtitle: 'Markets & screener',
-        onTap: () { Navigator.pop(context); setState(() => _selectedIndex = 0); },
-      ),
-      _DrawerItemData(
-        iconAsset: 'assets/appicons/market.png',
-        label: 'Markets',
-        subtitle: 'Live gainers/losers',
-        onTap: () { Navigator.pop(context); setState(() => _selectedIndex = 1); },
-      ),
-      /*
-      _DrawerItemData(
-        iconAsset: 'assets/appicons/stats.png',
-        label: 'Leaderboard',
-        subtitle: 'Global performance',
-        onTap: () { Navigator.pop(context); setState(() => _selectedIndex = 2); },
-      ),
-      */
-      /*
-      _DrawerItemData(
-        iconAsset: 'assets/appicons/protocoltvl.png',
-        label: 'Portfolio',
-        subtitle: 'Your positions',
-        onTap: () {
-          Navigator.pop(context);
-          setState(() => _selectedIndex = 3);
-        },
-      ),
-      */
-    ];
-
     return Drawer(
       backgroundColor: AppColors.background,
       child: Stack(
@@ -1172,39 +1139,27 @@ class _HomeScreenState extends State<HomeScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  _sectionLabel('NAVIGATION'),
-                  ...navItems.asMap().entries.map((e) {
-                    final isActive = (e.key == _selectedIndex);
-                    return _DrawerNavItem(
-                      data: e.value,
-                      isActive: isActive,
-                    );
-                  }),
 
-                  const SizedBox(height: 4),
-
-                  _DrawerNavItem(
-                    data: _DrawerItemData(
-                      iconAsset: 'assets/appicons/feeandrevenue.png',
-                      label: 'Fees & Revenue',
-                      subtitle: 'Protocol earnings',
-                      onTap: () {
-                        Navigator.of(context).push(_smoothRoute(const DefiLlamaScreen()));
-                      },
-                    ),
-                    isActive: false,
-                  ),
-
-                  _DrawerNavItem(
-                    data: _DrawerItemData(
-                      iconAsset: 'assets/appicons/feeintelligence.png',
-                      label: 'Fee Intelligence',
-                      subtitle: 'Advanced fee analytics',
-                      onTap: () {
-                        Navigator.of(context).push(_smoothRoute(const FeeIntelligenceScreen()));
-                      },
-                    ),
-                    isActive: false,
+                  _DrawerExpandableNavItem(
+                    label: 'Fees & Revenue',
+                    subtitle: 'Protocol earnings & analytics',
+                    iconAsset: 'assets/appicons/feeandrevenue.png',
+                    children: [
+                      _SubDrawerItemData(
+                        label: 'Hyperliquid Fees & Revenue',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context).push(_smoothRoute(const DefiLlamaScreen()));
+                        },
+                      ),
+                      _SubDrawerItemData(
+                        label: 'DEX Fees & Revenue',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context).push(_smoothRoute(const FeeIntelligenceScreen()));
+                        },
+                      ),
+                    ],
                   ),
 
                   _DrawerNavItem(
@@ -1299,6 +1254,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       subtitle: 'Margin tiers & requirements',
                       onTap: () {
                         Navigator.of(context).push(_smoothRoute(const LeverageMarginPage()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
+
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      iconAsset: 'assets/appicons/openinterst.png',
+                      label: 'Borrow & Lend',
+                      subtitle: 'Hyperliquid reserve states & rates',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const BorrowLendPage()));
                       },
                     ),
                     isActive: false,
@@ -1583,37 +1550,32 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
         animation: _ctrl,
         builder: (_, __) {
           return Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             decoration: BoxDecoration(
-              gradient: widget.isActive
-                  ? LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [
-                        AppColors.brandAccent.withOpacity(0.15),
-                        AppColors.brandAccent.withOpacity(0.04),
-                      ],
-                    )
-                  : null,
               color: widget.isActive
-                  ? null
+                  ? AppColors.brandAccent.withOpacity(0.08)
                   : Color.lerp(
-                      AppColors.surfaceBright.withOpacity(0.15),
-                      AppColors.surfaceBright.withOpacity(0.28),
+                      AppColors.surface.withOpacity(0.2),
+                      AppColors.surfaceBright.withOpacity(0.35),
                       _bg.value,
                     ),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: widget.isActive
-                    ? AppColors.brandAccent.withOpacity(0.3)
-                    : AppColors.surfaceBright.withOpacity(0.20),
+                    ? AppColors.brandAccent.withOpacity(0.4)
+                    : Color.lerp(
+                        AppColors.surfaceBright.withOpacity(0.15),
+                        AppColors.brandAccent.withOpacity(0.25),
+                        _bg.value,
+                      )!,
                 width: 0.8,
               ),
               boxShadow: widget.isActive
                   ? [
                       BoxShadow(
-                        color: AppColors.brandAccent.withOpacity(0.08),
-                        blurRadius: 12,
+                        color: AppColors.brandAccent.withOpacity(0.05),
+                        blurRadius: 10,
                         offset: const Offset(0, 2),
                       ),
                     ]
@@ -1621,53 +1583,34 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
             ),
             child: Row(
               children: [
+                const SizedBox(width: 6),
                 // ── Left accent bar ───────────────────────────────────────
                 Container(
-                  width: 3.5,
-                  height: 60,
+                  width: 3.0,
+                  height: 30,
                   decoration: BoxDecoration(
-                    gradient: widget.isActive
-                        ? LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: widget.isActive
+                          ? [
                               AppColors.brandAccent,
                               AppColors.brandAccent.withOpacity(0.3),
+                            ]
+                          : [
+                              Colors.transparent,
+                              Colors.transparent,
                             ],
-                          )
-                        : null,
-                    color: widget.isActive ? null : Colors.transparent,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(10),
-                      bottomLeft: Radius.circular(10),
                     ),
+                    borderRadius: BorderRadius.circular(1.5),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 6),
                 Container(
                   width: 34,
                   height: 34,
-                  decoration: BoxDecoration(
-                    gradient: widget.isActive
-                        ? LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              AppColors.brandAccent.withOpacity(0.25),
-                              AppColors.brandAccent.withOpacity(0.10),
-                            ],
-                          )
-                        : null,
-                    color: widget.isActive
-                        ? null
-                        : AppColors.surfaceBright.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: widget.isActive
-                          ? AppColors.brandAccent.withOpacity(0.35)
-                          : AppColors.surfaceBright.withOpacity(0.30),
-                      width: 0.8,
-                    ),
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
                   ),
                   child: Center(
                     child: Padding(
@@ -1686,21 +1629,22 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
                     children: [
                       Text(
                         widget.data.label,
-                        style: GoogleFonts.jetBrainsMono(
+                        style: GoogleFonts.inter(
                           color: widget.isActive
                               ? Colors.white
-                              : AppColors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
+                              : Colors.white.withOpacity(0.85),
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         widget.data.subtitle,
-                        style: GoogleFonts.jetBrainsMono(
+                        style: GoogleFonts.inter(
                           color: widget.isActive
-                              ? AppColors.brandAccent.withOpacity(0.6)
-                              : AppColors.textSecondary.withOpacity(0.55),
-                          fontSize: 9.5,
+                              ? AppColors.brandAccent
+                              : Colors.white.withOpacity(0.45),
+                          fontSize: 10,
                         ),
                       ),
                     ],
@@ -1720,7 +1664,7 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
                     size: 16,
                     color: widget.isActive
                         ? AppColors.brandAccent
-                        : AppColors.surfaceBright,
+                        : AppColors.textSecondary.withOpacity(0.4),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -2054,6 +1998,231 @@ class _Badge extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
+    );
+  }
+}
+
+class _SubDrawerItemData {
+  final String label;
+  final VoidCallback onTap;
+  const _SubDrawerItemData({
+    required this.label,
+    required this.onTap,
+  });
+}
+
+class _SubDrawerNavItem extends StatelessWidget {
+  final _SubDrawerItemData data;
+  const _SubDrawerNavItem({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: data.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.02),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.05),
+            width: 0.8,
+          ),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 4),
+            Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.brandAccent.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                data.label,
+                style: GoogleFonts.inter(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 14,
+              color: Colors.white.withValues(alpha: 0.35),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerExpandableNavItem extends StatefulWidget {
+  final String label;
+  final String subtitle;
+  final String iconAsset;
+  final List<_SubDrawerItemData> children;
+
+  const _DrawerExpandableNavItem({
+    required this.label,
+    required this.subtitle,
+    required this.iconAsset,
+    required this.children,
+  });
+
+  @override
+  State<_DrawerExpandableNavItem> createState() => _DrawerExpandableNavItemState();
+}
+
+class _DrawerExpandableNavItemState extends State<_DrawerExpandableNavItem> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _isExpanded = !_isExpanded;
+            });
+          },
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            decoration: BoxDecoration(
+              color: _isExpanded
+                  ? AppColors.brandAccent.withOpacity(0.08)
+                  : AppColors.surface.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _isExpanded
+                    ? AppColors.brandAccent.withOpacity(0.4)
+                    : AppColors.surfaceBright.withOpacity(0.15),
+                width: 0.8,
+              ),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(width: 6),
+                // ── Left accent bar ───────────────────────────────────────
+                Container(
+                  width: 3.0,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: _isExpanded
+                          ? [
+                              AppColors.brandAccent,
+                              AppColors.brandAccent.withOpacity(0.3),
+                            ]
+                          : [
+                              Colors.transparent,
+                              Colors.transparent,
+                            ],
+                    ),
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
+                  ),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(5.0),
+                      child: Image.asset(
+                        widget.iconAsset,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.label,
+                              style: GoogleFonts.inter(
+                                color: _isExpanded
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.85),
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              widget.subtitle,
+                              style: GoogleFonts.inter(
+                                color: _isExpanded
+                                    ? AppColors.brandAccent
+                                    : Colors.white.withOpacity(0.45),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  _isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  size: 18,
+                  color: _isExpanded ? AppColors.brandAccent : AppColors.textSecondary.withOpacity(0.5),
+                ),
+                const SizedBox(width: 12),
+              ],
+            ),
+          ),
+        ),
+        if (_isExpanded)
+          Padding(
+            padding: const EdgeInsets.only(left: 44.5, right: 12),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    width: 1.5,
+                    margin: const EdgeInsets.only(right: 14, top: 4, bottom: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceBright.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      children: widget.children.map((subItem) {
+                        return _SubDrawerNavItem(data: subItem);
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

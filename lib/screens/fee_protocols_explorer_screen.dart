@@ -15,7 +15,9 @@ import 'package:shimmer/shimmer.dart';
 
 class FeeProtocolsExplorerScreen extends StatefulWidget {
   final List<String>? initialCategories;
-  const FeeProtocolsExplorerScreen({super.key, this.initialCategories});
+  final bool isRevenue;
+  final String? dataType;
+  const FeeProtocolsExplorerScreen({super.key, this.initialCategories, this.isRevenue = false, this.dataType});
 
   @override
   State<FeeProtocolsExplorerScreen> createState() => _FeeProtocolsExplorerScreenState();
@@ -55,6 +57,7 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
   @override
   void initState() {
     super.initState();
+    _sortBy = (widget.dataType == 'revenue' || widget.dataType == 'holders-revenue' || widget.isRevenue) ? 'revenue' : 'fees24h';
     if (widget.initialCategories != null && widget.initialCategories!.isNotEmpty) {
       // Remove duplicates and capitalised ALL
       final clean = widget.initialCategories!
@@ -98,7 +101,7 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
       _error = '';
     });
     try {
-      final db = await _service.fetchDashboard();
+      final db = await _service.fetchDashboard(isRevenue: widget.isRevenue, dataType: widget.dataType);
       _dashboardStats = db.stats;
     } catch (_) {
       // Allow fallback if dashboard fails, just parse stats or keep empty
@@ -129,6 +132,8 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
           sortOrder: _sortOrder,
           category: _selectedCategory == 'ALL' ? null : _selectedCategory,
           dataType: dataType,
+          isRevenue: widget.isRevenue,
+          customPrefix: widget.dataType,
         );
 
         final query = _searchQuery.trim().toLowerCase();
@@ -166,6 +171,8 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
           sortOrder: _sortOrder,
           category: _selectedCategory == 'ALL' ? null : _selectedCategory,
           dataType: dataType,
+          isRevenue: widget.isRevenue,
+          customPrefix: widget.dataType,
         );
 
         setState(() {
@@ -262,7 +269,9 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
           ),
           titleSpacing: 0,
           title: Text(
-            'Protocol Explorer',
+            widget.dataType == 'holders-revenue' 
+                ? 'Holders Revenue Explorer' 
+                : (widget.isRevenue ? 'Revenue Explorer' : 'Protocol Explorer'),
             style: GoogleFonts.jetBrainsMono(
               color: AppColors.brandAccent,
               fontSize: res.fontSize(16),
@@ -807,7 +816,11 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                       Navigator.push(
                         context,
                         PageRouteBuilder(
-                          pageBuilder: (context, __, ___) => FeeProtocolDetailScreen(protocol: p),
+                          pageBuilder: (context, __, ___) => FeeProtocolDetailScreen(
+                            protocol: p, 
+                            isRevenue: widget.isRevenue,
+                            dataType: widget.dataType,
+                          ),
                           transitionDuration: Duration.zero,
                           reverseTransitionDuration: Duration.zero,
                         ),
@@ -942,13 +955,48 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                       child: Row(
                         children: [
                           _buildHeaderCell('CATEGORY', res, 'category', width: res.columnWidth(110.0)),
-                          _buildHeaderCell('24H FEES', res, 'fees24h', width: res.columnWidth(90.0)),
+                          _buildHeaderCell(
+                            widget.dataType == 'holders-revenue' 
+                                ? '24H HOLDERS REVENUE' 
+                                : (widget.isRevenue ? '24H REVENUE' : '24H FEES'), 
+                            res, 
+                            (widget.dataType == 'revenue' || widget.dataType == 'holders-revenue' || widget.isRevenue) ? 'revenue' : 'fees24h', 
+                            width: res.columnWidth(90.0),
+                          ),
                           _buildHeaderCell('1D CHANGE', res, 'change1d', width: res.columnWidth(80.0)),
                           _buildHeaderCell('7D CHANGE', res, 'change7d', width: res.columnWidth(80.0)),
-                          _buildHeaderCell('7D FEES', res, 'fees7d', width: res.columnWidth(95.0)),
-                          _buildHeaderCell('30D FEES', res, 'fees30d', width: res.columnWidth(95.0)),
-                          _buildHeaderCell('1Y FEES', res, 'fees1y', width: res.columnWidth(95.0)),
-                          _buildHeaderCell('ALL TIME', res, 'feesAllTime', width: res.columnWidth(100.0)),
+                          _buildHeaderCell(
+                            widget.dataType == 'holders-revenue' 
+                                ? '7D HOLDERS REVENUE' 
+                                : (widget.isRevenue ? '7D REVENUE' : '7D FEES'), 
+                            res, 
+                            'fees7d', 
+                            width: res.columnWidth(95.0),
+                          ),
+                          _buildHeaderCell(
+                            widget.dataType == 'holders-revenue' 
+                                ? '30D HOLDERS REVENUE' 
+                                : (widget.isRevenue ? '30D REVENUE' : '30D FEES'), 
+                            res, 
+                            'fees30d', 
+                            width: res.columnWidth(95.0),
+                          ),
+                          _buildHeaderCell(
+                            widget.dataType == 'holders-revenue' 
+                                ? '1Y HOLDERS REVENUE' 
+                                : (widget.isRevenue ? '1Y REVENUE' : '1Y FEES'), 
+                            res, 
+                            'fees1y', 
+                            width: res.columnWidth(95.0),
+                          ),
+                          _buildHeaderCell(
+                            widget.dataType == 'holders-revenue' 
+                                ? 'ALL TIME HOLDERS REV' 
+                                : (widget.isRevenue ? 'ALL TIME REV' : 'ALL TIME'), 
+                            res, 
+                            'feesAllTime', 
+                            width: res.columnWidth(100.0),
+                          ),
                         ],
                       ),
                     ),
@@ -961,7 +1009,11 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                           Navigator.push(
                             context,
                             PageRouteBuilder(
-                              pageBuilder: (context, __, ___) => FeeProtocolDetailScreen(protocol: p),
+                              pageBuilder: (context, __, ___) => FeeProtocolDetailScreen(
+                                protocol: p, 
+                                isRevenue: widget.isRevenue,
+                                dataType: widget.dataType,
+                              ),
                               transitionDuration: Duration.zero,
                               reverseTransitionDuration: Duration.zero,
                             ),

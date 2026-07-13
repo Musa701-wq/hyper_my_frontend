@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/ticker_model.dart';
+import '../utils/app_config.dart';
 
 class MarginService {
   static String get baseUrl {
-    return dotenv.env['LEVERAGE_API_URL'] ?? dotenv.env['LIQUIDATION_API_URL'] ?? 'http://localhost:4001';
+    return dotenv.env['LEVERAGE_API_URL'] ?? dotenv.env['LIQUIDATION_API_URL'] ?? AppConfig.baseUrl;
   }
 
   /// Fetch perp markets (tickers) from /perps to parse maxLeverage and marginTableId

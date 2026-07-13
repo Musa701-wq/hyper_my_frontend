@@ -8,6 +8,7 @@ import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
 import '../widgets/shimmer_skeleton.dart';
 import '../utils/common_widgets.dart';
+import '../widgets/error_state_widget.dart';
 
 class LiquidatablePage extends StatefulWidget {
   const LiquidatablePage({super.key});
@@ -99,6 +100,17 @@ class _LiquidatablePageState extends State<LiquidatablePage> {
     if (abs >= 1000000) return '$sign\$${(abs / 1000000).toStringAsFixed(2)}M';
     if (abs >= 1000) return '$sign\$${(abs / 1000).toStringAsFixed(1)}K';
     return '$sign\$${abs.toStringAsFixed(2)}';
+  }
+
+  String _getFriendlyErrorMessage(String error) {
+    if (error.contains('SocketException') ||
+        error.contains('Failed host lookup') ||
+        error.contains('HttpException') ||
+        error.contains('Connection refused') ||
+        error.contains('errno = 61')) {
+      return 'Connection error. Please check your internet connection or backend server status and try again.';
+    }
+    return 'Failed to load liquidations. Please try again later.';
   }
 
   @override
@@ -249,37 +261,9 @@ class _LiquidatablePageState extends State<LiquidatablePage> {
       return _buildShimmerLoading(res);
     }
     if (_error != null && _data == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 36, color: Colors.redAccent),
-              const SizedBox(height: 8),
-              Text(
-                'Fetch Error',
-                style: GoogleFonts.jetBrainsMono(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.jetBrainsMono(color: Colors.white38, fontSize: 10),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => _load(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.brandAccent,
-                  foregroundColor: Colors.black,
-                  textStyle: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, fontSize: 12),
-                ),
-                child: const Text('RETRY'),
-              ),
-            ],
-          ),
-        ),
+      return ErrorStateWidget(
+        errorMessage: _getFriendlyErrorMessage(_error!),
+        onRetry: () => _load(),
       );
     }
 
