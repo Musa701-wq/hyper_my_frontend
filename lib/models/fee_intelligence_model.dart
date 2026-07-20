@@ -36,7 +36,7 @@ class FeeCategoryBreakdown {
   factory FeeCategoryBreakdown.fromJson(Map<String, dynamic> json) {
     return FeeCategoryBreakdown(
       category: json['category'] ?? 'Other',
-      fees: (json['fees'] ?? 0.0).toDouble(),
+      fees: (json['fees'] ?? json['volume'] ?? 0.0).toDouble(),
     );
   }
 }
@@ -107,7 +107,7 @@ class FeeTopProtocol {
       annualized1y = (metricsObj['annualized1y'] ?? metricsObj['annualized1Y'] ?? 0.0).toDouble();
       average1y = (metricsObj['average1y'] ?? metricsObj['average1Y'] ?? 0.0).toDouble();
     } else {
-      fees24h = (json['fees24h'] ?? json['fees24H'] ?? 0.0).toDouble();
+      fees24h = (json['fees24h'] ?? json['fees24H'] ?? json['volume24h'] ?? 0.0).toDouble();
       change1d = (json['change1d'] ?? json['change_1d'] ?? 0.0).toDouble();
       change7d = (json['change7d'] ?? json['change_7d'] ?? 0.0).toDouble();
       change30d = (json['change30d'] ?? json['change_30d'] ?? 0.0).toDouble();
@@ -326,6 +326,76 @@ class FeeTopProtocolMetrics {
       change30d: (json['change30d'] ?? 0.0).toDouble(),
       annualized1y: (json['annualized1y'] ?? 0.0).toDouble(),
       average1y: (json['average1y'] ?? 0.0).toDouble(),
+    );
+  }
+}
+
+class DexChainMetrics {
+  final String chain;
+  final double totalVolume24h;
+  final double totalVolume7d;
+  final double totalVolume30d;
+  final double totalVolume1y;
+  final int protocolCount;
+
+  DexChainMetrics({
+    required this.chain,
+    required this.totalVolume24h,
+    required this.totalVolume7d,
+    required this.totalVolume30d,
+    required this.totalVolume1y,
+    required this.protocolCount,
+  });
+
+  factory DexChainMetrics.fromJson(Map<String, dynamic> json) {
+    return DexChainMetrics(
+      chain: json['chain'] ?? '',
+      totalVolume24h: (json['totalVolume24h'] ?? 0.0).toDouble(),
+      totalVolume7d: (json['totalVolume7d'] ?? 0.0).toDouble(),
+      totalVolume30d: (json['totalVolume30d'] ?? 0.0).toDouble(),
+      totalVolume1y: (json['totalVolume1y'] ?? 0.0).toDouble(),
+      protocolCount: json['protocolCount'] ?? 0,
+    );
+  }
+}
+
+class DexChainDetailResponse {
+  final String chain;
+  final int totalProtocols;
+  final double totalVolume24h;
+  final List<FeeTopProtocol> protocols;
+
+  DexChainDetailResponse({
+    required this.chain,
+    required this.totalProtocols,
+    required this.totalVolume24h,
+    required this.protocols,
+  });
+
+  factory DexChainDetailResponse.fromJson(Map<String, dynamic> json) {
+    final list = json['protocols'] as List? ?? [];
+    return DexChainDetailResponse(
+      chain: json['chain'] ?? '',
+      totalProtocols: json['totalProtocols'] ?? 0,
+      totalVolume24h: (json['totalVolume24h'] ?? 0.0).toDouble(),
+      protocols: list.map((e) => FeeTopProtocol.fromJson(e as Map<String, dynamic>)).toList(),
+    );
+  }
+}
+
+class DexProtocolDetailResponse {
+  final FeeTopProtocol protocol;
+  final FeeHistoryData history;
+
+  DexProtocolDetailResponse({
+    required this.protocol,
+    required this.history,
+  });
+
+  factory DexProtocolDetailResponse.fromJson(Map<String, dynamic> json) {
+    return DexProtocolDetailResponse(
+      protocol: FeeTopProtocol.fromJson(json['protocol'] ?? {}),
+      history: FeeHistoryData.fromJson(json['history'] ?? {}),
     );
   }
 }

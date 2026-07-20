@@ -161,19 +161,6 @@ class _ErrorStateWidgetState extends State<ErrorStateWidget> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.lossRed.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                iconData,
-                color: AppColors.lossRed,
-                size: 40,
-              ),
-            ),
-            const SizedBox(height: 24),
             Text(
               title,
               style: GoogleFonts.jetBrainsMono(
@@ -193,61 +180,6 @@ class _ErrorStateWidgetState extends State<ErrorStateWidget> {
                 height: 1.6,
               ),
             ),
-            if (widget.errorMessage.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    _showRawDetails = !_showRawDetails;
-                  });
-                },
-                borderRadius: BorderRadius.circular(4),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _showRawDetails ? 'HIDE DETAILS' : 'SHOW DETAILS',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: AppColors.textSecondary.withOpacity(0.6),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        _showRawDetails ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                        color: AppColors.textSecondary.withOpacity(0.6),
-                        size: 14,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (_showRawDetails) ...[
-                const SizedBox(height: 8),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 120),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.black38,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white10),
-                  ),
-                  child: SingleChildScrollView(
-                    child: Text(
-                      widget.errorMessage,
-                      style: GoogleFonts.jetBrainsMono(
-                        color: Colors.white70,
-                        fontSize: 9,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
             if (widget.onRetry != null) ...[
               const SizedBox(height: 24),
               GestureDetector(

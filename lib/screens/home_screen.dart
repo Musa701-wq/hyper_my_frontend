@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hyperscreener/screens/subscription_screen.dart';
-import 'package:hyperscreener/screens/leaderboard_stats_screen.dart';
-import 'package:hyperscreener/screens/leaderboard_screen.dart';
-import 'package:hyperscreener/screens/defillama_screen.dart';
-import 'package:hyperscreener/screens/protocols_screen.dart';
+import 'package:coinduck/screens/subscription_screen.dart';
+import 'package:coinduck/screens/leaderboard_stats_screen.dart';
+import 'package:coinduck/screens/leaderboard_screen.dart';
+import 'package:coinduck/screens/defillama_screen.dart';
+import 'package:coinduck/screens/protocols_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import '../utils/app_colors.dart';
@@ -36,6 +36,7 @@ import 'open_interest_screen.dart';
 import 'borrow_lend_page.dart';
 import 'fee_intelligence_screen.dart';
 import 'top_by_fees_screen.dart';
+import 'defi_volume_screen.dart';
 
 
 
@@ -101,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: const Icon(Icons.menu, color: AppColors.brandAccent),
           ),
           title: Text(
-            'HyperScreener',
+            'CoinDuck',
             style: GoogleFonts.jetBrainsMono(
               color: AppColors.brandAccent,
               fontSize: res.fontSize(18),
@@ -1095,7 +1096,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'HyperScreener',
+                          'CoinDuck',
                           style: GoogleFonts.jetBrainsMono(
                             color: AppColors.brandAccent,
                             fontSize: res.fontSize(16),
@@ -1176,6 +1177,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.of(context).push(_smoothRoute(const FeeIntelligenceScreen()));
+                        },
+                      ),
+                      _SubDrawerItemData(
+                        label: 'DeFi Volume',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context).push(_smoothRoute(const DefiVolumeScreen()));
                         },
                       ),
                     ],

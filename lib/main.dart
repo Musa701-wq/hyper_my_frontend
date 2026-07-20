@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hyperscreener/viewmodels/leaderboard_viewmodel.dart';
-import 'package:hyperscreener/viewmodels/wallet_viewmodel.dart';
-import 'package:hyperscreener/viewmodels/defillama_viewmodel.dart';
+import 'package:coinduck/viewmodels/leaderboard_viewmodel.dart';
+import 'package:coinduck/viewmodels/wallet_viewmodel.dart';
+import 'package:coinduck/viewmodels/defillama_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'utils/app_colors.dart';
 import 'screens/splash_screen.dart';
@@ -63,7 +63,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'HyperScreener',
+      title: 'CoinDuck',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,

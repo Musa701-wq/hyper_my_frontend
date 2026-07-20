@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:hyperscreener/utils/app_config.dart';
-import 'package:hyperscreener/viewmodels/wallet_viewmodel.dart';
-import 'package:hyperscreener/viewmodels/hl_tvl_viewmodel.dart';
-import 'package:hyperscreener/widgets/error_state_widget.dart';
+import 'package:coinduck/utils/app_config.dart';
+import 'package:coinduck/viewmodels/wallet_viewmodel.dart';
+import 'package:coinduck/viewmodels/hl_tvl_viewmodel.dart';
+import 'package:coinduck/widgets/error_state_widget.dart';
+import 'package:coinduck/screens/defi_volume_screen.dart';
+import 'package:coinduck/screens/defi_volume_explorer_screen.dart';
+import 'package:coinduck/screens/defi_volume_compare_screen.dart';
+import 'package:coinduck/screens/defi_volume_detail_screen.dart';
+import 'package:coinduck/models/fee_intelligence_model.dart';
 
 void main() {
   setUpAll(() {
@@ -105,6 +110,67 @@ void main() {
       await tester.tap(find.text('RETRY CONNECTION'));
       await tester.pump();
       expect(isClicked, isTrue);
+    });
+  });
+
+  group('Crash Prevention - DeFi Volume Screens Rendering', () {
+    testWidgets('DefiVolumeScreen renders and fetches gracefully', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: DefiVolumeScreen(),
+        ),
+      );
+      expect(find.byType(DefiVolumeScreen), findsOneWidget);
+    });
+
+    testWidgets('DefiVolumeExplorerScreen renders and fetches gracefully', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: DefiVolumeExplorerScreen(),
+        ),
+      );
+      expect(find.byType(DefiVolumeExplorerScreen), findsOneWidget);
+    });
+
+    testWidgets('DefiVolumeCompareScreen renders and fetches gracefully', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: DefiVolumeCompareScreen(),
+        ),
+      );
+      expect(find.byType(DefiVolumeCompareScreen), findsOneWidget);
+    });
+
+    testWidgets('DefiVolumeDetailScreen renders gracefully with mock protocol', (WidgetTester tester) async {
+      final mockProtocol = FeeTopProtocol(
+        name: 'UniSwap',
+        slug: 'uniswap',
+        category: 'Dexs',
+        chains: ['Ethereum'],
+        logo: 'https://example.com/logo.png',
+        fees24h: 1000000.0,
+        change1d: 5.5,
+        change7d: -2.3,
+        change30d: 12.0,
+        fees7d: 7000000.0,
+        fees30d: 30000000.0,
+        fees1y: 400000000.0,
+        feesAllTime: 1200000000.0,
+        children: [],
+        childrenSlugs: [],
+        protocolType: 'protocol',
+        annualized1y: 365000000.0,
+        average1y: 1000000.0,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DefiVolumeDetailScreen(protocol: mockProtocol),
+        ),
+      );
+
+      expect(find.byType(DefiVolumeDetailScreen), findsOneWidget);
+      expect(find.textContaining('UniSwap'), findsOneWidget);
     });
   });
 }
