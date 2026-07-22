@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -15,6 +16,8 @@ class HomeViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String _errorMessage = '';
   WebSocketChannel? _channel;
+  int _variationalTotalCount = 0;
+  Timer? _searchDebounce;
 
   // Watchlist favorites
   List<String> _watchlistSymbols = [];
@@ -59,6 +62,22 @@ class HomeViewModel extends ChangeNotifier {
   static const _cacheDuration = Duration(minutes: 2);
 
   String _selectedTab = 'ALL';
+  String _selectedProtocol = 'CoinDuck';
+  String get selectedProtocol => _selectedProtocol;
+
+  void setSelectedProtocol(String protocol) {
+    if (_selectedProtocol == protocol) return;
+    _selectedProtocol = protocol;
+    _currentPage = 1;
+    _searchQuery = '';
+    _tickers = [];
+    if (protocol == 'Variational') {
+      _selectedTab = 'ALL';
+    }
+    notifyListeners();
+    fetchTickers(forceRefresh: true);
+  }
+
   String _selectedDex = 'All';
   List<String> _availableDexes = ['All'];
   
@@ -104,6 +123,9 @@ class HomeViewModel extends ChangeNotifier {
       _tickers.fold(0, (sum, t) => sum + t.volume24hUSD);
 
   List<TickerModel> get filteredTickers {
+    if (_selectedProtocol == 'Variational') {
+      return _tickers;
+    }
     List<TickerModel> list = _tickers;
 
     // Watchlist Filter
@@ -186,6 +208,9 @@ class HomeViewModel extends ChangeNotifier {
   }
   
   List<TickerModel> get paginatedTickers {
+    if (_selectedProtocol == 'Variational') {
+      return _tickers;
+    }
     final list = filteredTickers;
     final startIndex = (_currentPage - 1) * _rowsPerPage;
     if (startIndex >= list.length) return [];
@@ -194,7 +219,12 @@ class HomeViewModel extends ChangeNotifier {
     return list.sublist(startIndex, endIndex);
   }
 
-  int get totalFilteredCount => filteredTickers.length;
+  int get totalFilteredCount {
+    if (_selectedProtocol == 'Variational') {
+      return _variationalTotalCount;
+    }
+    return filteredTickers.length;
+  }
   
   bool get isLoading => _isLoading;
   String get errorMessage => _errorMessage;
@@ -216,6 +246,9 @@ class HomeViewModel extends ChangeNotifier {
       _isAscending = false; // Default to descending for numbers
     }
     notifyListeners();
+    if (_selectedProtocol == 'Variational') {
+      fetchTickers(forceRefresh: true);
+    }
   }
 
   void setTab(String tab) {
@@ -234,6 +267,11 @@ class HomeViewModel extends ChangeNotifier {
 
   Future<void> fetchTickers({bool forceRefresh = false}) async {
     if (_isLoading) return;
+
+    if (_selectedProtocol == 'Variational') {
+      _fetchVariationalTickers();
+      return;
+    }
 
     // Serve cache instantly if available and not expired
     final cached = _tabCache[_selectedTab];
@@ -326,6 +364,87 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> _fetchVariationalTickers() async {
+    _isLoading = true;
+    _errorMessage = '';
+    notifyListeners();
+
+    try {
+      final isSearch = _searchQuery.isNotEmpty;
+      String url = isSearch
+          ? '${AppConfig.variationalUrl}/search'
+          : '${AppConfig.variationalUrl}/listings';
+
+      Map<String, String> queryParams = {};
+      if (isSearch) {
+        queryParams['q'] = _searchQuery;
+      }
+
+      // Sort parameter mapping
+      String sortByParam = 'volume_24h'; // default
+      switch (_sortColumn) {
+        case 'lastPrice':
+          sortByParam = 'mark_price';
+          break;
+        case 'change24hPct':
+          sortByParam = 'total_cost_24h_pct';
+          break;
+        case 'funding8hPct':
+          sortByParam = 'per_interval_funding_rate_pct';
+          break;
+        case 'volume24hUSD':
+          sortByParam = 'volume_24h';
+          break;
+        case 'openInterestUSD':
+          sortByParam = 'long_open_interest';
+          break;
+      }
+      queryParams['sortBy'] = sortByParam;
+      queryParams['sortOrder'] = _isAscending ? 'asc' : 'desc';
+
+      // Range pagination mapping (1-indexed start-end)
+      final start = (_currentPage - 1) * _rowsPerPage + 1;
+      final end = start + _rowsPerPage - 1;
+      queryParams['range'] = '$start-$end';
+
+      final uri = Uri.parse(url).replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        List<dynamic> jsonList = [];
+
+        if (decoded is Map<String, dynamic> && decoded['success'] == true) {
+          jsonList = decoded['data'] ?? [];
+          final meta = decoded['meta'];
+          if (meta is Map<String, dynamic>) {
+            _variationalTotalCount = (meta['total'] as num?)?.toInt() ?? 0;
+          } else {
+            _variationalTotalCount = jsonList.length;
+          }
+        }
+
+        _tickers = jsonList.map((json) => TickerModel.fromVariational(json)).toList();
+        _lastFetchTime = DateTime.now();
+        _extractDexes();
+        _extractCategories();
+        _errorMessage = '';
+      } else {
+        _errorMessage = 'Server Error (${response.statusCode}): Please try again later.';
+      }
+    } catch (e) {
+      _errorMessage = 'Connection Error: $e';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    
+    // Safety close of WebSocket for Variational
+    _channel?.sink.close();
+    _channel = null;
+  }
+
+
   Future<void> fetchTraderDistribution({String period = 'allTime'}) async {
     if (_isDistLoading) return;
     _isDistLoading = true;
@@ -395,7 +514,7 @@ class HomeViewModel extends ChangeNotifier {
 
   void _doWsConnect({required int attempt}) {
     // Guard against stale retry after tab switch or dispose
-    if (_isLoading) return;
+    if (_isLoading || _selectedProtocol == 'Variational') return;
 
     try {
       String wsUrl = (_selectedTab == 'HIP-3')
@@ -615,23 +734,38 @@ class HomeViewModel extends ChangeNotifier {
     _searchQuery = query;
     _currentPage = 1; // Reset to first page
     notifyListeners();
+    if (_selectedProtocol == 'Variational') {
+      _searchDebounce?.cancel();
+      _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+        fetchTickers(forceRefresh: true);
+      });
+    }
   }
 
   void setRowsPerPage(int count) {
     _rowsPerPage = count;
     _currentPage = 1; // Reset to first page when changing page size
     notifyListeners();
+    if (_selectedProtocol == 'Variational') {
+      fetchTickers(forceRefresh: true);
+    }
   }
 
   void setPage(int page) {
     _currentPage = page;
     notifyListeners();
+    if (_selectedProtocol == 'Variational') {
+      fetchTickers(forceRefresh: true);
+    }
   }
 
   void nextPage() {
     if (_currentPage * _rowsPerPage < totalFilteredCount) {
       _currentPage++;
       notifyListeners();
+      if (_selectedProtocol == 'Variational') {
+        fetchTickers(forceRefresh: true);
+      }
     }
   }
 
@@ -639,11 +773,15 @@ class HomeViewModel extends ChangeNotifier {
     if (_currentPage > 1) {
       _currentPage--;
       notifyListeners();
+      if (_selectedProtocol == 'Variational') {
+        fetchTickers(forceRefresh: true);
+      }
     }
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _channel?.sink.close();
     super.dispose();
   }

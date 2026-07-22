@@ -161,6 +161,38 @@ class TickerModel {
     );
   }
 
+  factory TickerModel.fromVariational(Map<String, dynamic> json) {
+    final openInterestObj = json['open_interest'];
+    double totalOI = 0.0;
+    if (openInterestObj is Map<String, dynamic>) {
+      final longOI = _toDouble(openInterestObj['long_open_interest']);
+      final shortOI = _toDouble(openInterestObj['short_open_interest']);
+      totalOI = longOI + shortOI;
+    }
+
+    final tickerSym = json['ticker']?.toString() ?? json['symbol']?.toString() ?? '';
+
+    return TickerModel(
+      id: tickerSym,
+      dex: 'Variational',
+      symbol: tickerSym,
+      fullSymbol: tickerSym,
+      displayName: json['name']?.toString() ?? '',
+      marketType: 'perp',
+      isDelisted: false,
+      iconUrl: '',
+      cryptoCategory: '',
+      lastPrice: _toDouble(json['mark_price']),
+      change24hPct: _toDouble(json['total_cost_24h_pct']),
+      funding8hPct: _toDouble(json['per_interval_funding_rate_pct']),
+      volume24hUSD: _toDouble(json['volume_24h']),
+      openInterestUSD: totalOI,
+      maxLeverage: 0,
+      growthMode: '',
+    );
+  }
+
+
   // Safe null-aware double parse
   static double _toDouble(dynamic v) {
     if (v == null) return 0.0;

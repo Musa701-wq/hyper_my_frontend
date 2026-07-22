@@ -50,6 +50,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final ScrollController _tabScrollController = ScrollController();
+  final ScrollController _mainScrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -59,6 +60,13 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<HomeViewModel>().fetchTickers();
     });
+  }
+
+  @override
+  void dispose() {
+    _tabScrollController.dispose();
+    _mainScrollController.dispose();
+    super.dispose();
   }
 
   void _showTickerDetail(TickerModel ticker) {
@@ -101,14 +109,54 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             child: const Icon(Icons.menu, color: AppColors.brandAccent),
           ),
-          title: Text(
-            'CoinDuck',
-            style: GoogleFonts.jetBrainsMono(
-              color: AppColors.brandAccent,
-              fontSize: res.fontSize(18),
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
+          title: Consumer<HomeViewModel>(
+            builder: (context, homeVm, child) {
+              final isVariational = homeVm.selectedProtocol == 'Variational';
+              return DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: isVariational ? 'Omni Variations' : 'Hyperliquid',
+                  dropdownColor: AppColors.background,
+                  icon: const Icon(Icons.arrow_drop_down, color: AppColors.brandAccent),
+                  onChanged: (String? value) {
+                    if (value != null) {
+                      homeVm.setSelectedProtocol(value == 'Omni Variations' ? 'Variational' : 'CoinDuck');
+                      if (_mainScrollController.hasClients) {
+                        _mainScrollController.jumpTo(0.0);
+                      }
+                    }
+                  },
+                  selectedItemBuilder: (BuildContext context) {
+                    return ['Hyperliquid', 'Omni Variations'].map<Widget>((String item) {
+                      return Container(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          item,
+                          style: GoogleFonts.jetBrainsMono(
+                            color: AppColors.brandAccent,
+                            fontSize: res.fontSize(18),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      );
+                    }).toList();
+                  },
+                  items: ['Hyperliquid', 'Omni Variations'].map<DropdownMenuItem<String>>((String item) {
+                    return DropdownMenuItem<String>(
+                      value: item,
+                      child: Text(
+                        item,
+                        style: GoogleFonts.jetBrainsMono(
+                          color: AppColors.textPrimary,
+                          fontSize: res.fontSize(14),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              );
+            },
           ),
           actions: [
             Consumer<SubscriptionViewModel>(
@@ -269,6 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return RefreshIndicator(
           onRefresh: viewModel.fetchTickers,
           child: SingleChildScrollView(
+            controller: _mainScrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             child: Padding(
               padding: EdgeInsets.all(res.spacing(16)),
@@ -314,34 +363,36 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   SizedBox(height: res.spacing(12)),
 
-                  Container(
-                    height: res.value(mobile: 38.0, tablet: 48.0),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.surfaceBright),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: SingleChildScrollView(
-                      controller: _tabScrollController,
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.all(4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildTab(viewModel, 'ALL', res),
-                          _buildTab(viewModel, 'PERPS', res),
-                          _buildTab(viewModel, 'SPOT', res),
-                          _buildTab(viewModel, 'CRYPTO', res),
-                          _buildTab(viewModel, 'HIP-3', res),
-                          _buildTab(viewModel, 'OUTCOME', res),
-                          _buildTab(viewModel, 'WATCHLIST', res),
-                        ],
+                  if (viewModel.selectedProtocol != 'Variational') ...[
+                    Container(
+                      height: res.value(mobile: 38.0, tablet: 48.0),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.surfaceBright),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: SingleChildScrollView(
+                        controller: _tabScrollController,
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.all(4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildTab(viewModel, 'ALL', res),
+                            _buildTab(viewModel, 'PERPS', res),
+                            _buildTab(viewModel, 'SPOT', res),
+                            _buildTab(viewModel, 'CRYPTO', res),
+                            _buildTab(viewModel, 'HIP-3', res),
+                            _buildTab(viewModel, 'OUTCOME', res),
+                            _buildTab(viewModel, 'WATCHLIST', res),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: res.spacing(12)),
+                    SizedBox(height: res.spacing(12)),
+                  ],
 
                   if (viewModel.isLoading)
                     SizedBox(
@@ -358,7 +409,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     )
                   else ...[
                     // Horizontal Filters Row
-                    if (viewModel.selectedTab == 'HIP-3' || viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'OUTCOME')
+                    if (viewModel.selectedProtocol != 'Variational' && (viewModel.selectedTab == 'HIP-3' || viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'OUTCOME'))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: SizedBox(
@@ -504,7 +555,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       const SizedBox(width: 4),
                                       SizedBox(
                                         width: res.fontSize(28), height: res.fontSize(28),
-                                        child: _buildTickerIcon(ticker.iconUrl, res.fontSize(28)),
+                                        child: viewModel.selectedProtocol == 'Variational'
+                                            ? _buildVariationalTickerIcon(ticker.displaySymbol, res.fontSize(28))
+                                            : _buildTickerIcon(ticker.iconUrl, res.fontSize(28)),
                                       ),
                                       const SizedBox(width: 8),
                                       Expanded(
@@ -538,6 +591,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -706,6 +760,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildVariationalTickerIcon(String symbol, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1B2023),
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        symbol.isNotEmpty ? symbol.substring(0, 1).toUpperCase() : '',
+        style: GoogleFonts.jetBrainsMono(
+          color: AppColors.textSecondary,
+          fontSize: size * 0.45,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
   Widget _buildTickerIcon(String iconUrl, double size) {
     if (iconUrl.isEmpty) {
       return Icon(Icons.star_border, size: size, color: AppColors.textSecondary);
@@ -745,7 +819,7 @@ class _HomeScreenState extends State<HomeScreen> {
     String? categoryLabel;
 
     // Identify category (DEX or Crypto Category)
-    if (ticker.dex.isNotEmpty && ticker.dex.toLowerCase() != 'hyperliquid') {
+    if (ticker.dex.isNotEmpty && ticker.dex.toLowerCase() != 'hyperliquid' && ticker.dex.toLowerCase() != 'variational') {
       categoryLabel = ticker.dex.toUpperCase();
     } else if (ticker.cryptoCategory.isNotEmpty) {
       final standardCategories = ['layer1', 'layer2', 'defi', 'ai', 'gaming', 'meme'];
@@ -820,6 +894,9 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () {
         viewModel.setTab(title);
         AnalyticsService.logTabClick(title);
+        if (_mainScrollController.hasClients) {
+          _mainScrollController.jumpTo(0.0);
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -1179,13 +1256,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.of(context).push(_smoothRoute(const FeeIntelligenceScreen()));
                         },
                       ),
-                      _SubDrawerItemData(
-                        label: 'DeFi Volume',
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.of(context).push(_smoothRoute(const DefiVolumeScreen()));
-                        },
-                      ),
                     ],
                   ),
 
@@ -1214,16 +1284,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     isActive: false,
                   ),
 
-                  _DrawerNavItem(
-                    data: _DrawerItemData(
-                      iconAsset: 'assets/appicons/dexvolume.png',
-                      label: 'DEX Volume',
-                      subtitle: 'Protocol volume',
-                      onTap: () {
-                        Navigator.of(context).push(_smoothRoute(const DexVolumePage()));
-                      },
-                    ),
-                    isActive: false,
+                  _DrawerExpandableNavItem(
+                    label: 'Volume',
+                    subtitle: 'Protocol volume',
+                    iconAsset: 'assets/appicons/dexvolume.png',
+                    children: [
+                      _SubDrawerItemData(
+                        label: 'Hyperliquid Volume',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context).push(_smoothRoute(const DexVolumePage()));
+                        },
+                      ),
+                      _SubDrawerItemData(
+                        label: 'DeFi Volume',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context).push(_smoothRoute(const DefiVolumeScreen()));
+                        },
+                      ),
+                    ],
                   ),
 
                   _DrawerNavItem(

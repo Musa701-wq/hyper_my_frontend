@@ -44,4 +44,9 @@ class AppConfig {
   static String get hip4DetailsTabBaseUrl {
     return _get('HIP4_DETAILS_TAB_API_URL', 'https://coingecko.renderonnodes.com');
   }
+
+  static String get variationalUrl {
+    return _get('VARIATIONAL_API_URL', 'https://api.hyperliquid.bubblenexus.com/variational');
+  }
 }
+

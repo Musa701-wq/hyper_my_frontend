@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_svg/flutter_svg.dart';
+import '../utils/app_config.dart';
 import '../viewmodels/home_viewmodel.dart';
 
 import '../models/orderbook_model.dart';
@@ -42,6 +46,10 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> with SingleTick
   String? _orderBookError;
   bool _orderBookStarted = false;
 
+  bool _isVariationalLoading = false;
+  Map<String, dynamic>? _variationalData;
+  String _variationalError = '';
+
   // Zoom & Dual-Axis Scroll Parameters
   late ScrollController _scrollController;
   late ScrollController _verticalScrollController;
@@ -71,19 +79,24 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> with SingleTick
   @override
   void initState() {
     super.initState();
-    final int tabLength = widget.ticker.marketType == 'spot' ? 2 : 3;
-    _tabController = TabController(length: tabLength, vsync: this);
-    _tabController.addListener(_onTabChanged);
     _scrollController = ScrollController();
     _verticalScrollController = ScrollController();
-    
-    // Register scroll event listener to dynamically update the Y-axis as the user scrolls
-    _scrollController.addListener(_onScrollUpdated);
 
-    // Initial fetch of candlesticks
-    _fetchCandleData();
-    // Regular polling every 12 seconds for realtime updates
-    _candlesTimer = Timer.periodic(const Duration(seconds: 12), (_) => _fetchCandleData());
+    if (widget.ticker.dex == 'Variational') {
+      _fetchVariationalDetail();
+    } else {
+      final int tabLength = widget.ticker.marketType == 'spot' ? 2 : 3;
+      _tabController = TabController(length: tabLength, vsync: this);
+      _tabController.addListener(_onTabChanged);
+      
+      // Register scroll event listener to dynamically update the Y-axis as the user scrolls
+      _scrollController.addListener(_onScrollUpdated);
+
+      // Initial fetch of candlesticks
+      _fetchCandleData();
+      // Regular polling every 12 seconds for realtime updates
+      _candlesTimer = Timer.periodic(const Duration(seconds: 12), (_) => _fetchCandleData());
+    }
   }
 
   void _onScrollUpdated() {
@@ -172,9 +185,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> with SingleTick
 
   @override
   void dispose() {
-    _tabController.removeListener(_onTabChanged);
-    _tabController.dispose();
-    _scrollController.removeListener(_onScrollUpdated);
+    if (widget.ticker.dex != 'Variational') {
+      _tabController.removeListener(_onTabChanged);
+      _tabController.dispose();
+      _scrollController.removeListener(_onScrollUpdated);
+    }
     _scrollController.dispose();
     _verticalScrollController.dispose();
     _orderBookService?.dispose();
@@ -193,6 +208,10 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> with SingleTick
   Widget build(BuildContext context) {
     final res = Responsive(context);
     final homeVm = context.watch<HomeViewModel>();
+
+    if (widget.ticker.dex == 'Variational') {
+      return _buildVariationalDetailView(res);
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0C0D0E),
@@ -704,6 +723,559 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> with SingleTick
         ],
       ),
     );
+  }
+
+  Future<void> _fetchVariationalDetail() async {
+    if (mounted) {
+      setState(() {
+        _isVariationalLoading = true;
+        _variationalError = '';
+      });
+    }
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConfig.variationalUrl}/search?q=${widget.ticker.symbol}')
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic> && decoded['success'] == true) {
+          final List<dynamic> dataList = decoded['data'] ?? [];
+          if (dataList.isNotEmpty) {
+            if (mounted) {
+              setState(() {
+                _variationalData = Map<String, dynamic>.from(dataList.first);
+                _isVariationalLoading = false;
+              });
+            }
+            return;
+          }
+        }
+        if (mounted) {
+          setState(() {
+            _variationalError = 'No data found for this symbol';
+            _isVariationalLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _variationalError = 'Failed to load details (${response.statusCode})';
+            _isVariationalLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _variationalError = 'Error: $e';
+          _isVariationalLoading = false;
+        });
+      }
+    }
+  }
+
+  double? _computeBps(Map<String, dynamic>? quoteData, double markPrice) {
+    if (quoteData == null || markPrice <= 0) return null;
+    final ask = double.tryParse(quoteData['ask']?.toString() ?? '') ?? 0.0;
+    final bid = double.tryParse(quoteData['bid']?.toString() ?? '') ?? 0.0;
+    if (ask <= 0 || bid <= 0) return null;
+    return ((ask - bid) / markPrice) * 10000;
+  }
+
+  String _formatVolume(double value) {
+    if (value >= 1e9) {
+      return '${(value / 1e9).toStringAsFixed(1)}B';
+    } else if (value >= 1e6) {
+      return '${(value / 1e6).toStringAsFixed(1)}M';
+    } else if (value >= 1e3) {
+      return '${(value / 1e3).toStringAsFixed(1)}K';
+    } else {
+      return value.toStringAsFixed(1);
+    }
+  }
+
+  Widget _kpiItem({
+    required String title,
+    required String value,
+    required Widget badgeWidget,
+    required IconData icon,
+    required Responsive res,
+    Color? valueColor,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  color: AppColors.textSecondary,
+                  fontSize: res.fontSize(8.5),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: GoogleFonts.jetBrainsMono(
+                  color: valueColor ?? AppColors.textPrimary,
+                  fontSize: res.fontSize(13.5),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              badgeWidget,
+            ],
+          ),
+        ),
+        Container(
+          width: res.spacing(24),
+          height: res.spacing(24),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceBright.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(6),
+          ),
+            child: Icon(
+            icon,
+            size: res.fontSize(12),
+            color: valueColor ?? AppColors.brandAccent,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShimmerView(Responsive res) {
+    final homeVm = context.watch<HomeViewModel>();
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent.withOpacity(0.4), size: res.fontSize(20)),
+          titleSpacing: 0,
+          title: Text(
+            widget.ticker.displayName.isNotEmpty
+                ? widget.ticker.displayName
+                : widget.ticker.displaySymbol,
+            style: GoogleFonts.jetBrainsMono(
+              color: AppColors.brandAccent.withOpacity(0.4),
+              fontSize: res.fontSize(16),
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+          ),
+          actions: [
+            Icon(
+              homeVm.isFavorited(widget.ticker.symbol) ? Icons.star : Icons.star_border,
+              color: homeVm.isFavorited(widget.ticker.symbol) ? Colors.amber.withOpacity(0.4) : AppColors.textSecondary.withOpacity(0.4),
+              size: res.fontSize(20),
+            ),
+            const SizedBox(width: 16),
+          ],
+        ),
+        body: Shimmer.fromColors(
+          baseColor: AppColors.surfaceBright.withOpacity(0.15),
+          highlightColor: AppColors.surfaceBright.withOpacity(0.3),
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: res.spacing(16), vertical: res.spacing(12)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  height: res.value(mobile: 85.0, tablet: 95.0),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  height: 140,
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  height: 180,
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  height: 140,
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVariationalDetailView(Responsive res) {
+    if (_isVariationalLoading) {
+      return _buildShimmerView(res);
+    }
+
+    if (_variationalError.isNotEmpty) {
+      return AppBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
+            ),
+          ),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(_variationalError, style: GoogleFonts.jetBrainsMono(color: Colors.red, fontSize: res.fontSize(14))),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _fetchVariationalDetail,
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandAccent),
+                  child: Text('Retry', style: GoogleFonts.jetBrainsMono(color: Colors.black)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final data = _variationalData;
+    if (data == null) return const SizedBox.shrink();
+
+    final markPrice = double.tryParse(data['mark_price']?.toString() ?? '') ?? 0.0;
+    final volume24h = double.tryParse(data['volume_24h']?.toString() ?? '') ?? 0.0;
+    
+    // Open Interest
+    final oiData = data['open_interest'];
+    double oiLong = 0.0;
+    double oiShort = 0.0;
+    if (oiData is Map) {
+      oiLong = double.tryParse(oiData['long_open_interest']?.toString() ?? '') ?? 0.0;
+      oiShort = double.tryParse(oiData['short_open_interest']?.toString() ?? '') ?? 0.0;
+    }
+
+    // Quotes & Spreads
+    final quotes = data['quotes'] as Map<String, dynamic>?;
+    final baseQuote = quotes?['base'] as Map<String, dynamic>?;
+    final k1Quote = quotes?['size_1k'] as Map<String, dynamic>?;
+    final k100Quote = quotes?['size_100k'] as Map<String, dynamic>?;
+    final m1Quote = quotes?['size_1m'] as Map<String, dynamic>?;
+
+    final baseSpread = _computeBps(baseQuote, markPrice);
+    final k1Spread = _computeBps(k1Quote, markPrice);
+    final k100Spread = _computeBps(k100Quote, markPrice);
+    final m1Spread = _computeBps(m1Quote, markPrice);
+
+    // Funding Rates
+    final perIntervalFund = double.tryParse(data['per_interval_funding_rate_pct']?.toString() ?? '') ?? 0.0;
+    final annualFund = double.tryParse(data['annual_funding_rate_pct']?.toString() ?? '') ?? 0.0;
+    final dailyCost = double.tryParse(data['daily_funding_cost_pct']?.toString() ?? '') ?? 0.0;
+    final totalCost = double.tryParse(data['total_cost_24h_pct']?.toString() ?? '') ?? 0.0;
+    final breakeven = double.tryParse(data['breakeven_move_usd']?.toString() ?? '') ?? 0.0;
+    final fundingIntervalS = double.tryParse(data['funding_interval_s']?.toString() ?? '') ?? 0.0;
+    final intervalHours = fundingIntervalS > 0 ? '${(fundingIntervalS / 3600).toStringAsFixed(0)}h' : '8h';
+
+    final homeVm = context.watch<HomeViewModel>();
+
+    final totalOi = oiLong + oiShort;
+
+    final itemPrice = _kpiItem(
+      title: 'MARK PRICE',
+      value: '\$${markPrice.toStringAsFixed(2)}',
+      badgeWidget: Text(
+        markPrice.toStringAsFixed(6),
+        style: GoogleFonts.inter(
+          color: AppColors.textSecondary,
+          fontSize: res.fontSize(8.5),
+        ),
+      ),
+      icon: Icons.attach_money_rounded,
+      res: res,
+    );
+
+    final itemVolume = _kpiItem(
+      title: 'VOLUME 24H',
+      value: '\$${_formatVolume(volume24h)}',
+      badgeWidget: const SizedBox.shrink(),
+      icon: Icons.bar_chart_rounded,
+      res: res,
+    );
+
+    final itemOI = _kpiItem(
+      title: 'OPEN INTEREST',
+      value: '\$${_formatVolume(totalOi)}',
+      badgeWidget: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: 'L:',
+              style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: res.fontSize(8.5)),
+            ),
+            TextSpan(
+              text: _formatVolume(oiLong),
+              style: GoogleFonts.inter(color: AppColors.trendGreen, fontSize: res.fontSize(8.5), fontWeight: FontWeight.bold),
+            ),
+            TextSpan(
+              text: ' | S:',
+              style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: res.fontSize(8.5)),
+            ),
+            TextSpan(
+              text: _formatVolume(oiShort),
+              style: GoogleFonts.inter(color: AppColors.trendRed, fontSize: res.fontSize(8.5), fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+      icon: Icons.pie_chart_outline_rounded,
+      res: res,
+    );
+
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
+          ),
+          titleSpacing: 0,
+          title: Text(
+            widget.ticker.displayName.isNotEmpty
+                ? widget.ticker.displayName
+                : widget.ticker.displaySymbol,
+            style: GoogleFonts.jetBrainsMono(
+              color: AppColors.brandAccent,
+              fontSize: res.fontSize(16),
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(
+                homeVm.isFavorited(widget.ticker.symbol) ? Icons.star : Icons.star_border,
+                color: homeVm.isFavorited(widget.ticker.symbol) ? Colors.amber : AppColors.textSecondary,
+                size: res.fontSize(20),
+              ),
+              onPressed: () {
+                homeVm.toggleFavorite(widget.ticker.symbol);
+              },
+            ),
+            const SizedBox(width: 12),
+          ],
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: res.spacing(16), vertical: res.spacing(12)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Grid Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Combined KPI Card
+                        AppCard(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: res.spacing(12),
+                            vertical: res.spacing(14),
+                          ),
+                          borderRadius: 20,
+                          child: Row(
+                            children: [
+                              Expanded(child: itemPrice),
+                              Container(
+                                width: 1,
+                                height: res.spacing(55),
+                                margin: EdgeInsets.symmetric(horizontal: res.spacing(10)),
+                                color: Colors.white.withOpacity(0.06),
+                              ),
+                              Expanded(child: itemVolume),
+                              Container(
+                                width: 1,
+                                height: res.spacing(55),
+                                margin: EdgeInsets.symmetric(horizontal: res.spacing(10)),
+                                color: Colors.white.withOpacity(0.06),
+                              ),
+                              Expanded(child: itemOI),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: res.spacing(12)),
+
+                        // Row 3: SPREAD (BPS) (full width AppCard)
+                        AppCard(
+                          padding: EdgeInsets.all(res.spacing(14)),
+                          borderRadius: 20,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'SPREAD (BPS)',
+                                style: GoogleFonts.jetBrainsMono(
+                                  color: AppColors.textSecondary,
+                                  fontSize: res.fontSize(8.5),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: res.spacing(10)),
+                              _buildRowItem('Base', baseSpread != null ? baseSpread.toStringAsFixed(2) : '—', res),
+                              _buildRowItem('1K', k1Spread != null ? k1Spread.toStringAsFixed(2) : '—', res),
+                              _buildRowItem('100K', k100Spread != null ? k100Spread.toStringAsFixed(2) : '—', res),
+                              _buildRowItem('1M', m1Spread != null ? m1Spread.toStringAsFixed(2) : '—', res),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: res.spacing(12)),
+
+                        // Row 4: FUNDING (full width AppCard)
+                        AppCard(
+                          padding: EdgeInsets.all(res.spacing(14)),
+                          borderRadius: 20,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'FUNDING',
+                                style: GoogleFonts.jetBrainsMono(
+                                  color: AppColors.textSecondary,
+                                  fontSize: res.fontSize(8.5),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: res.spacing(10)),
+                              _buildRowItem('Per Interval', '${perIntervalFund >= 0 ? '+' : ''}${perIntervalFund.toStringAsFixed(4)}%', res, valColor: perIntervalFund >= 0 ? AppColors.trendGreen : AppColors.trendRed),
+                              _buildRowItem('Annual', '${annualFund >= 0 ? '+' : ''}${annualFund.toStringAsFixed(2)}%', res, valColor: annualFund >= 0 ? AppColors.trendGreen : AppColors.trendRed),
+                              _buildRowItem('Daily Cost', '${dailyCost >= 0 ? '+' : ''}${dailyCost.toStringAsFixed(4)}%', res, valColor: dailyCost >= 0 ? AppColors.trendGreen : AppColors.trendRed),
+                              _buildRowItem('24h Total', '${totalCost >= 0 ? '+' : ''}${totalCost.toStringAsFixed(4)}%', res, valColor: totalCost >= 0 ? AppColors.trendGreen : AppColors.trendRed),
+                              _buildRowItem('Breakeven', '${breakeven >= 0 ? '+' : ''}\$${breakeven.toStringAsFixed(3)}', res, valColor: breakeven >= 0 ? AppColors.trendGreen : AppColors.trendRed),
+                              _buildRowItem('Interval', intervalHours, res),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: res.spacing(12)),
+
+                        // Quotes full-width card
+                        AppCard(
+                          padding: EdgeInsets.all(res.spacing(14)),
+                          borderRadius: 20,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'QUOTES (BID / ASK)',
+                                style: GoogleFonts.jetBrainsMono(
+                                  color: AppColors.textSecondary,
+                                  fontSize: res.fontSize(8.5),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: res.spacing(10)),
+                              _buildQuoteRow('Base', baseQuote, res),
+                              _buildQuoteRow('1K', k1Quote, res),
+                              _buildQuoteRow('100K', k100Quote, res),
+                              _buildQuoteRow('1M', m1Quote, res),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricCard({required String title, required Widget child, required Responsive res}) {
+    return Container(
+      padding: EdgeInsets.all(res.spacing(10)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF131517),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.jetBrainsMono(
+              color: AppColors.textSecondary,
+              fontSize: res.fontSize(8.5),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+          SizedBox(height: res.spacing(8)),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRowItem(String label, String value, Responsive res, {Color? valColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(9.5))),
+          Text(value, style: GoogleFonts.jetBrainsMono(color: valColor ?? Colors.white, fontSize: res.fontSize(9.5), fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuoteRow(String label, Map<String, dynamic>? quote, Responsive res) {
+    String valStr = '—';
+    if (quote != null) {
+      final bid = double.tryParse(quote['bid']?.toString() ?? '') ?? 0.0;
+      final ask = double.tryParse(quote['ask']?.toString() ?? '') ?? 0.0;
+      if (bid > 0 && ask > 0) {
+        valStr = '${_formatQuoteNum(bid)} / ${_formatQuoteNum(ask)}';
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11))),
+          Text(valStr, style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: res.fontSize(11), fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  String _formatQuoteNum(double val) {
+    if (val >= 1000) {
+      return NumberFormat('#,##0.0#').format(val);
+    }
+    return val.toStringAsFixed(4);
   }
 }
 
