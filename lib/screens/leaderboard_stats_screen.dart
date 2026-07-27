@@ -7,8 +7,8 @@ import '../utils/common_widgets.dart';
 import '../utils/responsive.dart';
 import '../viewmodels/leaderboard_viewmodel.dart';
 import '../models/leaderboard_model.dart';
-import 'home_screen.dart';
 import 'profile_screen.dart';
+import '../widgets/error_state_widget.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 class LeaderboardStatsScreen extends StatefulWidget {
@@ -19,14 +19,11 @@ class LeaderboardStatsScreen extends StatefulWidget {
 class _LeaderboardStatsScreenState extends State<LeaderboardStatsScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _fadeCtrl;
-  late final Animation<double> _fadeAnim;
-
   @override
   void initState() {
     super.initState();
     _fadeCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 400));
-    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final vm = Provider.of<LeaderboardViewModel>(context, listen: false);
       // If data already cached, fade in immediately
@@ -130,38 +127,14 @@ class _LeaderboardStatsBodyState extends State<LeaderboardStatsBody>
       return _buildShimmer();
     }
     if (vm.error != null && vm.stats == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.wifi_off_rounded,
-                color: AppColors.trendRed, size: 48),
-            const SizedBox(height: 12),
-            Text('Failed to load stats',
-                style: GoogleFonts.jetBrainsMono(
-                    color: AppColors.textSecondary, fontSize: 13)),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () {
-                _fadeCtrl.reset();
-                vm.fetchAllData().then((_) {
-                  if (mounted) _fadeCtrl.forward();
-                });
-              },
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.brandAccent),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text('Retry',
-                    style: GoogleFonts.jetBrainsMono(
-                        color: AppColors.brandAccent, fontSize: 13)),
-              ),
-            ),
-          ],
-        ),
+      return ErrorStateWidget(
+        errorMessage: vm.error!,
+        onRetry: () {
+          _fadeCtrl.reset();
+          vm.fetchAllData().then((_) {
+            if (mounted) _fadeCtrl.forward();
+          });
+        },
       );
     }
     if (vm.stats == null) return _buildShimmer();
@@ -241,8 +214,9 @@ class _LeaderboardStatsBodyState extends State<LeaderboardStatsBody>
       height: 110,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,15 +264,15 @@ class _TopBar extends StatelessWidget {
         children: [
           if (onBack != null)
             IconButton(
-              icon: const Icon(Icons.arrow_back_ios,
-                  color: AppColors.textPrimary, size: 20),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                  color: AppColors.brandAccent, size: 20),
               onPressed: onBack,
               padding: EdgeInsets.zero,
             ),
           Text(
             'Market Stats',
             style: GoogleFonts.jetBrainsMono(
-              color: AppColors.textPrimary,
+              color: AppColors.brandAccent,
               fontSize: res.fontSize(18),
               fontWeight: FontWeight.bold,
             ),

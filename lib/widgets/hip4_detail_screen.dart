@@ -27,10 +27,12 @@ class Hip4DetailScreen extends StatefulWidget {
 class _Hip4DetailScreenState extends State<Hip4DetailScreen>
     with TickerProviderStateMixin {
   Hip4AggregatedOi? _oi;
-  List<Hip4Candle> _positiveCandles = [];
-  List<Hip4Candle> _negativeCandles = [];
+  List<Hip4Candle> _candles = [];
   bool _isLoading = true;
-  bool _showPositive = true;
+  bool _candlesLoading = false;
+  String? _candlesError;
+  int _activeSideIdx = 0;
+  bool get _showPositive => _activeSideIdx == 0;
   bool _showOhlc = true;
   int? _selectedIdx; // tapped candle index
   int? _touchedBarIdx; // tapped volume bar index
@@ -66,6 +68,9 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
     _loadStats();
+    if (_tabController.index == 1) {
+      _startOrderBook();
+    }
   }
 
   void _onTabChanged() {
@@ -85,7 +90,9 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
     }
   }
 
-  int get _activeSideIdx => _showPositive ? 0 : 1;
+
+
+  // _activeSideIdx is a field variable
 
   Hip4Outcome? get _activeOutcome {
     final idx = _activeSideIdx;
@@ -162,18 +169,52 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
   Future<void> _loadStats() async {
     final vm = context.read<Hip4ViewModel>();
     final id = widget.market.id;
-    final results = await Future.wait([
-      vm.fetchOutcomeDetail(id),
-      vm.fetchCandles(id, 'positive'),
-      vm.fetchCandles(id, 'negative'),
-    ]);
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      _oi = await vm.fetchOutcomeDetail(id);
+    } catch (e) {
+      debugPrint('Error loading stats: $e');
+    }
+    await _loadCandlesForOutcome(_activeSideIdx);
     if (!mounted) return;
     setState(() {
-      _oi = results[0] as Hip4AggregatedOi?;
-      _positiveCandles = _ensure(results[1] as List<Hip4Candle>, 0);
-      _negativeCandles = _ensure(results[2] as List<Hip4Candle>, 1);
       _isLoading = false;
     });
+  }
+
+  Future<void> _loadCandlesForOutcome(int idx) async {
+    if (idx >= widget.market.outcomes.length) return;
+    final outcome = widget.market.outcomes[idx];
+    final coinName = outcome.coinName;
+    if (coinName.isEmpty) return;
+
+    if (mounted) {
+      setState(() {
+        _candlesLoading = true;
+        _candlesError = null;
+      });
+    }
+
+    try {
+      final vm = context.read<Hip4ViewModel>();
+      final fetched = await vm.fetchCandlesForOutcome(widget.market.id, coinName);
+      if (!mounted) return;
+      if (idx != _activeSideIdx) return; // stale request guard
+      setState(() {
+        _candles = _ensure(fetched ?? [], idx);
+        _candlesLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      if (idx != _activeSideIdx) return;
+      setState(() {
+        _candles = _ensure([], idx);
+        _candlesLoading = false;
+        _candlesError = e.toString();
+      });
+    }
   }
 
   List<Hip4Candle> _ensure(List<Hip4Candle> c, int sideIdx) {
@@ -204,8 +245,7 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
     });
   }
 
-  List<Hip4Candle> get _candles =>
-      _showPositive ? _positiveCandles : _negativeCandles;
+  // _candles is a direct field variable instead of a dynamic getter
 
   void _switchChart(bool toOhlc) {
     if (_showOhlc == toOhlc) return;
@@ -235,6 +275,9 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
     final expiryStr = widget.market.expiry != null
         ? DateFormat('dd MMM yyyy · HH:mm').format(widget.market.expiry!.toLocal()) + ' UTC'
         : null;
+
+    final outcome = _activeOutcome;
+    final coinSymbol = outcome?.coinName ?? '';
 
     return AppBackground(
       child: Scaffold(
@@ -270,10 +313,6 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
                         if (_showOhlc) _ohlcValues(res),
                         if (_showOhlc) const SizedBox(height: 10),
 
-                        // Open Interest card only
-                        _statsCard(res),
-                        const SizedBox(height: 12),
-
                         _outcomesHeader(res, sorted.length),
                         const SizedBox(height: 6),
                         ...sorted.asMap().entries.map(
@@ -286,7 +325,7 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
                   Column(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                         child: Row(
                           children: [
                             Text(
@@ -296,7 +335,16 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
                                 fontSize: res.fontSize(11),
                               ),
                             ),
-                            _sideToggle(res),
+                            const SizedBox(width: 8),
+                            _outcomeDropdown(res, _activeSideIdx, (val) {
+                              setState(() {
+                                _activeSideIdx = val;
+                                _selectedIdx = null;
+                                _touchedBarIdx = null;
+                                _loadCandlesForOutcome(val);
+                                _startOrderBook();
+                              });
+                            }),
                           ],
                         ),
                       ),
@@ -306,7 +354,7 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
                           snapshot: _orderBook,
                           isLoading: _orderBookLoading,
                           errorMessage: _orderBookError,
-                          sizeLabel: _activeOutcome?.coinName ?? 'Contracts',
+                          sizeLabel: coinSymbol.isNotEmpty ? coinSymbol : 'Contracts',
                           bypassPaywall: true,
                         ),
                       ),
@@ -315,8 +363,6 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
 
                   // Tab 3: Recent Trades
                   Builder(builder: (context) {
-                    final outcome = _activeOutcome;
-                    final coinSymbol = outcome?.coinName ?? '';
                     if (coinSymbol.isEmpty) {
                       return Center(
                         child: Text(
@@ -334,7 +380,15 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
                               Text('Outcome: ',
                                   style: GoogleFonts.jetBrainsMono(
                                       color: AppColors.textSecondary, fontSize: res.fontSize(11))),
-                              _sideToggle(res),
+                              const SizedBox(width: 8),
+                              _outcomeDropdown(res, _activeSideIdx, (val) {
+                                setState(() {
+                                  _activeSideIdx = val;
+                                  _selectedIdx = null;
+                                  _touchedBarIdx = null;
+                                  _loadCandlesForOutcome(val);
+                                });
+                              }),
                             ],
                           ),
                         ),
@@ -365,7 +419,7 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
       surfaceTintColor: Colors.transparent,
       leading: GestureDetector(
         onTap: () => Navigator.pop(context),
-        child: const Icon(Icons.arrow_back, color: AppColors.brandAccent),
+        child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
       ),
       title: Text(
         widget.market.name,
@@ -582,6 +636,12 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
 
   // ─── Yes / No toggle ──────────────────────────────────────────
   Widget _sideToggle(Responsive res) {
+    final labelYes = widget.market.outcomes.isNotEmpty
+        ? widget.market.outcomes[0].label
+        : 'Yes';
+    final labelNo = widget.market.outcomes.length > 1
+        ? widget.market.outcomes[1].label
+        : 'No';
     return Container(
       decoration: BoxDecoration(
         color: AppColors.background,
@@ -590,21 +650,23 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
       ),
       padding: const EdgeInsets.all(4),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        _sidePill('Yes', _showPositive, AppColors.trendGreen,
+        _sidePill(labelYes, _activeSideIdx == 0, AppColors.trendGreen,
             () => setState(() {
-                  _showPositive = true;
+                  _activeSideIdx = 0;
                   _selectedIdx = null;
                   _touchedBarIdx = null;
+                  _loadCandlesForOutcome(0);
                   if (_tabController.index == 1) {
                     _startOrderBook();
                   }
                 })),
         const SizedBox(width: 4),
-        _sidePill('No', !_showPositive, const Color(0xFFB886FF),
+        _sidePill(labelNo, _activeSideIdx == 1, const Color(0xFFB886FF),
             () => setState(() {
-                  _showPositive = false;
+                  _activeSideIdx = 1;
                   _selectedIdx = null;
                   _touchedBarIdx = null;
+                  _loadCandlesForOutcome(1);
                   if (_tabController.index == 1) {
                     _startOrderBook();
                   }
@@ -707,8 +769,8 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
           const SizedBox(width: 8),
           Text(
             _showOhlc
-                ? 'OHLC · ${_showPositive ? "YES" : "NO"}'
-                : 'VOLUME · ${_showPositive ? "YES" : "NO"}',
+                ? 'OHLC · ${(_activeOutcome?.label ?? (_showPositive ? "YES" : "NO")).toUpperCase()}'
+                : 'VOLUME · ${(_activeOutcome?.label ?? (_showPositive ? "YES" : "NO")).toUpperCase()}',
             style: GoogleFonts.jetBrainsMono(
               color: Colors.white54, fontSize: 9,
               fontWeight: FontWeight.bold, letterSpacing: 1.2,
@@ -724,7 +786,18 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
           opacity: _fadeAnim,
           child: SizedBox(
             height: 320,
-            child: _showOhlc ? _candleChart() : _volumeBarChart(),
+            child: _candlesLoading
+                ? const Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.0,
+                        color: AppColors.brandAccent,
+                      ),
+                    ),
+                  )
+                : (_showOhlc ? _candleChart() : _volumeBarChart()),
           ),
         ),
       ]),
@@ -1003,103 +1076,7 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
     );
   }
 
-  // ─── Stats card — Open Interest only ──────────────────────────
-  Widget _statsCard(Responsive res) {
-    final oiYes = _oi?.side0OpenInterestContracts ?? 0;
-    final oiNo  = _oi?.side1OpenInterestContracts ?? 0;
-    final oiTotal = oiYes + oiNo;
-    final hasOi = _oi != null && oiTotal > 0;
-    if (!hasOi) return const SizedBox();
 
-    return AppCard(
-      borderRadius: 14,
-      padding: const EdgeInsets.all(16),
-      child: Column(children: [
-        _statsHeader('OPEN INTEREST', _oi!.currency, res),
-        const SizedBox(height: 12),
-        _statRow('Yes', oiYes, oiTotal, AppColors.trendGreen, res),
-        const SizedBox(height: 8),
-        _statRow('No', oiNo, oiTotal, const Color(0xFFB886FF), res),
-        const SizedBox(height: 8),
-        Text(
-          'Total: ${NumberFormat('#,##0').format(oiTotal)} Contracts',
-          style: GoogleFonts.jetBrainsMono(
-              color: Colors.white30, fontSize: res.fontSize(9)),
-        ),
-      ]),
-    );
-  }
-
-  Widget _statsHeader(String label, String unit, Responsive res) {
-    return Row(children: [
-      Text(label,
-          style: GoogleFonts.jetBrainsMono(
-              color: Colors.white30,
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2)),
-      const Spacer(),
-      Text(unit,
-          style: GoogleFonts.jetBrainsMono(
-              color: Colors.white24, fontSize: 8, fontWeight: FontWeight.bold)),
-    ]);
-  }
-
-  Widget _statRow(
-      String label, int value, int total, Color color, Responsive res) {
-    final pct = total > 0 ? (value / total * 100) : 0.0;
-    return Row(children: [
-      Container(
-          width: 6,
-          height: 6,
-          margin: const EdgeInsets.only(right: 10),
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-      SizedBox(
-        width: 28,
-        child: Text(label,
-            style: GoogleFonts.jetBrainsMono(
-                color: Colors.white.withValues(alpha: 0.5), fontSize: res.fontSize(10))),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: Container(
-          height: 5,
-          decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(3)),
-          child: FractionallySizedBox(
-            alignment: Alignment.centerLeft,
-            widthFactor: pct / 100,
-            child: Container(
-              decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.75),
-                  borderRadius: BorderRadius.circular(3)),
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(width: 10),
-      SizedBox(
-        width: 60,
-        child: Text(NumberFormat('#,##0').format(value),
-            textAlign: TextAlign.right,
-            style: GoogleFonts.jetBrainsMono(
-                color: Colors.white,
-                fontSize: res.fontSize(11),
-                fontWeight: FontWeight.bold)),
-      ),
-      const SizedBox(width: 6),
-      SizedBox(
-        width: 42,
-        child: Text('${pct.toStringAsFixed(1)}%',
-            textAlign: TextAlign.right,
-            style: GoogleFonts.jetBrainsMono(
-                color: color,
-                fontSize: res.fontSize(9),
-                fontWeight: FontWeight.bold)),
-      ),
-    ]);
-  }
 
   // ─── Outcomes ─────────────────────────────────────────────────
   Widget _outcomesHeader(Responsive res, int count) {
@@ -1129,42 +1106,94 @@ class _Hip4DetailScreenState extends State<Hip4DetailScreen>
 
   Widget _outcomeRow(Hip4Outcome outcome, int idx, Responsive res) {
     final color = _outcomeColor(outcome, idx);
-    final isTop = idx == 0;
+    final isSelected = widget.market.outcomes.indexOf(outcome) == _activeSideIdx;
     final pct = outcome.probability.clamp(0.0, 100.0);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-      decoration: BoxDecoration(
-        color: isTop
-            ? color.withValues(alpha: 0.07)
-            : AppColors.surfaceBright.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-            color: isTop
-                ? color.withValues(alpha: 0.35)
-                : Colors.white.withValues(alpha: 0.05),
-            width: 1),
-      ),
-      child: Row(children: [
-        Container(
-            width: 7,
-            height: 7,
-            margin: const EdgeInsets.only(right: 10),
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        Expanded(
-          child: Text(outcome.label,
-              style: GoogleFonts.jetBrainsMono(
-                  color: isTop ? color : Colors.white70,
-                  fontSize: res.fontSize(11),
-                  fontWeight: isTop ? FontWeight.bold : FontWeight.normal),
-              overflow: TextOverflow.ellipsis),
+    return GestureDetector(
+      onTap: () {
+        final originalIdx = widget.market.outcomes.indexOf(outcome);
+        if (originalIdx != -1 && originalIdx != _activeSideIdx) {
+          setState(() {
+            _activeSideIdx = originalIdx;
+            _selectedIdx = null;
+            _touchedBarIdx = null;
+            _loadCandlesForOutcome(originalIdx);
+            if (_tabController.index == 1) {
+              _startOrderBook();
+            }
+          });
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: 0.07)
+              : AppColors.surfaceBright.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: isSelected
+                  ? color.withValues(alpha: 0.35)
+                  : Colors.white.withValues(alpha: 0.05),
+              width: 1),
         ),
-        Text('${pct.toStringAsFixed(1)}%',
-            style: GoogleFonts.jetBrainsMono(
-                color: color,
-                fontSize: res.fontSize(11),
-                fontWeight: FontWeight.bold)),
-      ]),
+        child: Row(children: [
+          Container(
+              width: 7,
+              height: 7,
+              margin: const EdgeInsets.only(right: 10),
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          Expanded(
+            child: Text(outcome.label,
+                style: GoogleFonts.jetBrainsMono(
+                    color: isSelected ? color : Colors.white70,
+                    fontSize: res.fontSize(11),
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+                overflow: TextOverflow.ellipsis),
+          ),
+          Text('${pct.toStringAsFixed(1)}%',
+              style: GoogleFonts.jetBrainsMono(
+                  color: color,
+                  fontSize: res.fontSize(11),
+                  fontWeight: FontWeight.bold)),
+        ]),
+      ),
+    );
+  }
+
+  Widget _outcomeDropdown(Responsive res, int selectedIdx, ValueChanged<int> onChanged) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161A22),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.surfaceBright.withValues(alpha: 0.4)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: selectedIdx,
+          isDense: true,
+          dropdownColor: const Color(0xFF161A22),
+          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white54, size: 18),
+          elevation: 8,
+          style: GoogleFonts.jetBrainsMono(
+            color: Colors.white,
+            fontSize: res.fontSize(11),
+            fontWeight: FontWeight.bold,
+          ),
+          onChanged: (val) {
+            if (val != null) {
+              onChanged(val);
+            }
+          },
+          items: widget.market.outcomes.asMap().entries.map((entry) {
+            return DropdownMenuItem<int>(
+              value: entry.key,
+              child: Text(entry.value.label),
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 

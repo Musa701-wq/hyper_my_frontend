@@ -8,10 +8,8 @@ import '../utils/common_widgets.dart';
 import '../viewmodels/dex_volume_viewmodel.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
-import '../widgets/dex_volume/metric_card.dart';
 import '../widgets/dex_volume/volume_chart.dart';
 import '../widgets/dex_volume/growth_banner.dart';
-import '../widgets/dex_volume/adoption_card.dart';
 import '../widgets/dex_volume/trend_chart.dart';
 import '../widgets/dex_volume/monthly_table.dart';
 import '../widgets/error_state_widget.dart';
@@ -145,90 +143,396 @@ class _DexVolumePageState extends State<DexVolumePage> {
     );
   }
 
+  String _fmtVol(double val) {
+    if (val >= 1e9) {
+      return '\$${(val / 1e9).toStringAsFixed(2)}B';
+    } else if (val >= 1e6) {
+      return '\$${(val / 1e6).toStringAsFixed(2)}M';
+    } else {
+      return '\$${val.toStringAsFixed(2)}';
+    }
+  }
+
   Widget _buildMetricCards(DexVolumeMetrics metrics) {
     final res = Responsive(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 700;
-        if (isWide) {
-          return Row(
-            children: [
-              Expanded(child: MetricCard(title: '24h Volume', value: metrics.total24h, change: metrics.change1d)),
-              SizedBox(width: res.spacing(10)),
-              Expanded(child: MetricCard(title: '7d Volume', value: metrics.total7d, change: metrics.change7d)),
-              SizedBox(width: res.spacing(10)),
-              Expanded(child: MetricCard(title: '30d Volume', value: metrics.total30d, change: metrics.change1m)),
-              SizedBox(width: res.spacing(10)),
-              Expanded(child: MetricCard(title: 'Cumulative', value: metrics.totalAllTime, isCumulative: true)),
-            ],
-          );
-        }
-        return Column(
-          children: [
-            Row(
+
+    final isUp1d = metrics.change1d >= 0;
+    final isUp7d = (metrics.change7d ?? 0) >= 0;
+    final isUp1m = (metrics.change1m ?? 0) >= 0;
+
+    final item1 = _kpiItem(
+      title: '24h Volume',
+      value: _fmtVol(metrics.total24h),
+      badgeWidget: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isUp1d ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+            color: isUp1d ? AppColors.trendGreen : AppColors.trendRed,
+            size: res.fontSize(14),
+          ),
+          Text(
+            '${isUp1d ? '+' : ''}${metrics.change1d.toStringAsFixed(2)}%',
+            style: GoogleFonts.inter(
+              color: isUp1d ? AppColors.trendGreen : AppColors.trendRed,
+              fontSize: res.fontSize(9.5),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+      icon: isUp1d ? Icons.trending_up : Icons.trending_down,
+      iconColor: isUp1d ? AppColors.trendGreen : AppColors.trendRed,
+      res: res,
+    );
+
+    final item2 = _kpiItem(
+      title: '7d Volume',
+      value: _fmtVol(metrics.total7d),
+      badgeWidget: metrics.change7d == null
+          ? const SizedBox.shrink()
+          : Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(child: MetricCard(title: '24h Volume', value: metrics.total24h, change: metrics.change1d)),
-                SizedBox(width: res.spacing(10)),
-                Expanded(child: MetricCard(title: '7d Volume', value: metrics.total7d, change: metrics.change7d)),
+                Icon(
+                  isUp7d ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                  color: isUp7d ? AppColors.trendGreen : AppColors.trendRed,
+                  size: res.fontSize(14),
+                ),
+                Text(
+                  '${isUp7d ? '+' : ''}${metrics.change7d!.toStringAsFixed(2)}%',
+                  style: GoogleFonts.inter(
+                    color: isUp7d ? AppColors.trendGreen : AppColors.trendRed,
+                    fontSize: res.fontSize(9.5),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
-            SizedBox(height: res.spacing(10)),
-            Row(
+      icon: isUp7d ? Icons.trending_up : Icons.trending_down,
+      iconColor: isUp7d ? AppColors.trendGreen : AppColors.trendRed,
+      res: res,
+    );
+
+    final item3 = _kpiItem(
+      title: '30d Volume',
+      value: _fmtVol(metrics.total30d),
+      badgeWidget: metrics.change1m == null
+          ? const SizedBox.shrink()
+          : Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(child: MetricCard(title: '30d Volume', value: metrics.total30d, change: metrics.change1m)),
-                SizedBox(width: res.spacing(10)),
-                Expanded(child: MetricCard(title: 'Cumulative', value: metrics.totalAllTime, isCumulative: true)),
+                Icon(
+                  isUp1m ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                  color: isUp1m ? AppColors.trendGreen : AppColors.trendRed,
+                  size: res.fontSize(14),
+                ),
+                Text(
+                  '${isUp1m ? '+' : ''}${metrics.change1m!.toStringAsFixed(2)}%',
+                  style: GoogleFonts.inter(
+                    color: isUp1m ? AppColors.trendGreen : AppColors.trendRed,
+                    fontSize: res.fontSize(9.5),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
-          ],
-        );
-      },
+      icon: isUp1m ? Icons.trending_up : Icons.trending_down,
+      iconColor: isUp1m ? AppColors.trendGreen : AppColors.trendRed,
+      res: res,
+    );
+
+    final item4 = _kpiItem(
+      title: 'Cumulative',
+      value: _fmtVol(metrics.totalAllTime),
+      badgeWidget: const SizedBox.shrink(),
+      icon: Icons.bar_chart_rounded,
+      res: res,
+    );
+
+    return AppCard(
+      padding: EdgeInsets.symmetric(
+        horizontal: res.spacing(16),
+        vertical: res.spacing(14),
+      ),
+      child: res.isMobile
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: item1),
+                    Container(
+                      width: 1,
+                      height: res.spacing(55),
+                      margin: EdgeInsets.symmetric(horizontal: res.spacing(14)),
+                      color: Colors.white.withOpacity(0.06),
+                    ),
+                    Expanded(child: item2),
+                  ],
+                ),
+                Divider(
+                  color: Colors.white.withOpacity(0.06),
+                  height: res.spacing(24),
+                  thickness: 1,
+                ),
+                Row(
+                  children: [
+                    Expanded(child: item3),
+                    Container(
+                      width: 1,
+                      height: res.spacing(55),
+                      margin: EdgeInsets.symmetric(horizontal: res.spacing(14)),
+                      color: Colors.white.withOpacity(0.06),
+                    ),
+                    Expanded(child: item4),
+                  ],
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(child: item1),
+                Container(
+                  width: 1,
+                  height: res.spacing(60),
+                  margin: EdgeInsets.symmetric(horizontal: res.spacing(16)),
+                  color: Colors.white.withOpacity(0.06),
+                ),
+                Expanded(child: item2),
+                Container(
+                  width: 1,
+                  height: res.spacing(60),
+                  margin: EdgeInsets.symmetric(horizontal: res.spacing(16)),
+                  color: Colors.white.withOpacity(0.06),
+                ),
+                Expanded(child: item3),
+                Container(
+                  width: 1,
+                  height: res.spacing(60),
+                  margin: EdgeInsets.symmetric(horizontal: res.spacing(16)),
+                  color: Colors.white.withOpacity(0.06),
+                ),
+                Expanded(child: item4),
+              ],
+            ),
     );
   }
 
   Widget _buildAdoptionCards(AdoptionMetrics adoption) {
     final res = Responsive(context);
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: AdoptionCard(
-                title: 'Current Month',
-                subtitle: DateFormat('yyyy-MM').format(DateTime.now()),
-                value: adoption.currentMonthVolume,
-                growth: adoption.monthOverMonthGrowth,
-              ),
+
+    final isGrowthUp = (adoption.monthOverMonthGrowth ?? 0) >= 0;
+
+    final item1 = _kpiItem(
+      title: 'Current Month',
+      value: _fmtVol(adoption.currentMonthVolume),
+      badgeWidget: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            DateFormat('yyyy-MM').format(DateTime.now()),
+            style: GoogleFonts.inter(
+              color: AppColors.textSecondary,
+              fontSize: res.fontSize(9.5),
             ),
-            SizedBox(width: res.spacing(10)),
-            Expanded(
-              child: AdoptionCard(
-                title: 'Previous Month',
-                subtitle: DateFormat('yyyy-MM').format(DateTime.now().subtract(const Duration(days: 30))),
-                value: adoption.previousMonthVolume,
-              ),
+          ),
+          if (adoption.monthOverMonthGrowth != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isGrowthUp ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                  color: isGrowthUp ? AppColors.trendGreen : AppColors.trendRed,
+                  size: res.fontSize(14),
+                ),
+                Text(
+                  '${isGrowthUp ? '+' : ''}${adoption.monthOverMonthGrowth!.toStringAsFixed(2)}%',
+                  style: GoogleFonts.inter(
+                    color: isGrowthUp ? AppColors.trendGreen : AppColors.trendRed,
+                    fontSize: res.fontSize(9.5),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ],
+        ],
+      ),
+      icon: Icons.calendar_today_rounded,
+      res: res,
+    );
+
+    final item2 = _kpiItem(
+      title: 'Previous Month',
+      value: _fmtVol(adoption.previousMonthVolume),
+      badgeWidget: Text(
+        DateFormat('yyyy-MM').format(DateTime.now().subtract(const Duration(days: 30))),
+        style: GoogleFonts.inter(
+          color: AppColors.textSecondary,
+          fontSize: res.fontSize(9.5),
         ),
-        SizedBox(height: res.spacing(10)),
-        Row(
-          children: [
-            Expanded(
-              child: AdoptionCard(
-                title: '6-Month Average',
-                subtitle: 'per month',
-                value: adoption.sixMonthAverageVolume ?? 0,
-              ),
+      ),
+      icon: Icons.history_rounded,
+      res: res,
+    );
+
+    final item3 = _kpiItem(
+      title: '6-Month Average',
+      value: _fmtVol(adoption.sixMonthAverageVolume ?? 0),
+      badgeWidget: Text(
+        'per month',
+        style: GoogleFonts.inter(
+          color: AppColors.textSecondary,
+          fontSize: res.fontSize(9.5),
+        ),
+      ),
+      icon: Icons.analytics_rounded,
+      res: res,
+    );
+
+    final item4 = _kpiItem(
+      title: 'ATH Month',
+      value: _fmtVol(adoption.allTimeHighMonthlyVolume),
+      badgeWidget: Text(
+        adoption.isNewMonthlyATH ? 'NEW ATH' : 'Historical',
+        style: GoogleFonts.inter(
+          color: adoption.isNewMonthlyATH ? AppColors.trendGreen : AppColors.textSecondary,
+          fontSize: res.fontSize(9.5),
+          fontWeight: adoption.isNewMonthlyATH ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      icon: Icons.emoji_events_rounded,
+      res: res,
+    );
+
+    return AppCard(
+      padding: EdgeInsets.symmetric(
+        horizontal: res.spacing(16),
+        vertical: res.spacing(14),
+      ),
+      child: res.isMobile
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: item1),
+                    Container(
+                      width: 1,
+                      height: res.spacing(70),
+                      margin: EdgeInsets.symmetric(horizontal: res.spacing(14)),
+                      color: Colors.white.withOpacity(0.06),
+                    ),
+                    Expanded(child: item2),
+                  ],
+                ),
+                Divider(
+                  color: Colors.white.withOpacity(0.06),
+                  height: res.spacing(24),
+                  thickness: 1,
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: item3),
+                    Container(
+                      width: 1,
+                      height: res.spacing(70),
+                      margin: EdgeInsets.symmetric(horizontal: res.spacing(14)),
+                      color: Colors.white.withOpacity(0.06),
+                    ),
+                    Expanded(child: item4),
+                  ],
+                ),
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: item1),
+                Container(
+                  width: 1,
+                  height: res.spacing(75),
+                  margin: EdgeInsets.symmetric(horizontal: res.spacing(16)),
+                  color: Colors.white.withOpacity(0.06),
+                ),
+                Expanded(child: item2),
+                Container(
+                  width: 1,
+                  height: res.spacing(75),
+                  margin: EdgeInsets.symmetric(horizontal: res.spacing(16)),
+                  color: Colors.white.withOpacity(0.06),
+                ),
+                Expanded(child: item3),
+                Container(
+                  width: 1,
+                  height: res.spacing(75),
+                  margin: EdgeInsets.symmetric(horizontal: res.spacing(16)),
+                  color: Colors.white.withOpacity(0.06),
+                ),
+                Expanded(child: item4),
+              ],
             ),
-            SizedBox(width: res.spacing(10)),
-            Expanded(
-              child: AdoptionCard(
-                title: 'ATH Month',
-                subtitle: adoption.isNewMonthlyATH ? 'NEW ATH' : 'Historical',
-                value: adoption.allTimeHighMonthlyVolume,
+    );
+  }
+
+  Widget _kpiItem({
+    required String title,
+    required String value,
+    required Widget badgeWidget,
+    required IconData icon,
+    Color? iconColor,
+    required Responsive res,
+    Color? valueColor,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title.toUpperCase(),
+                style: GoogleFonts.inter(
+                  color: AppColors.textSecondary,
+                  fontSize: res.fontSize(8.5),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: GoogleFonts.jetBrainsMono(
+                  color: valueColor ?? AppColors.textPrimary,
+                  fontSize: res.fontSize(16),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              badgeWidget,
+            ],
+          ),
+        ),
+        Container(
+          width: res.spacing(24),
+          height: res.spacing(24),
+          decoration: BoxDecoration(
+            color: (iconColor ?? AppColors.brandAccent).withOpacity(0.12),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(
+            icon,
+            size: res.fontSize(12),
+            color: iconColor ?? AppColors.brandAccent,
+          ),
         ),
       ],
     );

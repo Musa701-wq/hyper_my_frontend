@@ -7,6 +7,7 @@ import '../models/protocol_model.dart';
 import '../services/protocol_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
+import '../widgets/error_state_widget.dart';
 
 class ProtocolDetailScreen extends StatefulWidget {
   final String slug;
@@ -78,21 +79,9 @@ class _ProtocolDetailScreenState extends State<ProtocolDetailScreen> {
   }
 
   Widget _buildError(Responsive res) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline, color: AppColors.trendRed, size: 48),
-          const SizedBox(height: 12),
-          Text(_error, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 12)),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _fetchDetail,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandAccent),
-            child: Text('Retry', style: GoogleFonts.jetBrainsMono(color: Colors.black, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
+    return ErrorStateWidget(
+      errorMessage: _error,
+      onRetry: _fetchDetail,
     );
   }
 

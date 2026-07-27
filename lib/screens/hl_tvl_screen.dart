@@ -9,9 +9,11 @@ import '../utils/app_colors.dart';
 import '../utils/common_widgets.dart';
 import '../utils/responsive.dart';
 import '../viewmodels/hl_tvl_viewmodel.dart';
+import '../widgets/error_state_widget.dart';
 
 class HlTvlScreen extends StatefulWidget {
-  const HlTvlScreen({super.key});
+  final bool isTab;
+  const HlTvlScreen({super.key, this.isTab = false});
 
   @override
   State<HlTvlScreen> createState() => _HlTvlScreenState();
@@ -31,36 +33,46 @@ class _HlTvlScreenState extends State<HlTvlScreen> {
   @override
   Widget build(BuildContext context) {
     final res = Responsive(context);
-    return AppBackground(
-      child: Scaffold(
+    final scaffold = Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
+        elevation: 0,
+        leading: widget.isTab
+            ? GestureDetector(
+                onTap: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                child: const Icon(Icons.menu, color: AppColors.brandAccent),
+              )
+            : GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
+              ),
+        title: Text(
+          'Hyperliquid TVL',
+          style: GoogleFonts.jetBrainsMono(
+            color: AppColors.brandAccent,
+            fontSize: res.fontSize(16),
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
           ),
-          title: Text(
-            'Hyperliquid TVL',
-            style: GoogleFonts.jetBrainsMono(
-              color: AppColors.brandAccent,
-              fontSize: res.fontSize(16),
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.0,
-            ),
-          ),
-        ),
-        body: Consumer<HlTvlViewModel>(
-          builder: (_, vm, __) {
-            if (vm.isLoading) return _buildLoading();
-            if (vm.error.isNotEmpty) return _buildError(vm);
-            if (vm.summary == null) return const SizedBox.shrink();
-            return _buildContent(vm, res);
-          },
         ),
       ),
+      body: Consumer<HlTvlViewModel>(
+        builder: (_, vm, __) {
+          if (vm.isLoading) return _buildLoading();
+          if (vm.error.isNotEmpty) return _buildError(vm);
+          if (vm.summary == null) return const SizedBox.shrink();
+          return _buildContent(vm, res);
+        },
+      ),
     );
+
+    if (widget.isTab) {
+      return scaffold;
+    }
+    return AppBackground(child: scaffold);
   }
 
   Widget _buildContent(HlTvlViewModel vm, Responsive res) {
@@ -332,93 +344,136 @@ class _HlTvlScreenState extends State<HlTvlScreen> {
   Widget _statCards(HlTvlSummary s, HlTvlMetrics? m, Responsive res) {
     final isUp24 = s.tvl.change24h >= 0;
     final isUp7d = s.tvl.change7d >= 0;
-    return Row(children: [
-      Expanded(child: _statCard(
-        title: 'TOTAL TVL',
-        value: fmtTvl(s.tvl.total),
-        badge: '${isUp24 ? '+' : ''}${s.tvl.change24h.toStringAsFixed(2)}%',
-        badgeUp: isUp24,
-        icon: Icons.account_balance_wallet_rounded,
-        res: res,
-      )),
-      SizedBox(width: res.spacing(10)),
-      Expanded(child: _statCard(
-        title: 'ATH TVL',
-        value: fmtTvl(s.tvl.ath),
-        badge: fmtDate(s.tvl.athDate),
-        badgeUp: true,
-        badgeIsDate: true,
-        icon: Icons.emoji_events_rounded,
-        res: res,
-      )),
-      SizedBox(width: res.spacing(10)),
-      Expanded(child: _statCard(
-        title: '7D CHANGE',
-        value: '${isUp7d ? '+' : ''}${s.tvl.change7d.toStringAsFixed(2)}%',
-        valueColor: isUp7d ? AppColors.trendGreen : AppColors.trendRed,
-        icon: isUp7d ? Icons.trending_up : Icons.trending_down,
-        res: res,
-      )),
-    ]);
+
+    final item1 = _kpiItem(
+      title: 'TOTAL TVL',
+      value: fmtTvl(s.tvl.total),
+      badgeWidget: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isUp24 ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+            color: isUp24 ? AppColors.trendGreen : AppColors.trendRed,
+            size: res.fontSize(14),
+          ),
+          Text(
+            '${isUp24 ? '+' : ''}${s.tvl.change24h.toStringAsFixed(2)}%',
+            style: GoogleFonts.inter(
+              color: isUp24 ? AppColors.trendGreen : AppColors.trendRed,
+              fontSize: res.fontSize(9.5),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+      icon: Icons.account_balance_wallet_rounded,
+      res: res,
+    );
+
+    final item2 = _kpiItem(
+      title: 'ATH TVL',
+      value: fmtTvl(s.tvl.ath),
+      badgeWidget: Text(
+        fmtDate(s.tvl.athDate),
+        style: GoogleFonts.inter(
+          color: AppColors.textSecondary,
+          fontSize: res.fontSize(9.5),
+        ),
+      ),
+      icon: Icons.emoji_events_rounded,
+      res: res,
+    );
+
+    final item3 = _kpiItem(
+      title: '7D CHANGE',
+      value: '${isUp7d ? '+' : ''}${s.tvl.change7d.toStringAsFixed(2)}%',
+      valueColor: isUp7d ? AppColors.trendGreen : AppColors.trendRed,
+      badgeWidget: const SizedBox.shrink(),
+      icon: isUp7d ? Icons.trending_up : Icons.trending_down,
+      res: res,
+    );
+
+    return AppCard(
+      padding: EdgeInsets.symmetric(
+        horizontal: res.spacing(16),
+        vertical: res.spacing(14),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: item1),
+          Container(
+            width: 1,
+            height: res.spacing(55),
+            margin: EdgeInsets.symmetric(horizontal: res.spacing(14)),
+            color: Colors.white.withOpacity(0.06),
+          ),
+          Expanded(child: item2),
+          Container(
+            width: 1,
+            height: res.spacing(55),
+            margin: EdgeInsets.symmetric(horizontal: res.spacing(14)),
+            color: Colors.white.withOpacity(0.06),
+          ),
+          Expanded(child: item3),
+        ],
+      ),
+    );
   }
 
-  Widget _statCard({
+  Widget _kpiItem({
     required String title,
     required String value,
-    String? badge,
-    bool badgeUp = true,
-    bool badgeIsDate = false,
+    required Widget badgeWidget,
     required IconData icon,
     required Responsive res,
     Color? valueColor,
   }) {
-    return Container(
-      padding: EdgeInsets.all(res.spacing(12)),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceBright.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Flexible(child: Text(title, style: GoogleFonts.inter(
-              color: AppColors.textSecondary, fontSize: res.fontSize(9),
-              fontWeight: FontWeight.w600, letterSpacing: 0.5))),
-            Container(
-              padding: EdgeInsets.all(res.spacing(6)),
-              decoration: BoxDecoration(
-                color: AppColors.brandAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-              child: Icon(icon, color: AppColors.brandAccent, size: res.fontSize(14)),
-            ),
-          ]),
-          SizedBox(height: res.spacing(6)),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(value, style: GoogleFonts.inter(
-              color: valueColor ?? Colors.white,
-              fontSize: res.fontSize(15),
-              fontWeight: FontWeight.bold)),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  color: AppColors.textSecondary,
+                  fontSize: res.fontSize(8.5),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: GoogleFonts.jetBrainsMono(
+                  color: valueColor ?? AppColors.textPrimary,
+                  fontSize: res.fontSize(16),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              badgeWidget,
+            ],
           ),
-          if (badge != null) ...[
-            SizedBox(height: res.spacing(4)),
-            Row(children: [
-              if (!badgeIsDate)
-                Icon(badgeUp ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                  color: badgeUp ? AppColors.trendGreen : AppColors.trendRed, size: res.fontSize(14)),
-              Flexible(child: Text(badge, style: GoogleFonts.inter(
-                color: badgeIsDate
-                    ? AppColors.textSecondary
-                    : (badgeUp ? AppColors.trendGreen : AppColors.trendRed),
-                fontSize: res.fontSize(9),
-                fontWeight: FontWeight.w500),
-                overflow: TextOverflow.ellipsis)),
-            ]),
-          ],
-        ],
-      ),
+        ),
+        Container(
+          width: res.spacing(24),
+          height: res.spacing(24),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceBright.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(
+            icon,
+            size: res.fontSize(12),
+            color: valueColor ?? AppColors.brandAccent,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1141,22 +1196,9 @@ class _HlTvlScreenState extends State<HlTvlScreen> {
   );
 
   Widget _buildError(HlTvlViewModel vm) {
-    return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Text(vm.error, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 12),
-        textAlign: TextAlign.center),
-      const SizedBox(height: 12),
-      GestureDetector(
-        onTap: vm.fetchAll,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.brandAccent.withOpacity(0.4)),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text('RETRY', style: GoogleFonts.jetBrainsMono(
-            color: AppColors.brandAccent, fontSize: 11, fontWeight: FontWeight.bold)),
-        ),
-      ),
-    ]));
+    return ErrorStateWidget(
+      errorMessage: vm.error,
+      onRetry: vm.fetchAll,
+    );
   }
 }

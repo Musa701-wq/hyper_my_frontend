@@ -15,7 +15,9 @@ import 'package:shimmer/shimmer.dart';
 
 class FeeProtocolsExplorerScreen extends StatefulWidget {
   final List<String>? initialCategories;
-  const FeeProtocolsExplorerScreen({super.key, this.initialCategories});
+  final bool isRevenue;
+  final String? dataType;
+  const FeeProtocolsExplorerScreen({super.key, this.initialCategories, this.isRevenue = false, this.dataType});
 
   @override
   State<FeeProtocolsExplorerScreen> createState() => _FeeProtocolsExplorerScreenState();
@@ -55,6 +57,7 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
   @override
   void initState() {
     super.initState();
+    _sortBy = (widget.dataType == 'revenue' || widget.dataType == 'holders-revenue' || widget.isRevenue) ? 'revenue' : 'fees24h';
     if (widget.initialCategories != null && widget.initialCategories!.isNotEmpty) {
       // Remove duplicates and capitalised ALL
       final clean = widget.initialCategories!
@@ -98,7 +101,7 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
       _error = '';
     });
     try {
-      final db = await _service.fetchDashboard();
+      final db = await _service.fetchDashboard(isRevenue: widget.isRevenue, dataType: widget.dataType);
       _dashboardStats = db.stats;
     } catch (_) {
       // Allow fallback if dashboard fails, just parse stats or keep empty
@@ -129,6 +132,8 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
           sortOrder: _sortOrder,
           category: _selectedCategory == 'ALL' ? null : _selectedCategory,
           dataType: dataType,
+          isRevenue: widget.isRevenue,
+          customPrefix: widget.dataType,
         );
 
         final query = _searchQuery.trim().toLowerCase();
@@ -166,6 +171,8 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
           sortOrder: _sortOrder,
           category: _selectedCategory == 'ALL' ? null : _selectedCategory,
           dataType: dataType,
+          isRevenue: widget.isRevenue,
+          customPrefix: widget.dataType,
         );
 
         setState(() {
@@ -262,7 +269,9 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
           ),
           titleSpacing: 0,
           title: Text(
-            'Protocol Explorer',
+            widget.dataType == 'holders-revenue' 
+                ? 'Holders Revenue Explorer' 
+                : (widget.isRevenue ? 'Revenue Explorer' : 'Protocol Explorer'),
             style: GoogleFonts.jetBrainsMono(
               color: AppColors.brandAccent,
               fontSize: res.fontSize(16),
@@ -785,12 +794,17 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                   child: Row(
                     children: [
                       SizedBox(
-                        width: res.columnWidth(30.0),
+                        width: res.columnWidth(36.0),
                         child: Text(
                           '#',
-                          style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(10), fontWeight: FontWeight.bold),
+                          style: GoogleFonts.jetBrainsMono(
+                            color: AppColors.textSecondary,
+                            fontSize: res.fontSize(10),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 4),
                       Expanded(
                         child: _buildSortableHeader('PROTOCOL', 'name'),
                       ),
@@ -807,7 +821,11 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                       Navigator.push(
                         context,
                         PageRouteBuilder(
-                          pageBuilder: (context, __, ___) => FeeProtocolDetailScreen(protocol: p),
+                          pageBuilder: (context, __, ___) => FeeProtocolDetailScreen(
+                            protocol: p, 
+                            isRevenue: widget.isRevenue,
+                            dataType: widget.dataType,
+                          ),
                           transitionDuration: Duration.zero,
                           reverseTransitionDuration: Duration.zero,
                         ),
@@ -821,18 +839,37 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                       ),
                       child: Row(
                         children: [
-                          SizedBox(
-                            width: res.columnWidth(30.0),
-                            child: row.rank != null
-                                ? Text(
-                                    row.rank.toString(),
-                                    style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
                           Expanded(
                             child: Row(
                               children: [
+                                if (row.rank != null) ...[
+                                  SizedBox(
+                                    width: res.columnWidth(36.0),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.star_border,
+                                          size: res.fontSize(14),
+                                          color: AppColors.textSecondary.withOpacity(0.3),
+                                        ),
+                                        const SizedBox(width: 2),
+                                        Expanded(
+                                          child: Text(
+                                            row.rank.toString(),
+                                            style: GoogleFonts.jetBrainsMono(
+                                              color: AppColors.textSecondary,
+                                              fontSize: res.fontSize(9),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                ] else ...[
+                                  SizedBox(width: res.columnWidth(40.0)),
+                                ],
                                 if (isSub)
                                   CustomPaint(
                                     size: const Size(22, 56),
@@ -941,14 +978,51 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                       ),
                       child: Row(
                         children: [
-                          _buildHeaderCell('CATEGORY', res, 'category', width: res.columnWidth(110.0)),
-                          _buildHeaderCell('24H FEES', res, 'fees24h', width: res.columnWidth(90.0)),
+                          _buildHeaderCell(
+                            widget.dataType == 'holders-revenue' 
+                                ? '24H HOLDERS REVENUE' 
+                                : (widget.isRevenue ? '24H REVENUE' : '24H FEES'), 
+                            res, 
+                            (widget.dataType == 'revenue' || widget.dataType == 'holders-revenue' || widget.isRevenue) ? 'revenue' : 'fees24h', 
+                            width: res.columnWidth(90.0),
+                          ),
                           _buildHeaderCell('1D CHANGE', res, 'change1d', width: res.columnWidth(80.0)),
                           _buildHeaderCell('7D CHANGE', res, 'change7d', width: res.columnWidth(80.0)),
-                          _buildHeaderCell('7D FEES', res, 'fees7d', width: res.columnWidth(95.0)),
-                          _buildHeaderCell('30D FEES', res, 'fees30d', width: res.columnWidth(95.0)),
-                          _buildHeaderCell('1Y FEES', res, 'fees1y', width: res.columnWidth(95.0)),
-                          _buildHeaderCell('ALL TIME', res, 'feesAllTime', width: res.columnWidth(100.0)),
+                          _buildHeaderCell(
+                            widget.dataType == 'holders-revenue' 
+                                ? '7D HOLDERS REVENUE' 
+                                : (widget.isRevenue ? '7D REVENUE' : '7D FEES'), 
+                            res, 
+                            'fees7d', 
+                            width: res.columnWidth(95.0),
+                          ),
+                          _buildHeaderCell(
+                            widget.dataType == 'holders-revenue' 
+                                ? '30D HOLDERS REVENUE' 
+                                : (widget.isRevenue ? '30D REVENUE' : '30D FEES'), 
+                            res, 
+                            'fees30d', 
+                            width: res.columnWidth(95.0),
+                          ),
+                          _buildHeaderCell(
+                            widget.dataType == 'holders-revenue' 
+                                ? '1Y HOLDERS REVENUE' 
+                                : (widget.isRevenue ? '1Y REVENUE' : '1Y FEES'), 
+                            res, 
+                            'fees1y', 
+                            width: res.columnWidth(95.0),
+                          ),
+                          _buildHeaderCell(
+                            widget.dataType == 'holders-revenue' 
+                                ? 'ALL TIME HOLDERS REV' 
+                                : (widget.isRevenue ? 'ALL TIME REV' : 'ALL TIME'), 
+                            res, 
+                            'feesAllTime', 
+                            width: res.columnWidth(100.0),
+                          ),
+                          Expanded(
+                            child: _buildHeaderCell('CATEGORY', res, 'category'),
+                          ),
                         ],
                       ),
                     ),
@@ -961,7 +1035,11 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                           Navigator.push(
                             context,
                             PageRouteBuilder(
-                              pageBuilder: (context, __, ___) => FeeProtocolDetailScreen(protocol: p),
+                              pageBuilder: (context, __, ___) => FeeProtocolDetailScreen(
+                                protocol: p, 
+                                isRevenue: widget.isRevenue,
+                                dataType: widget.dataType,
+                              ),
                               transitionDuration: Duration.zero,
                               reverseTransitionDuration: Duration.zero,
                             ),
@@ -975,38 +1053,6 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                           ),
                           child: Row(
                             children: [
-                              Container(
-                                width: res.columnWidth(110.0),
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    right: BorderSide(color: AppColors.surfaceBright.withOpacity(0.15), width: 0.5),
-                                  ),
-                                ),
-                                child: p.category.isNotEmpty
-                                    ? Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: _getCategoryColor(p.category).withOpacity(0.12),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          p.category.toUpperCase(),
-                                          style: GoogleFonts.jetBrainsMono(
-                                            color: _getCategoryColor(p.category),
-                                            fontSize: res.fontSize(8.5),
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      )
-                                    : Text(
-                                        '-',
-                                        style: GoogleFonts.jetBrainsMono(
-                                          color: AppColors.textSecondary,
-                                          fontSize: res.fontSize(11),
-                                        ),
-                                      ),
-                              ),
                               // 24H Fees
                               Container(
                                 width: res.columnWidth(90.0),
@@ -1081,6 +1127,40 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
                                   style: GoogleFonts.jetBrainsMono(color: Colors.white70, fontSize: res.fontSize(10.5)),
                                 ),
                               ),
+                              // Category (moved to last)
+                              Expanded(
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      right: BorderSide(color: AppColors.surfaceBright.withOpacity(0.15), width: 0.5),
+                                    ),
+                                  ),
+                                  child: p.category.isNotEmpty
+                                      ? Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: _getCategoryColor(p.category).withOpacity(0.12),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            p.category.toUpperCase(),
+                                            style: GoogleFonts.jetBrainsMono(
+                                              color: _getCategoryColor(p.category),
+                                              fontSize: res.fontSize(8.5),
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        )
+                                      : Text(
+                                          '-',
+                                          style: GoogleFonts.jetBrainsMono(
+                                            color: AppColors.textSecondary,
+                                            fontSize: res.fontSize(11),
+                                          ),
+                                        ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1096,28 +1176,34 @@ class _FeeProtocolsExplorerScreenState extends State<FeeProtocolsExplorerScreen>
     );
   }
 
-  Widget _buildHeaderCell(String text, Responsive res, String fieldName, {required double width}) {
+  Widget _buildHeaderCell(String text, Responsive res, String fieldName, {double? width}) {
     final isSorted = _sortBy == fieldName;
     return GestureDetector(
       onTap: () => _toggleSort(fieldName),
       behavior: HitTestBehavior.opaque,
       child: Container(
         width: width,
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
           border: Border(
             right: BorderSide(color: AppColors.surfaceBright.withOpacity(0.15), width: 0.5),
           ),
         ),
-        alignment: Alignment.center,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              text,
-              style: GoogleFonts.jetBrainsMono(
-                color: isSorted ? AppColors.brandAccent : AppColors.textSecondary,
-                fontSize: res.fontSize(10),
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.jetBrainsMono(
+                  color: isSorted ? AppColors.brandAccent : AppColors.textSecondary,
+                  fontSize: res.fontSize(8.5),
+                  fontWeight: FontWeight.bold,
+                  height: 1.1,
+                ),
               ),
             ),
             if (isSorted) ...[

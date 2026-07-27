@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/ticker_model.dart';
 import '../utils/app_colors.dart';
@@ -112,7 +114,7 @@ class TickerInfoTab extends StatelessWidget {
                 )),
               ]),
             ],
-            if (ticker.openInterestUSD > 0 || ticker.openInterest > 0) ...[
+            if (_isPerp && (ticker.openInterestUSD > 0 || ticker.openInterest > 0)) ...[
               const SizedBox(height: 14),
               Row(children: [
                 Expanded(child: _Cell(label: 'OPEN INTEREST', value: fmtUsd(ticker.openInterestUSD))),
@@ -141,9 +143,72 @@ class TickerInfoTab extends StatelessWidget {
             ],
           ]),
         ),
-        _buildSectionCard(
-          title: 'FUNDING & SENTIMENT',
-          child: Column(children: [
+        if (_isSpot)
+          _buildSectionCard(
+            title: 'TOKEN INFO',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _infoRow(
+                  context,
+                  label: 'Canonical',
+                  valueWidget: _buildCanonicalBadge(ticker.isCanonical ?? false),
+                ),
+                if (ticker.tokenId.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _infoRow(
+                    context,
+                    label: 'Token ID',
+                    value: ticker.tokenId,
+                    isAddress: true,
+                  ),
+                ],
+                if (ticker.szDecimals != null) ...[
+                  const SizedBox(height: 10),
+                  _infoRow(
+                    context,
+                    label: 'Size Decimals',
+                    value: ticker.szDecimals.toString(),
+                  ),
+                ],
+                if (ticker.weiDecimals != null) ...[
+                  const SizedBox(height: 10),
+                  _infoRow(
+                    context,
+                    label: 'Wei Decimals',
+                    value: ticker.weiDecimals.toString(),
+                  ),
+                ],
+                if (ticker.evmContract != null && ticker.evmContract!.address.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _infoRow(
+                    context,
+                    label: 'EVM Contract',
+                    value: ticker.evmContract!.address,
+                    isAddress: true,
+                    url: 'https://arbiscan.io/token/${ticker.evmContract!.address}',
+                  ),
+                ],
+                if (ticker.deployerTradingFeeShare != null && ticker.deployerTradingFeeShare!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _infoRow(
+                    context,
+                    label: 'Deployer Fee Share',
+                    value: () {
+                      final feeShare = double.tryParse(ticker.deployerTradingFeeShare!);
+                      return feeShare != null
+                          ? '${(feeShare * 100).toStringAsFixed(1)}%'
+                          : ticker.deployerTradingFeeShare!;
+                    }(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        if (_isPerp)
+          _buildSectionCard(
+            title: 'FUNDING & SENTIMENT',
+            child: Column(children: [
             Row(children: [
               Icon(Icons.schedule, size: 13, color: AppColors.textSecondary.withOpacity(0.8)),
               const SizedBox(width: 6),
@@ -234,6 +299,139 @@ class TickerInfoTab extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _infoRow(
+    BuildContext context, {
+    required String label,
+    String? value,
+    Widget? valueWidget,
+    bool isAddress = false,
+    String? url,
+  }) {
+    Widget displayWidget;
+
+    if (valueWidget != null) {
+      displayWidget = valueWidget;
+    } else if (value != null) {
+      if (isAddress) {
+        final shortAddress = value.length > 20
+            ? '${value.substring(0, 8)}…${value.substring(value.length - 6)}'
+            : value;
+
+        final textWidget = GestureDetector(
+          onTap: url != null
+              ? () async {
+                  final uri = Uri.parse(url);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                }
+              : null,
+          child: Text(
+            shortAddress,
+            style: GoogleFonts.jetBrainsMono(
+              color: url != null ? const Color(0xFF60A5FA) : Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              decoration: url != null ? TextDecoration.underline : TextDecoration.none,
+            ),
+          ),
+        );
+
+        displayWidget = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(child: textWidget),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: value));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: const Color(0xFF161A22),
+                    duration: const Duration(seconds: 2),
+                    content: Text(
+                      '$label copied to clipboard!',
+                      style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                );
+              },
+              child: const Icon(
+                Icons.copy,
+                size: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        );
+      } else {
+        displayWidget = Text(
+          value,
+          style: GoogleFonts.jetBrainsMono(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+        );
+      }
+    } else {
+      displayWidget = const SizedBox.shrink();
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.jetBrainsMono(
+            color: AppColors.textSecondary,
+            fontSize: 11,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Flexible(child: displayWidget),
+      ],
+    );
+  }
+
+  Widget _buildCanonicalBadge(bool isCanonical) {
+    if (isCanonical) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D2D2A),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFF0D9488), width: 0.5),
+        ),
+        child: Text(
+          'Official',
+          style: GoogleFonts.jetBrainsMono(
+            color: const Color(0xFF5EEAD4),
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2C1E0A),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFFD97706), width: 0.5),
+        ),
+        child: Text(
+          'Community',
+          style: GoogleFonts.jetBrainsMono(
+            color: const Color(0xFFFBBF24),
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
   }
 }
 

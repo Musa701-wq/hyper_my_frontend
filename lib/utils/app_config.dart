@@ -1,36 +1,52 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConfig {
+  static String _get(String key, String fallback) {
+    try {
+      return dotenv.env[key] ?? fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
   static String get baseUrl {
-    return dotenv.env['BASE_URL'] ?? 'https://coingecko.renderonnodes.com'; // Production fallback
+    return _get('BASE_URL', 'https://coingecko.renderonnodes.com');
   }
 
   static String get wsUrl {
-    return dotenv.env['WS_URL'] ?? 'wss://coingecko.renderonnodes.com/ws/'; // Production fallback
+    return _get('WS_URL', 'wss://coingecko.renderonnodes.com/ws/');
   }
 
   static String get hipBaseUrl {
-    return dotenv.env['STATS_API_URL'] ?? dotenv.env['HIP_BASE_URL'] ?? 'https://api.hyperliquid.bubblenexus.com';
+    try {
+      return dotenv.env['STATS_API_URL'] ?? dotenv.env['HIP_BASE_URL'] ?? 'https://api.hyperliquid.bubblenexus.com';
+    } catch (_) {
+      return 'https://api.hyperliquid.bubblenexus.com';
+    }
   }
 
   static String get hipWsUrl {
-    return dotenv.env['HIP_WS_URL'] ?? 'wss://api.hyperliquid.bubblenexus.com';
+    return _get('HIP_WS_URL', 'wss://api.hyperliquid.bubblenexus.com');
   }
 
   static String get defillamaUrl {
-    return dotenv.env['DEFILLAMA_API_URL'] ?? 'https://api.hyperliquid.bubblenexus.com';
+    return _get('DEFILLAMA_API_URL', 'https://api.hyperliquid.bubblenexus.com');
   }
 
   static String get dexVolumeUrl {
-    return dotenv.env['DEX_VOLUME_API_URL'] ?? 'https://coingecko.renderonnodes.com';
+    return _get('DEX_VOLUME_API_URL', 'https://coingecko.renderonnodes.com');
   }
 
   static String get hip4DetailBaseUrl {
-    return dotenv.env['HIP4_DETAIL_API_URL'] ?? baseUrl;
+    return _get('HIP4_DETAIL_API_URL', baseUrl);
   }
 
   static String get hip4DetailsTabBaseUrl {
-    return dotenv.env['HIP4_DETAILS_TAB_API_URL'] ?? 'http://localhost:4001';
+    return _get('HIP4_DETAILS_TAB_API_URL', 'https://coingecko.renderonnodes.com');
+  }
+
+  static String get variationalUrl {
+    return _get('VARIATIONAL_API_URL', 'https://api.hyperliquid.bubblenexus.com/variational');
   }
 }
+

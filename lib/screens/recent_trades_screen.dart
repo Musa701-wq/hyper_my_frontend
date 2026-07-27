@@ -6,6 +6,7 @@ import 'package:shimmer/shimmer.dart';
 import '../viewmodels/trades_viewmodel.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive.dart';
+import '../utils/common_widgets.dart';
 import '../models/trade_model.dart';
 import '../viewmodels/subscription_viewmodel.dart';
 import '../widgets/paywall_widget.dart';
@@ -332,7 +333,14 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
           ),
         ),
         // Pagination Footer
-        _buildPaginationControls(vm, res),
+        AppPaginationBar(
+          currentPage: vm.currentPage,
+          itemsPerPage: vm.rowsPerPage,
+          totalItems: vm.totalTrades,
+          onPageChanged: vm.setPage,
+          onItemsPerPageChanged: vm.setRowsPerPage,
+          itemsPerPageOptions: const [10, 20, 50],
+        ),
       ],
     );
   }
@@ -404,86 +412,7 @@ class _RecentTradesScreenState extends State<RecentTradesScreen> {
     );
   }
 
-  Widget _buildPaginationControls(TradesViewModel vm, Responsive res) {
-    final totalPages = (vm.totalTrades / vm.rowsPerPage).ceil();
 
-    return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E222D),
-        border: Border(top: BorderSide(color: AppColors.surfaceBright.withOpacity(0.5))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('Rows:', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(10))),
-          const SizedBox(width: 8),
-          _buildRowsDropdown(vm, res),
-          const SizedBox(width: 16),
-          _buildPageButton(res, icon: Icons.chevron_left, isEnabled: vm.currentPage > 1, isActive: false, onTap: () => vm.setPage(vm.currentPage - 1)),
-          const SizedBox(width: 8),
-          ...() {
-            if (totalPages <= 1) return [_buildPageButton(res, text: '1', isActive: true, onTap: () {})];
-            List<Widget> buttons = [];
-            int start = (vm.currentPage - 1).clamp(1, totalPages);
-            int end = (start + 2).clamp(1, totalPages);
-            if (end == totalPages && totalPages > 3) start = end - 2;
-            for (int i = start; i <= end; i++) {
-              buttons.add(Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: _buildPageButton(res, text: i.toString(), isActive: i == vm.currentPage, onTap: () => vm.setPage(i))));
-            }
-            return buttons;
-          }(),
-          const SizedBox(width: 8),
-          _buildPageButton(res, icon: Icons.chevron_right, isEnabled: (vm.currentPage < totalPages), isActive: false, onTap: () => vm.setPage(vm.currentPage + 1)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRowsDropdown(TradesViewModel vm, Responsive res) {
-    return Container(
-      height: 28,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        border: Border.all(color: AppColors.surfaceBright),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
-          dropdownColor: const Color(0xFF1E222D),
-          value: vm.rowsPerPage,
-          icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary, size: 14),
-          style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(10)),
-          onChanged: (val) => val != null ? vm.setRowsPerPage(val) : null,
-          items: [10, 20, 50].map((v) => DropdownMenuItem(value: v, child: Text(v.toString()))).toList(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPageButton(Responsive res, {String? text, IconData? icon, VoidCallback? onTap, required bool isActive, bool isEnabled = true}) {
-    return GestureDetector(
-      onTap: isEnabled ? onTap : null,
-      child: Container(
-        width: res.spacing(28),
-        height: res.spacing(28),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isActive ? AppColors.brandAccent : AppColors.background,
-          border: Border.all(color: isActive ? AppColors.brandAccent : AppColors.surfaceBright),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Opacity(
-          opacity: isEnabled ? 1.0 : 0.4,
-          child: text != null 
-            ? Text(text, style: GoogleFonts.jetBrainsMono(color: isActive ? Colors.black : AppColors.textPrimary, fontSize: res.fontSize(10), fontWeight: isActive ? FontWeight.bold : FontWeight.normal))
-            : Icon(icon, size: res.fontSize(14), color: isEnabled ? AppColors.textPrimary : AppColors.textSecondary),
-        ),
-      ),
-    );
-  }
 
   TextStyle _headerStyle(Responsive res) => GoogleFonts.jetBrainsMono(
     color: AppColors.textSecondary,

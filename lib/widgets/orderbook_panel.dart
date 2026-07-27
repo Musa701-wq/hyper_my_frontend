@@ -50,7 +50,7 @@ class OrderBookPanel extends StatelessWidget {
     }
 
     final book = snapshot;
-    if (book == null || book.bids.isEmpty || book.asks.isEmpty) {
+    if (book == null || (book.bids.isEmpty && book.asks.isEmpty)) {
       return _buildShimmerSkeleton(res);
     }
 
@@ -97,7 +97,15 @@ class OrderBookPanel extends StatelessWidget {
               children: [
                 _HeaderRow(sizeLabel: sizeLabel, res: res),
                 ...asks.map((l) => _BookRow(level: l, isAsk: true, maxCumulative: maxAskCum, maxSize: maxAskSize, whaleThreshold: whaleThreshold, res: res)),
-                _SpreadRow(spread: book.spread, midPrice: (asks.last.price + bids.first.price) / 2, res: res),
+                _SpreadRow(
+                  spread: book.spread,
+                  midPrice: (asks.isNotEmpty && bids.isNotEmpty)
+                      ? (asks.last.price + bids.first.price) / 2
+                      : (asks.isNotEmpty
+                          ? asks.last.price
+                          : (bids.isNotEmpty ? bids.first.price : 0.0)),
+                  res: res,
+                ),
                 ...bids.map((l) => _BookRow(level: l, isAsk: false, maxCumulative: maxBidCum, maxSize: maxBidSize, whaleThreshold: whaleThreshold, res: res)),
                 SizedBox(height: res.spacing(12)),
                 _DepthChartHeader(maxBidCum: maxBidCum, maxAskCum: maxAskCum, res: res),
@@ -134,7 +142,11 @@ class OrderBookPanel extends StatelessWidget {
                         )),
                     _SpreadRow(
                       spread: book.spread, 
-                      midPrice: (asks.last.price + bids.first.price) / 2,
+                      midPrice: (asks.isNotEmpty && bids.isNotEmpty)
+                          ? (asks.last.price + bids.first.price) / 2
+                          : (asks.isNotEmpty
+                              ? asks.last.price
+                              : (bids.isNotEmpty ? bids.first.price : 0.0)),
                       res: res,
                     ),
                     ...bids.map((l) => _BookRow(

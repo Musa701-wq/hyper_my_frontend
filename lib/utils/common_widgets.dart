@@ -267,3 +267,163 @@ class StatCardWidget extends StatelessWidget {
     );
   }
 }
+
+// ─── Reusable Pagination Bar matching Home Screen style ───────
+class AppPaginationBar extends StatelessWidget {
+  final int currentPage;
+  final int itemsPerPage;
+  final int totalItems;
+  final ValueChanged<int> onPageChanged;
+  final ValueChanged<int> onItemsPerPageChanged;
+  final List<int> itemsPerPageOptions;
+
+  const AppPaginationBar({
+    super.key,
+    required this.currentPage,
+    required this.itemsPerPage,
+    required this.totalItems,
+    required this.onPageChanged,
+    required this.onItemsPerPageChanged,
+    this.itemsPerPageOptions = const [10, 20, 50, 100],
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final res = Responsive(context);
+    final totalPages = (totalItems / itemsPerPage).ceil();
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: res.spacing(16), vertical: res.spacing(10)),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Rows:',
+              style: GoogleFonts.jetBrainsMono(
+                color: AppColors.textSecondary,
+                fontSize: res.fontSize(12),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Theme(
+              data: Theme.of(context).copyWith(canvasColor: AppColors.background),
+              child: Container(
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  border: Border.all(color: AppColors.surfaceBright),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    dropdownColor: AppColors.background,
+                    value: itemsPerPage,
+                    icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary, size: 16),
+                    style: GoogleFonts.jetBrainsMono(color: AppColors.textPrimary, fontSize: res.fontSize(12)),
+                    borderRadius: BorderRadius.circular(8),
+                    elevation: 8,
+                    onChanged: (val) => val != null ? onItemsPerPageChanged(val) : null,
+                    items: itemsPerPageOptions.map((v) => DropdownMenuItem(value: v, child: Text(v.toString()))).toList(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            _buildPageButton(
+              res,
+              icon: Icons.chevron_left,
+              isEnabled: currentPage > 1,
+              isActive: false,
+              onTap: () => onPageChanged(currentPage - 1),
+            ),
+            const SizedBox(width: 8),
+            ...() {
+              if (totalPages <= 1) {
+                return [
+                  _buildPageButton(
+                    res,
+                    text: '1',
+                    isActive: true,
+                    onTap: () {},
+                  )
+                ];
+              }
+              List<Widget> buttons = [];
+              int start = (currentPage - 1).clamp(1, totalPages);
+              int end = (start + 2).clamp(1, totalPages);
+              if (end == totalPages && totalPages > 3) start = end - 2;
+              for (int i = start; i <= end; i++) {
+                buttons.add(
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: _buildPageButton(
+                      res,
+                      text: i.toString(),
+                      isActive: i == currentPage,
+                      onTap: () => onPageChanged(i),
+                    ),
+                  ),
+                );
+              }
+              return buttons;
+            }(),
+            const SizedBox(width: 8),
+            _buildPageButton(
+              res,
+              icon: Icons.chevron_right,
+              isEnabled: (currentPage * itemsPerPage < totalItems),
+              isActive: false,
+              onTap: () => onPageChanged(currentPage + 1),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPageButton(
+    Responsive res, {
+    String? text,
+    IconData? icon,
+    VoidCallback? onTap,
+    required bool isActive,
+    bool isEnabled = true,
+  }) {
+    return GestureDetector(
+      onTap: isEnabled ? onTap : null,
+      child: Container(
+        width: res.spacing(32),
+        height: res.spacing(32),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.brandAccent : AppColors.background,
+          border: Border.all(color: isActive ? AppColors.brandAccent : AppColors.surfaceBright),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Opacity(
+          opacity: isEnabled ? 1.0 : 0.4,
+          child: text != null
+              ? Text(
+                  text,
+                  style: GoogleFonts.jetBrainsMono(
+                    color: isActive ? Colors.black : AppColors.textPrimary,
+                    fontSize: res.fontSize(12),
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  ),
+                )
+              : Icon(
+                  icon,
+                  size: res.fontSize(16),
+                  color: isEnabled ? AppColors.textPrimary : AppColors.textSecondary,
+                ),
+        ),
+      ),
+    );
+  }
+}
