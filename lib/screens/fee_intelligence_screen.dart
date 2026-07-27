@@ -24,6 +24,8 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
   final _service = FeeIntelligenceService();
   bool _isLoading = true;
   String _error = '';
+  String _dataType = 'fees';
+  bool get _isRevenue => _dataType == 'revenue';
   
   FeeIntelligenceDashboard? _dashboard;
   FeeHistoryData? _history;
@@ -71,9 +73,9 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
     });
     try {
       final results = await Future.wait([
-        _service.fetchDashboard(),
-        _service.fetchHistory(range: _selectedRange),
-        _service.fetchProtocols(limit: 50),
+        _service.fetchDashboard(dataType: _dataType),
+        _service.fetchHistory(range: _selectedRange, dataType: _dataType),
+        _service.fetchProtocols(limit: 50, dataType: _dataType),
       ]);
       _dashboard = results[0] as FeeIntelligenceDashboard;
       _history = results[1] as FeeHistoryData;
@@ -106,7 +108,7 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
       _isHistoryLoading = true;
     });
     try {
-      final historyData = await _service.fetchHistory(range: range);
+      final historyData = await _service.fetchHistory(range: range, dataType: _dataType);
       setState(() {
         _history = historyData;
         _isHistoryLoading = false;
@@ -135,7 +137,7 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
       _isBreakdownLoading = true;
     });
     try {
-      final data = await _service.fetchCompare(_breakdownSlugs, range: _selectedRange);
+      final data = await _service.fetchCompare(_breakdownSlugs, range: _selectedRange, dataType: _dataType);
       setState(() {
         _breakdownData = data;
         _isBreakdownLoading = false;
@@ -178,7 +180,9 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
             child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.brandAccent, size: res.fontSize(20)),
           ),
           title: Text(
-            'Fee Intelligence',
+            _dataType == 'holders-revenue' 
+                ? 'Holders Revenue'
+                : (_isRevenue ? 'Revenue Intelligence' : 'Fee Intelligence'),
             style: GoogleFonts.jetBrainsMono(
               color: AppColors.brandAccent,
               fontSize: res.fontSize(15),
@@ -195,7 +199,10 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
                     Navigator.push(
                       context,
                       PageRouteBuilder(
-                        pageBuilder: (_, __, ___) => const FeeCompareScreen(),
+                        pageBuilder: (_, __, ___) => FeeCompareScreen(
+                          isRevenue: _dataType == 'revenue',
+                          dataType: _dataType,
+                        ),
                         transitionDuration: Duration.zero,
                         reverseTransitionDuration: Duration.zero,
                       ),
@@ -235,43 +242,45 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
         body: _isLoading 
             ? _buildLoadingSkeleton(res)
             : _error.isNotEmpty 
-                ? _buildErrorView(res)
-                : RefreshIndicator(
-                    onRefresh: _loadAllData,
-                    color: AppColors.brandAccent,
-                    backgroundColor: const Color(0xFF16191E),
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.symmetric(horizontal: res.spacing(14), vertical: res.spacing(10)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildTitleSection(res),
-                          SizedBox(height: res.spacing(14)),
-                          _buildKpiGrid(res),
-                          SizedBox(height: res.spacing(16)),
-                          _buildHistoryChartCard(res),
-                          SizedBox(height: res.spacing(16)),
-                          _buildDashboardTopProtocolsCard(res),
-                          SizedBox(height: res.spacing(16)),
-                          _buildCategoryBreakdownCard(res),
-                          SizedBox(height: res.spacing(16)),
-                          _buildTopProtocolsCard(res),
-                          const SizedBox(height: 50),
-                        ],
-                      ),
-                    ),
+            ? _buildErrorView(res)
+            : RefreshIndicator(
+                onRefresh: _loadAllData,
+                color: AppColors.brandAccent,
+                backgroundColor: const Color(0xFF16191E),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: res.spacing(14), vertical: res.spacing(10)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildTitleSection(res),
+                      SizedBox(height: res.spacing(14)),
+                      _buildKpiGrid(res),
+                      SizedBox(height: res.spacing(16)),
+                      _buildHistoryChartCard(res),
+                      SizedBox(height: res.spacing(16)),
+                      _buildDashboardTopProtocolsCard(res),
+                      SizedBox(height: res.spacing(16)),
+                      _buildCategoryBreakdownCard(res),
+                      SizedBox(height: res.spacing(16)),
+                      _buildTopProtocolsCard(res),
+                      const SizedBox(height: 50),
+                    ],
                   ),
+                ),
+              ),
       ),
     );
   }
 
   Widget _buildTitleSection(Responsive res) {
-    return Column(
+    final titleWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'DeFi Fee Intelligence',
+          _dataType == 'holders-revenue'
+              ? 'DeFi Holders Revenue'
+              : (_isRevenue ? 'DeFi Revenue Intelligence' : 'DeFi Fee Intelligence'),
           style: GoogleFonts.jetBrainsMono(
             color: Colors.white,
             fontSize: res.fontSize(20),
@@ -280,13 +289,99 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Real-time protocol fee rankings, history, and analytics.',
+          _dataType == 'holders-revenue'
+              ? 'Real-time protocol income earned by token holders (staking, buybacks, burns).'
+              : (_isRevenue 
+                  ? 'Real-time protocol revenue earnings, history, and analytics.'
+                  : 'Real-time protocol fee rankings, history, and analytics.'),
           style: GoogleFonts.jetBrainsMono(
             color: AppColors.textSecondary,
             fontSize: res.fontSize(11),
           ),
         ),
       ],
+    );
+
+    final toggleWidget = Container(
+      height: 32,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.surfaceBright.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildTabToggleItem('FEES', _dataType == 'fees', res, () {
+            if (_dataType != 'fees') {
+              setState(() {
+                _dataType = 'fees';
+              });
+              _loadAllData();
+            }
+          }),
+          _buildTabToggleItem('REVENUE', _dataType == 'revenue', res, () {
+            if (_dataType != 'revenue') {
+              setState(() {
+                _dataType = 'revenue';
+              });
+              _loadAllData();
+            }
+          }),
+          _buildTabToggleItem('HOLDERS REVENUE', _dataType == 'holders-revenue', res, () {
+            if (_dataType != 'holders-revenue') {
+              setState(() {
+                _dataType = 'holders-revenue';
+              });
+              _loadAllData();
+            }
+          }),
+        ],
+      ),
+    );
+
+    if (res.isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          titleWidget,
+          const SizedBox(height: 12),
+          toggleWidget,
+        ],
+      );
+    } else {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: titleWidget),
+          const SizedBox(width: 16),
+          toggleWidget,
+        ],
+      );
+    }
+  }
+
+  Widget _buildTabToggleItem(String label, bool isSelected, Responsive res, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.brandAccent : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.jetBrainsMono(
+            color: isSelected ? Colors.black : AppColors.textSecondary,
+            fontSize: res.fontSize(9),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
     );
   }
 
@@ -306,7 +401,9 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
     final isUp = s.change1d >= 0;
 
     final item1 = _kpiItem(
-      title: 'TOTAL FEES (24H)',
+      title: _dataType == 'holders-revenue'
+          ? 'TOTAL HOLDERS REVENUE (24H)'
+          : (_isRevenue ? 'TOTAL REVENUE (24H)' : 'TOTAL FEES (24H)'),
       value: _fmtMoney(s.total24h),
       bottomWidget: Row(
         mainAxisSize: MainAxisSize.min,
@@ -327,10 +424,14 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
     );
 
     final item2 = _kpiItem(
-      title: 'TOTAL FEES (7D)',
+      title: _dataType == 'holders-revenue'
+          ? 'TOTAL HOLDERS REVENUE (7D)'
+          : (_isRevenue ? 'TOTAL REVENUE (7D)' : 'TOTAL FEES (7D)'),
       value: _fmtMoney(s.total7d),
       bottomWidget: Text(
-        'Weekly cumulative volume',
+        _dataType == 'holders-revenue'
+            ? 'Weekly cumulative holders revenue'
+            : (_isRevenue ? 'Weekly cumulative revenue' : 'Weekly cumulative volume'),
         style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: res.fontSize(9)),
       ),
       res: res,
@@ -475,7 +576,9 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Global Fee Trend',
+                      _dataType == 'holders-revenue'
+                          ? 'Global Holders Revenue Trend'
+                          : (_isRevenue ? 'Global Revenue Trend' : 'Global Fee Trend'),
                       style: GoogleFonts.inter(
                         color: Colors.white,
                         fontSize: res.fontSize(13),
@@ -488,7 +591,11 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
                     Text(
                       _isBreakdown
                           ? 'Protocol breakdown comparative analysis'
-                          : 'Total daily fees across all DeFi protocols',
+                          : (_dataType == 'holders-revenue'
+                              ? 'Total daily holders revenue across all DeFi protocols'
+                              : (_isRevenue
+                                  ? 'Total daily revenue across all DeFi protocols'
+                                  : 'Total daily fees across all DeFi protocols')),
                       style: GoogleFonts.inter(
                         color: AppColors.textSecondary,
                         fontSize: res.fontSize(9.5),
@@ -1283,7 +1390,9 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Top Protocols (24h)',
+                    _dataType == 'holders-revenue'
+                        ? 'Top Protocols by Holders Revenue (24h)'
+                        : (_isRevenue ? 'Top Protocols by Revenue (24h)' : 'Top Protocols (24h)'),
                     style: GoogleFonts.inter(
                       color: Colors.white,
                       fontSize: res.fontSize(13),
@@ -1292,7 +1401,9 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Parents only · sorted by fees',
+                    _dataType == 'holders-revenue'
+                        ? 'Parents only · sorted by holders revenue'
+                        : (_isRevenue ? 'Parents only · sorted by revenue' : 'Parents only · sorted by fees'),
                     style: GoogleFonts.inter(
                       color: AppColors.textSecondary,
                       fontSize: res.fontSize(9.5),
@@ -1306,7 +1417,11 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
                   Navigator.push(
                     context,
                     PageRouteBuilder(
-                      pageBuilder: (_, __, ___) => FeeProtocolsExplorerScreen(initialCategories: cats),
+                      pageBuilder: (_, __, ___) => FeeProtocolsExplorerScreen(
+                        initialCategories: cats, 
+                        isRevenue: _isRevenue,
+                        dataType: _dataType,
+                      ),
                       transitionDuration: Duration.zero,
                       reverseTransitionDuration: Duration.zero,
                     ),
@@ -1334,162 +1449,208 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
             ],
           ),
           SizedBox(height: res.spacing(14)),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6.0, left: 4.0, right: 4.0),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: res.spacing(24) + 4 + res.spacing(18) + 8,
-                  child: Text(
-                    '#',
-                    style: GoogleFonts.inter(
-                      color: AppColors.textSecondary,
-                      fontSize: res.fontSize(8.5),
-                      fontWeight: FontWeight.bold,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: SizedBox(
+              width: res.isMobile ? 580.0 : 720.0,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6.0),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: (res.isMobile ? 580.0 : 720.0) * 0.28,
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: res.columnWidth(36.0),
+                                child: Text(
+                                  '#',
+                                  style: GoogleFonts.inter(
+                                    color: AppColors.textSecondary,
+                                    fontSize: res.fontSize(8.5),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'PROTOCOL',
+                                style: GoogleFonts.inter(
+                                  color: AppColors.textSecondary,
+                                  fontSize: res.fontSize(8.5),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          width: (res.isMobile ? 580.0 : 720.0) * 0.26,
+                          child: Center(
+                            child: Text(
+                              _dataType == 'holders-revenue'
+                                  ? '24H HOLDERS REVENUE'
+                                  : (_isRevenue ? '24H REVENUE' : '24H FEES'),
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary,
+                                fontSize: res.fontSize(8.5),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        SizedBox(
+                          width: (res.isMobile ? 580.0 : 720.0) * 0.16,
+                          child: Center(
+                            child: Text(
+                              '1D CHANGE',
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary,
+                                fontSize: res.fontSize(8.5),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'CATEGORY',
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary,
+                                fontSize: res.fontSize(8.5),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                Expanded(
-                  flex: 4,
-                  child: Text(
-                    'PROTOCOL',
-                    style: GoogleFonts.inter(
-                      color: AppColors.textSecondary,
-                      fontSize: res.fontSize(8.5),
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Divider(color: Colors.white.withOpacity(0.08), height: 1),
+                  const SizedBox(height: 6),
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: list.length,
+                    separatorBuilder: (_, __) => Divider(color: Colors.white.withOpacity(0.04), height: 12),
+                    itemBuilder: (context, index) {
+                      final p = list[index];
+                      final isUp = p.change1d >= 0;
+                      final double tableWidth = res.isMobile ? 580.0 : 720.0;
+                      return Row(
+                        children: [
+                          SizedBox(
+                            width: tableWidth * 0.28,
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: res.columnWidth(36.0),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.star_border,
+                                        size: res.fontSize(14),
+                                        color: AppColors.textSecondary.withOpacity(0.3),
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Expanded(
+                                        child: Text(
+                                          '${index + 1}',
+                                          style: GoogleFonts.jetBrainsMono(
+                                            color: AppColors.textSecondary,
+                                            fontSize: res.fontSize(9),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Image.network(
+                                    p.logo ?? '',
+                                    width: res.spacing(18),
+                                    height: res.spacing(18),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      width: res.spacing(18),
+                                      height: res.spacing(18),
+                                      color: AppColors.surfaceBright.withOpacity(0.12),
+                                      child: const Icon(Icons.token_outlined, color: AppColors.brandAccent, size: 10),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    p.name,
+                                    style: GoogleFonts.inter(
+                                      color: Colors.white,
+                                      fontSize: res.fontSize(10.5),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(
+                            width: tableWidth * 0.26,
+                            child: Center(
+                              child: Text(
+                                _fmtMoney(p.fees24h),
+                                style: GoogleFonts.jetBrainsMono(
+                                  color: Colors.white,
+                                  fontSize: res.fontSize(10.5),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: tableWidth * 0.16,
+                            child: Center(
+                              child: Text(
+                                '${isUp ? '+' : ''}${p.change1d.toStringAsFixed(2)}%',
+                                style: GoogleFonts.jetBrainsMono(
+                                  color: isUp ? AppColors.trendGreen : AppColors.trendRed,
+                                  fontSize: res.fontSize(9.5),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                p.category,
+                                style: GoogleFonts.inter(
+                                  color: AppColors.textSecondary,
+                                  fontSize: res.fontSize(9.5),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    'CATEGORY',
-                    style: GoogleFonts.inter(
-                      color: AppColors.textSecondary,
-                      fontSize: res.fontSize(8.5),
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.end,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  '24H FEES',
-                  style: GoogleFonts.inter(
-                    color: AppColors.textSecondary,
-                    fontSize: res.fontSize(8.5),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: res.spacing(45),
-                  child: Text(
-                    '1D CHANGE',
-                    style: GoogleFonts.inter(
-                      color: AppColors.textSecondary,
-                      fontSize: res.fontSize(8.5),
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.end,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Divider(color: Colors.white.withOpacity(0.08), height: 1),
-          const SizedBox(height: 6),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: list.length,
-            separatorBuilder: (_, __) => Divider(color: Colors.white.withOpacity(0.04), height: 12),
-            itemBuilder: (context, index) {
-              final p = list[index];
-              final isUp = p.change1d >= 0;
-              return Container(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: res.spacing(24),
-                      child: Text(
-                        '#${index + 1}',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: AppColors.textSecondary,
-                          fontSize: res.fontSize(10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Image.network(
-                        p.logo ?? '',
-                        width: res.spacing(18),
-                        height: res.spacing(18),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          width: res.spacing(18),
-                          height: res.spacing(18),
-                          color: AppColors.surfaceBright.withOpacity(0.12),
-                          child: const Icon(Icons.token_outlined, color: AppColors.brandAccent, size: 10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 4,
-                      child: Text(
-                        p.name,
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: res.fontSize(10.5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        p.category,
-                        style: GoogleFonts.inter(
-                          color: AppColors.textSecondary,
-                          fontSize: res.fontSize(9.5),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.end,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      _fmtMoney(p.fees24h),
-                      style: GoogleFonts.jetBrainsMono(
-                        color: Colors.white,
-                        fontSize: res.fontSize(10.5),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: res.spacing(45),
-                      child: Text(
-                        '${isUp ? '+' : ''}${p.change1d.toStringAsFixed(2)}%',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: isUp ? AppColors.trendGreen : AppColors.trendRed,
-                          fontSize: res.fontSize(9.5),
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.end,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
           ),
         ],
       ),
@@ -1515,7 +1676,9 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Fee by Category',
+            _dataType == 'holders-revenue'
+                ? 'Holders Revenue by Category'
+                : (_isRevenue ? 'Revenue by Category' : 'Fee by Category'),
             style: GoogleFonts.inter(
               color: Colors.white,
               fontSize: res.fontSize(13),
@@ -1747,7 +1910,9 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Top 15 sorted by 24h fees',
+                    _dataType == 'holders-revenue'
+                        ? 'Top 15 sorted by 24h holders revenue'
+                        : (_isRevenue ? 'Top 15 sorted by 24h revenue' : 'Top 15 sorted by 24h fees'),
                     style: GoogleFonts.inter(
                       color: AppColors.textSecondary,
                       fontSize: res.fontSize(9.5),
@@ -1770,7 +1935,11 @@ class _FeeIntelligenceScreenState extends State<FeeIntelligenceScreen> {
                   Navigator.push(
                     context,
                     PageRouteBuilder(
-                      pageBuilder: (_, __, ___) => FeeProtocolsExplorerScreen(initialCategories: cats),
+                      pageBuilder: (_, __, ___) => FeeProtocolsExplorerScreen(
+                        initialCategories: cats, 
+                        isRevenue: _isRevenue,
+                        dataType: _dataType,
+                      ),
                       transitionDuration: Duration.zero,
                       reverseTransitionDuration: Duration.zero,
                     ),

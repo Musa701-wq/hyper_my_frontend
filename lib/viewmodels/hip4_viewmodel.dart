@@ -222,6 +222,33 @@ class Hip4ViewModel extends ChangeNotifier {
     return null;
   }
 
+  Future<List<Hip4Candle>?> fetchCandlesForOutcome(int marketId, String coinName, {int limit = 24}) async {
+    try {
+      final detailUrl = AppConfig.hip4DetailBaseUrl;
+      final uri = Uri.parse('$detailUrl/api/hip4/candles/$marketId?coin=$coinName&limit=$limit');
+      debugPrint('fetchCandlesForOutcome: GET $uri');
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      print('=== [CANDLES API RESPONSE] ===');
+      print('URI: $uri');
+      print('Status: ${response.statusCode}');
+      print('Body: ${response.body}');
+      print('===============================');
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is Map && decoded['success'] == true && decoded['data'] is List) {
+          return (decoded['data'] as List).map((c) => Hip4Candle.fromJson(c)).toList();
+        } else {
+          debugPrint('fetchCandlesForOutcome: unexpected response format: $decoded');
+        }
+      } else {
+        debugPrint('fetchCandlesForOutcome($coinName): non-200 response: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('fetchCandlesForOutcome exception: $e');
+    }
+    return null;
+  }
+
   @override
   void dispose() {
     _refreshTimer?.cancel();

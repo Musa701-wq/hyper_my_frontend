@@ -1283,8 +1283,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildOhlcChart(PortfolioViewModel vm) {
-    final ohlc = vm.ohlcSnapshots;
-    if (ohlc.isEmpty) return const SizedBox.shrink();
+    final rawOhlc = vm.ohlcSnapshots;
+    if (rawOhlc.isEmpty) return const SizedBox.shrink();
+
+    final List<OhlcSnapshot> ohlc = List<OhlcSnapshot>.from(rawOhlc);
+    if (ohlc.length == 1) {
+      final single = ohlc.first;
+      ohlc.insert(
+        0,
+        OhlcSnapshot(
+          timestamp: single.timestamp - 3600000,
+          open: single.open,
+          high: single.high,
+          low: single.low,
+          close: single.close,
+          count: single.count,
+        ),
+      );
+    }
 
     final firstClose = ohlc.first.close;
     final lastClose = ohlc.last.close;
@@ -1420,11 +1436,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return LayoutBuilder(builder: (ctx, box) {
       final availW = box.maxWidth - yAxisW - 16;
-      final candleW = ((availW - 60) / n - 5).clamp(4.0, 28.0); // Increased width and gap
-      final totalW = n * (candleW + 5) + 60;
+      final candleSpacing = n > 15 ? 3.0 : 6.0;
+      final candleW = ((availW - 60) / n - candleSpacing).clamp(6.0, 45.0);
+      final totalW = n * (candleW + candleSpacing) + 60;
       final initialW = totalW < availW ? availW : totalW;
       final chartH = 236.0;
-      final totalDataW = n * (candleW + 5);
+      final totalDataW = n * (candleW + candleSpacing);
       final startX = (initialW - totalDataW) / 2;
 
       return Padding(
@@ -1449,7 +1466,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         final chartPos = MatrixUtils.transformPoint(inverse, details.localPosition);
 
                         for (int i = 0; i < n; i++) {
-                          final cx = startX + i * (candleW + 5);
+                          final cx = startX + i * (candleW + candleSpacing);
                           if (chartPos.dx >= cx && chartPos.dx <= cx + candleW) {
                             setState(() {
                               _selectedCandle = ohlc[i];
@@ -1476,6 +1493,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               yMin: yMin,
                               yMax: yMax,
                               candleWidth: candleW,
+                              candleSpacing: candleSpacing,
                             ),
                           ),
                         ),
@@ -1766,19 +1784,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   AxisTitles _ohlcBottomTitles(List<int> timestamps, int n) {
+    final labelEvery = n <= 10 ? 1.0 : (n / 10).ceilToDouble();
     return AxisTitles(
       sideTitles: SideTitles(
         showTitles: true,
         reservedSize: 40,
+        interval: labelEvery,
         getTitlesWidget: (value, meta) {
-          final idx = value.toInt();
+          final idx = value.round();
+          // Reject fractional values to prevent duplicate overlapping labels
+          if ((value - idx).abs() > 0.01) return const SizedBox();
           if (idx < 0 || idx >= timestamps.length) return const SizedBox();
-          final labelEvery = n <= 10 ? 1 : (n / 10).ceil();
-          if (idx % labelEvery != 0) return const SizedBox();
+
+          final currentDt = DateTime.fromMillisecondsSinceEpoch(timestamps[idx]);
+          final hh = currentDt.hour.toString().padLeft(2, '0');
+          final mm = currentDt.minute.toString().padLeft(2, '0');
+          final timeStr = '$hh:$mm';
+
+          bool showDate = false;
+          if (idx == 0) {
+            showDate = true;
+          } else {
+            final step = labelEvery.toInt();
+            int prevIdx = idx - step;
+            if (prevIdx >= 0 && prevIdx < timestamps.length) {
+              final prevDt = DateTime.fromMillisecondsSinceEpoch(timestamps[prevIdx]);
+              if (prevDt.day != currentDt.day || prevDt.month != currentDt.month || prevDt.year != currentDt.year) {
+                showDate = true;
+              }
+            } else {
+              showDate = true;
+            }
+          }
+
+          final dateStr = showDate ? '${_getMonthName(currentDt.month)} ${currentDt.day}' : '';
+          final labelText = showDate ? '$timeStr\n$dateStr' : timeStr;
+
           return Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              _fmtTimestamp(timestamps[idx]),
+              labelText,
               textAlign: TextAlign.center,
               maxLines: 2,
               style: GoogleFonts.jetBrainsMono(
@@ -3612,12 +3657,14 @@ class _CandlestickChartPainter extends CustomPainter {
   final double yMin;
   final double yMax;
   final double candleWidth;
+  final double candleSpacing;
 
   _CandlestickChartPainter({
     required this.data,
     required this.yMin,
     required this.yMax,
     required this.candleWidth,
+    required this.candleSpacing,
   });
 
   @override
@@ -3629,12 +3676,12 @@ class _CandlestickChartPainter extends CustomPainter {
     const topPad = 4.0;
     final chartHeight = size.height - dateLabelH - topPad;
     final n = data.length;
-    final double totalWidth = n * (candleWidth + 4);
+    final double totalWidth = n * (candleWidth + candleSpacing);
     final double startX = (size.width - totalWidth) / 2;
 
     for (int i = 0; i < n; i++) {
       final s = data[i];
-      final x = startX + i * (candleWidth + 4) + candleWidth / 2;
+      final x = startX + i * (candleWidth + candleSpacing) + candleWidth / 2;
 
       double yPrice(double price) {
         final frac = (price - yMin) / range;
@@ -3663,14 +3710,19 @@ class _CandlestickChartPainter extends CustomPainter {
       // Draw body
       final bodyTop = isBull ? yClose : yOpen;
       final bodyBottom = isBull ? yOpen : yClose;
-      final bodyHeight = (bodyBottom - bodyTop).clamp(1.0, double.infinity);
+      double bodyHeight = (bodyBottom - bodyTop).abs();
+      double drawTop = bodyTop;
+      if (bodyHeight < 2.0) {
+        bodyHeight = 3.0;
+        drawTop = bodyTop - 1.5;
+      }
 
       canvas.drawRect(
         Rect.fromLTRB(
           x - candleWidth / 2 + 1,
-          bodyTop,
+          drawTop,
           x + candleWidth / 2 - 1,
-          bodyTop + bodyHeight,
+          drawTop + bodyHeight,
         ),
         Paint()..color = bodyColor,
       );
@@ -3685,21 +3737,43 @@ class _CandlestickChartPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    // Date labels
+    // Date/Time labels
     final labelStep = n <= 10 ? 1 : (n / 7).ceil();
     final textPainter = TextPainter(
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
     );
     for (int i = 0; i < n; i += labelStep) {
-      final d = DateTime.fromMillisecondsSinceEpoch(data[i].timestamp);
-      final label = '${d.day}/${d.month}';
-      final x = startX + i * (candleWidth + 4) + candleWidth / 2;
+      final currentDt = DateTime.fromMillisecondsSinceEpoch(data[i].timestamp);
+      final hh = currentDt.hour.toString().padLeft(2, '0');
+      final mm = currentDt.minute.toString().padLeft(2, '0');
+      final timeStr = '$hh:$mm';
+
+      bool showDate = false;
+      if (i == 0) {
+        showDate = true;
+      } else {
+        int prevIdx = i - labelStep;
+        if (prevIdx >= 0 && prevIdx < n) {
+          final prevDt = DateTime.fromMillisecondsSinceEpoch(data[prevIdx].timestamp);
+          if (prevDt.day != currentDt.day || prevDt.month != currentDt.month || prevDt.year != currentDt.year) {
+            showDate = true;
+          }
+        } else {
+          showDate = true;
+        }
+      }
+
+      final dateStr = showDate ? '${_getMonth(currentDt.month)} ${currentDt.day}' : '';
+      final label = showDate ? '$timeStr\n$dateStr' : timeStr;
+      final x = startX + i * (candleWidth + candleSpacing) + candleWidth / 2;
+
       textPainter.text = TextSpan(
         text: label,
         style: const TextStyle(
           color: Colors.white38,
-          fontSize: 10,
+          fontSize: 9,
+          fontFamily: 'JetBrainsMono',
         ),
       );
       textPainter.layout();
@@ -3710,7 +3784,13 @@ class _CandlestickChartPainter extends CustomPainter {
     }
   }
 
+  String _getMonth(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    if (month >= 1 && month <= 12) return months[month - 1];
+    return '';
+  }
+
   @override
   bool shouldRepaint(_CandlestickChartPainter old) =>
-      old.data != data || old.yMin != yMin || old.yMax != yMax;
+      old.data != data || old.yMin != yMin || old.yMax != yMax || old.candleWidth != candleWidth || old.candleSpacing != candleSpacing;
 }
