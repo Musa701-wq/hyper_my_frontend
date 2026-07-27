@@ -49,13 +49,20 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
         child: Scaffold(
           backgroundColor: Colors.transparent,
           appBar: _buildAppBar(res, vm),
-        body: TabBarView(
-          physics: const NeverScrollableScrollPhysics(), // Handle switching via VM if needed, or keeping it enabled
-          children: [
-            _buildCategoryView(vm, res),
-            _buildChainView(vm, res),
-          ],
-        ),
+        body: (vm.isLoading && vm.protocols.isEmpty)
+            ? _buildShimmer(res, vm)
+            : (vm.errorMessage.isNotEmpty && vm.protocols.isEmpty)
+                ? ErrorStateWidget(
+                    errorMessage: vm.errorMessage,
+                    onRetry: () => vm.fetchProtocols(),
+                  )
+                : TabBarView(
+                    physics: const NeverScrollableScrollPhysics(), // Handle switching via VM if needed, or keeping it enabled
+                    children: [
+                      _buildCategoryView(vm, res),
+                      _buildChainView(vm, res),
+                    ],
+                  ),
       ),
     ),
   );
@@ -177,7 +184,7 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
 
   Widget _buildChainView(ProtocolViewModel vm, Responsive res) {
     if (vm.isChainsLoading) {
-      return _buildShimmer(res);
+      return _buildShimmer(res, vm);
     }
 
     if (vm.topChains.isEmpty) {
@@ -370,123 +377,16 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
 
   Widget _buildBottomPaginationBar(ProtocolViewModel vm, Responsive res) {
     final isGrid = vm.tvlViewIndex == 0;
-    final currentPage = isGrid ? vm.gridPage : vm.currentPage;
-    final totalPages  = isGrid ? vm.gridTotalPages : vm.totalPages;
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: res.spacing(16), vertical: res.spacing(10)),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        border: Border(top: BorderSide(color: AppColors.surfaceBright.withOpacity(0.1))),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Text(
-              'Rows:',
-              style: GoogleFonts.jetBrainsMono(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-              ),
-            ),
-            const SizedBox(width: 8),
-            _buildRowsPill(vm, res, isGrid: isGrid),
-            const Spacer(),
-            _buildPaginationRow(
-              currentPage: currentPage,
-              totalPages: totalPages,
-              onPage: isGrid ? vm.setGridPageNum : vm.setPage,
-              res: res,
-            ),
-          ],
-        ),
-      ),
+    return AppPaginationBar(
+      currentPage: isGrid ? vm.gridPage : vm.currentPage,
+      itemsPerPage: isGrid ? vm.gridItemsPerPage : vm.limit,
+      totalItems: isGrid ? vm.gridProtocols.length : vm.listProtocols.length,
+      onPageChanged: isGrid ? vm.setGridPageNum : vm.setPage,
+      onItemsPerPageChanged: isGrid ? vm.setGridLimit : vm.setLimit,
     );
   }
 
-  Widget _buildRowsPill(ProtocolViewModel vm, Responsive res, {bool isGrid = false}) {
-    final currentVal = isGrid ? vm.gridItemsPerPage : vm.limit;
-    return _buildPopupSelector<int>(
-      value: currentVal,
-      labelBuilder: (v) => v.toString(),
-      iconBuilder: (_) => Icons.format_list_numbered_rounded,
-      options: const [10, 20, 50, 100],
-      onChanged: isGrid ? vm.setGridLimit : vm.setLimit,
-      res: res,
-      showTriggerIcon: false,
-      width: 64,
-    );
-  }
 
-  Widget _buildPaginationRow({
-    required int currentPage,
-    required int totalPages,
-    required void Function(int) onPage,
-    required Responsive res,
-  }) {
-    if (totalPages <= 1) return const SizedBox.shrink();
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildPageIcon(Icons.chevron_left, currentPage > 1 ? () => onPage(currentPage - 1) : null),
-        const SizedBox(width: 4),
-        ..._buildPageNumbersList(currentPage: currentPage, totalPages: totalPages, onPage: onPage),
-        const SizedBox(width: 4),
-        _buildPageIcon(Icons.chevron_right, currentPage < totalPages ? () => onPage(currentPage + 1) : null),
-      ],
-    );
-  }
-
-  List<Widget> _buildPageNumbersList({
-    required int currentPage,
-    required int totalPages,
-    required void Function(int) onPage,
-  }) {
-    final List<Widget> children = [];
-    for (int i = 1; i <= totalPages; i++) {
-      if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-        children.add(_buildPageNumberItem(i, i == currentPage, () => onPage(i)));
-        if (i < totalPages && (i == 1 && currentPage > 3 || i == currentPage + 1 && currentPage < totalPages - 2)) {
-          children.add(Text('...', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: 10)));
-        }
-      }
-    }
-    return children;
-  }
-
-  Widget _buildPageNumberItem(int page, bool isActive, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        width: 32,
-        height: 32,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isActive
-              ? AppColors.brandAccent.withOpacity(0.14)
-              : AppColors.surfaceBright.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isActive
-                ? AppColors.brandAccent.withOpacity(0.4)
-                : AppColors.surfaceBright.withOpacity(0.1),
-            width: 1,
-          ),
-        ),
-        child: Text(
-          page.toString(),
-          style: GoogleFonts.jetBrainsMono(
-            color: isActive ? AppColors.brandAccent : Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildSearchField(ProtocolViewModel vm, Responsive res, String viewType) {
     final currentSearch = viewType == 'GRID' ? vm.gridSearch : (viewType == 'LIST' ? vm.listSearch : vm.chartSearch);
@@ -606,7 +506,7 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
 
   Widget _buildListBody(ProtocolViewModel vm, Responsive res) {
     if (vm.isLoading && vm.protocols.isEmpty) {
-      return _buildShimmer(res);
+      return _buildShimmer(res, vm);
     }
 
     if (vm.errorMessage.isNotEmpty) {
@@ -882,19 +782,7 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
   }
 
 
-  Widget _buildPageIcon(IconData icon, VoidCallback? onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceBright.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Icon(icon, size: 20, color: onTap != null ? Colors.white : AppColors.textSecondary.withOpacity(0.3)),
-      ),
-    );
-  }
+
 
 
   void _navigateToDetail(Protocol p) {
@@ -1218,7 +1106,7 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
 
   Widget _buildGridBody(ProtocolViewModel vm, Responsive res) {
     if (vm.isLoading) {
-      return _buildShimmer(res);
+      return _buildShimmer(res, vm);
     }
 
     if (vm.errorMessage.isNotEmpty) {
@@ -1683,31 +1571,282 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
     return const Color(0xFF60A5FA);
   }
 
-  Widget _buildShimmer(Responsive res) {
+  Widget _buildShimmer(Responsive res, ProtocolViewModel vm) {
+    if (vm.mainTabIndex == 1) {
+      return _buildChainShimmer(res);
+    }
+    if (vm.tvlViewIndex == 1) {
+      return _buildListShimmer(res);
+    }
+    if (vm.tvlViewIndex == 2) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.brandAccent));
+    }
+    return _buildGridShimmer(res);
+  }
+
+  Widget _buildGridShimmer(Responsive res) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final crossAxisCount = screenWidth > 1200 ? 4 : screenWidth > 800 ? 3 : 2;
     return ShimmerSkeleton(
       child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
         padding: EdgeInsets.all(res.spacing(16)),
-        child: Column(
-          children: List.generate(8, (i) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              children: [
-                ShimmerSkeleton.box(40, 40, radius: 10),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
+        child: GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: res.spacing(16),
+            mainAxisSpacing: res.spacing(16),
+            mainAxisExtent: 148,
+          ),
+          itemCount: 8,
+          itemBuilder: (_, __) {
+            return Container(
+              padding: EdgeInsets.all(res.spacing(16)),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ShimmerSkeleton.pill(120, 14),
-                      const SizedBox(height: 8),
-                      ShimmerSkeleton.pill(80, 10),
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                           color: Colors.white,
+                           borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 80,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                 color: Colors.white,
+                                 borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              width: 50,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                 color: Colors.white,
+                                 borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: 90,
+                    height: 8,
+                    decoration: BoxDecoration(
+                       color: Colors.white,
+                       borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: 120,
+                    height: 14,
+                    decoration: BoxDecoration(
+                       color: Colors.white,
+                       borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildListShimmer(Responsive res) {
+    final double leftW = res.value(mobile: 150.0, tablet: 200.0, desktop: 240.0);
+    final double wCat  = res.value(mobile: 100.0, tablet: 120.0, desktop: 130.0);
+    final double wType = res.value(mobile: 72.0,  tablet: 90.0,  desktop: 100.0);
+    final double wTvl  = res.value(mobile: 100.0, tablet: 130.0, desktop: 150.0);
+    final double rightW = wCat + wType + wTvl;
+
+    return ShimmerSkeleton(
+      child: Padding(
+        padding: const EdgeInsets.only(left: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: leftW,
+              child: Column(
+                children: [
+                  _listLeftHeader(res),
+                  Expanded(
+                    child: ListView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: 8,
+                      itemBuilder: (context, index) {
+                        final rowH = res.value(mobile: 48.0, tablet: 54.0, desktop: 58.0);
+                        return Container(
+                          height: rowH,
+                          padding: const EdgeInsets.only(left: 8, right: 4),
+                          decoration: const BoxDecoration(
+                            border: Border(bottom: BorderSide(color: Colors.white24, width: 0.5)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 14,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Container(
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                child: SizedBox(
+                  width: rightW,
+                  child: Column(
+                    children: [
+                      _listRightHeader(res, wCat, wType, wTvl),
+                      Expanded(
+                        child: ListView.builder(
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: 8,
+                          itemBuilder: (context, index) {
+                            final rowH = res.value(mobile: 48.0, tablet: 54.0, desktop: 58.0);
+                            return Container(
+                              height: rowH,
+                              decoration: const BoxDecoration(
+                                border: Border(bottom: BorderSide(color: Colors.white24, width: 0.5)),
+                              ),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: wCat,
+                                    child: Center(
+                                      child: Container(
+                                        width: wCat * 0.6,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: wType,
+                                    child: Center(
+                                      child: Container(
+                                        width: wType * 0.5,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: wTvl,
+                                    child: Center(
+                                      child: Container(
+                                        width: wTvl * 0.4,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                       ),
                     ],
                   ),
                 ),
-                ShimmerSkeleton.pill(60, 16),
-              ],
+              ),
             ),
-          )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChainShimmer(Responsive res) {
+    return ShimmerSkeleton(
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(
+          horizontal: res.spacing(8),
+          vertical: res.spacing(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: res.value(mobile: 320.0, tablet: 420.0, desktop: 480.0),
+              width: double.infinity,
+              margin: EdgeInsets.all(res.spacing(8)),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ],
         ),
       ),
     );

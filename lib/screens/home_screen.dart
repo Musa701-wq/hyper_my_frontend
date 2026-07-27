@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hyperscreener/screens/subscription_screen.dart';
-import 'package:hyperscreener/screens/leaderboard_stats_screen.dart';
-import 'package:hyperscreener/screens/leaderboard_screen.dart';
-import 'package:hyperscreener/screens/defillama_screen.dart';
-import 'package:hyperscreener/screens/protocols_screen.dart';
+import 'package:coinduck/screens/subscription_screen.dart';
+import 'package:coinduck/screens/leaderboard_stats_screen.dart';
+import 'package:coinduck/screens/leaderboard_screen.dart';
+import 'package:coinduck/screens/defillama_screen.dart';
+import 'package:coinduck/screens/protocols_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import '../utils/app_colors.dart';
@@ -23,6 +23,8 @@ import '../widgets/day_movers_ticker.dart';
 import 'hl_tvl_screen.dart';
 import 'ticker_detail_screen.dart';
 import 'profile_screen.dart';
+import 'liquidatable_page.dart';
+import 'leverage_margin_page.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/responsive.dart';
 import '../analytics/analytics_service.dart';
@@ -31,8 +33,10 @@ import '../widgets/hip4_markets_panel.dart';
 import '../viewmodels/hip4_viewmodel.dart';
 import 'dex_volume_page.dart';
 import 'open_interest_screen.dart';
+import 'borrow_lend_page.dart';
 import 'fee_intelligence_screen.dart';
 import 'top_by_fees_screen.dart';
+import 'defi_volume_screen.dart';
 
 
 
@@ -46,6 +50,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final ScrollController _tabScrollController = ScrollController();
+  final ScrollController _mainScrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -55,6 +60,13 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<HomeViewModel>().fetchTickers();
     });
+  }
+
+  @override
+  void dispose() {
+    _tabScrollController.dispose();
+    _mainScrollController.dispose();
+    super.dispose();
   }
 
   void _showTickerDetail(TickerModel ticker) {
@@ -88,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
         key: _scaffoldKey,
         backgroundColor: Colors.transparent,
         drawer: _buildDrawer(context, res),
-        appBar: AppBar(
+        appBar: _selectedIndex == 3 ? null : AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: GestureDetector(
@@ -97,14 +109,54 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             child: const Icon(Icons.menu, color: AppColors.brandAccent),
           ),
-          title: Text(
-            'HyperScreener',
-            style: GoogleFonts.jetBrainsMono(
-              color: AppColors.brandAccent,
-              fontSize: res.fontSize(18),
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
+          title: Consumer<HomeViewModel>(
+            builder: (context, homeVm, child) {
+              final isVariational = homeVm.selectedProtocol == 'Variational';
+              return DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: isVariational ? 'Omni Variations' : 'Hyperliquid',
+                  dropdownColor: AppColors.background,
+                  icon: const Icon(Icons.arrow_drop_down, color: AppColors.brandAccent),
+                  onChanged: (String? value) {
+                    if (value != null) {
+                      homeVm.setSelectedProtocol(value == 'Omni Variations' ? 'Variational' : 'CoinDuck');
+                      if (_mainScrollController.hasClients) {
+                        _mainScrollController.jumpTo(0.0);
+                      }
+                    }
+                  },
+                  selectedItemBuilder: (BuildContext context) {
+                    return ['Hyperliquid', 'Omni Variations'].map<Widget>((String item) {
+                      return Container(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          item,
+                          style: GoogleFonts.jetBrainsMono(
+                            color: AppColors.brandAccent,
+                            fontSize: res.fontSize(18),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      );
+                    }).toList();
+                  },
+                  items: ['Hyperliquid', 'Omni Variations'].map<DropdownMenuItem<String>>((String item) {
+                    return DropdownMenuItem<String>(
+                      value: item,
+                      child: Text(
+                        item,
+                        style: GoogleFonts.jetBrainsMono(
+                          color: AppColors.textPrimary,
+                          fontSize: res.fontSize(14),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              );
+            },
           ),
           actions: [
             Consumer<SubscriptionViewModel>(
@@ -214,9 +266,26 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() => _selectedIndex = index);
           },
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), label: 'Markets'),
-            BottomNavigationBarItem(icon: Icon(Icons.leaderboard_outlined), label: 'Leaderboard'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.candlestick_chart_outlined),
+              activeIcon: Icon(Icons.candlestick_chart),
+              label: 'Markets',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.emoji_events_outlined),
+              activeIcon: Icon(Icons.emoji_events),
+              label: 'Leaderboard',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.account_balance_outlined),
+              activeIcon: Icon(Icons.account_balance),
+              label: 'HL TVL',
+            ),
             // BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Portfolio'),
           ],
         ),
@@ -232,6 +301,8 @@ class _HomeScreenState extends State<HomeScreen> {
       case 2:
         return const LeaderboardScreen();
       case 3:
+        return const HlTvlScreen(isTab: true);
+      case 4:
         return Consumer<PortfolioViewModel>(
           builder: (context, portfolioVm, _) => _buildPortfolioBody(portfolioVm),
         );
@@ -246,6 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return RefreshIndicator(
           onRefresh: viewModel.fetchTickers,
           child: SingleChildScrollView(
+            controller: _mainScrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             child: Padding(
               padding: EdgeInsets.all(res.spacing(16)),
@@ -291,33 +363,36 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   SizedBox(height: res.spacing(12)),
 
-                  Container(
-                    height: res.value(mobile: 38.0, tablet: 48.0),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.surfaceBright),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: SingleChildScrollView(
-                      controller: _tabScrollController,
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.all(4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildTab(viewModel, 'ALL', res),
-                          _buildTab(viewModel, 'PERPS', res),
-                          _buildTab(viewModel, 'SPOT', res),
-                          _buildTab(viewModel, 'CRYPTO', res),
-                          _buildTab(viewModel, 'HIP-3', res),
-                          _buildTab(viewModel, 'OUTCOME', res),
-                        ],
+                  if (viewModel.selectedProtocol != 'Variational') ...[
+                    Container(
+                      height: res.value(mobile: 38.0, tablet: 48.0),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.surfaceBright),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: SingleChildScrollView(
+                        controller: _tabScrollController,
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.all(4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildTab(viewModel, 'ALL', res),
+                            _buildTab(viewModel, 'PERPS', res),
+                            _buildTab(viewModel, 'SPOT', res),
+                            _buildTab(viewModel, 'CRYPTO', res),
+                            _buildTab(viewModel, 'HIP-3', res),
+                            _buildTab(viewModel, 'OUTCOME', res),
+                            _buildTab(viewModel, 'WATCHLIST', res),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: res.spacing(12)),
+                    SizedBox(height: res.spacing(12)),
+                  ],
 
                   if (viewModel.isLoading)
                     SizedBox(
@@ -334,7 +409,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     )
                   else ...[
                     // Horizontal Filters Row
-                    if (viewModel.selectedTab == 'HIP-3' || viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'OUTCOME')
+                    if (viewModel.selectedProtocol != 'Variational' && (viewModel.selectedTab == 'HIP-3' || viewModel.selectedTab == 'CRYPTO' || viewModel.selectedTab == 'OUTCOME'))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: SizedBox(
@@ -417,7 +492,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                                 child: Row(
                                   children: [
-                                    SizedBox(width: res.columnWidth(30), child: Text('#', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
+                                    SizedBox(width: res.columnWidth(36), child: Text('#', style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
                                     const SizedBox(width: 4),
                                     _buildSortableHeader(
                                       label: 'Symbol',
@@ -448,13 +523,41 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: Row(
                                     children: [
                                       SizedBox(
-                                        width: res.columnWidth(30),
-                                        child: Text(rank.toString(), style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(10)))
+                                        width: res.columnWidth(36),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () {
+                                                viewModel.toggleFavorite(ticker.symbol);
+                                              },
+                                              child: Icon(
+                                                viewModel.isFavorited(ticker.symbol) ? Icons.star : Icons.star_border,
+                                                size: res.fontSize(14),
+                                                color: viewModel.isFavorited(ticker.symbol)
+                                                    ? Colors.amber
+                                                    : AppColors.textSecondary.withOpacity(0.3),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 2),
+                                            Expanded(
+                                              child: Text(
+                                                rank.toString(),
+                                                style: GoogleFonts.jetBrainsMono(
+                                                  color: AppColors.textSecondary,
+                                                  fontSize: res.fontSize(9),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                       const SizedBox(width: 4),
                                       SizedBox(
                                         width: res.fontSize(28), height: res.fontSize(28),
-                                        child: _buildTickerIcon(ticker.iconUrl, res.fontSize(28)),
+                                        child: viewModel.selectedProtocol == 'Variational'
+                                            ? _buildVariationalTickerIcon(ticker.displaySymbol, res.fontSize(28))
+                                            : _buildTickerIcon(ticker.iconUrl, res.fontSize(28)),
                                       ),
                                       const SizedBox(width: 8),
                                       Expanded(
@@ -488,6 +591,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -511,18 +615,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                         width: res.columnWidth(85),
                                         textAlign: TextAlign.center,
                                       ),
-                                      _buildSortableHeader(
-                                        label: '8h Fund',
-                                        columnKey: 'funding8hPct',
-                                        viewModel: viewModel,
-                                        width: res.columnWidth(85),
-                                        textAlign: TextAlign.center,
-                                        hasInfo: true,
-                                        onInfoTap: () => showDialog(
-                                          context: context,
-                                          builder: (context) => const FundingLegendDialog(),
+                                      if (viewModel.selectedTab != 'SPOT')
+                                        _buildSortableHeader(
+                                          label: '8h Fund',
+                                          columnKey: 'funding8hPct',
+                                          viewModel: viewModel,
+                                          width: res.columnWidth(85),
+                                          textAlign: TextAlign.center,
+                                          hasInfo: true,
+                                          onInfoTap: () => showDialog(
+                                            context: context,
+                                            builder: (context) => const FundingLegendDialog(),
+                                          ),
                                         ),
-                                      ),
                                       _buildSortableHeader(
                                         label: 'Vol 24H',
                                         columnKey: 'volume24hUSD',
@@ -530,13 +635,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                         width: res.columnWidth(80),
                                         textAlign: TextAlign.center,
                                       ),
-                                      _buildSortableHeader(
-                                        label: 'Open Int.',
-                                        columnKey: 'openInterestUSD',
-                                        viewModel: viewModel,
-                                        width: res.columnWidth(90),
-                                        textAlign: TextAlign.center,
-                                      ),
+                                      if (viewModel.selectedTab != 'SPOT')
+                                        _buildSortableHeader(
+                                          label: 'Open Int.',
+                                          columnKey: 'openInterestUSD',
+                                          viewModel: viewModel,
+                                          width: res.columnWidth(90),
+                                          textAlign: TextAlign.center,
+                                        ),
                                       SizedBox(width: res.columnWidth(50), child: Text('Trend', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: AppColors.textSecondary, fontSize: res.fontSize(11)))),
                                     ],
                                   ),
@@ -548,13 +654,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                   final formattedChange = '${ticker.change24hPct >= 0 ? '+' : ''}${ticker.change24hPct.toStringAsFixed(2)}%';
                                   final formattedFunding = '${ticker.funding8hPct.toStringAsFixed(4)}%';
                                   final formattedOI = '\$${(ticker.openInterestUSD / 1e6).toStringAsFixed(1)}M';
+                                  final isSpotOnly = viewModel.selectedTab == 'SPOT';
 
                                   return GestureDetector(
                                     onTap: () => _showTickerDetail(ticker),
                                     behavior: HitTestBehavior.opaque,
                                     child: Container(
                                     height: res.value(mobile: 56.0, tablet: 64.0),
-                                    width: res.columnWidth(490),
+                                    width: isSpotOnly ? res.columnWidth(315) : res.columnWidth(490),
                                     padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 10.0),
                                     decoration: const BoxDecoration(
                                       border: Border(bottom: BorderSide(color: AppColors.surfaceBright, width: 0.5)),
@@ -563,9 +670,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                       children: [
                                         SizedBox(width: res.columnWidth(85), child: Text(ticker.lastPrice.toStringAsFixed(4), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: viewModel.sortColumn == 'lastPrice' ? Colors.white : AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'lastPrice' ? FontWeight.bold : FontWeight.normal))),
                                         SizedBox(width: res.columnWidth(85), child: Text(formattedChange, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: changeColor, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'change24hPct' ? FontWeight.bold : FontWeight.normal))),
-                                        SizedBox(width: res.columnWidth(85), child: Text(formattedFunding, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: ticker.funding8hPct >= 0 ? AppColors.trendGreen : AppColors.trendRed, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'funding8hPct' ? FontWeight.bold : FontWeight.normal))),
+                                        if (!isSpotOnly)
+                                          SizedBox(width: res.columnWidth(85), child: Text(formattedFunding, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: ticker.funding8hPct >= 0 ? AppColors.trendGreen : AppColors.trendRed, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'funding8hPct' ? FontWeight.bold : FontWeight.normal))),
                                         SizedBox(width: res.columnWidth(80), child: Text(_formatVolume(ticker.volume24hUSD), textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: viewModel.sortColumn == 'volume24hUSD' ? Colors.white : AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'volume24hUSD' ? FontWeight.bold : FontWeight.normal))),
-                                        SizedBox(width: res.columnWidth(90), child: Text(formattedOI, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: viewModel.sortColumn == 'openInterestUSD' ? Colors.white : AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'openInterestUSD' ? FontWeight.bold : FontWeight.normal))),
+                                        if (!isSpotOnly)
+                                          SizedBox(width: res.columnWidth(90), child: Text(formattedOI, textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(color: viewModel.sortColumn == 'openInterestUSD' ? Colors.white : AppColors.textPrimary, fontSize: res.fontSize(11), fontWeight: viewModel.sortColumn == 'openInterestUSD' ? FontWeight.bold : FontWeight.normal))),
                                         SizedBox(
                                           width: res.columnWidth(50),
                                           child: Center(
@@ -651,6 +760,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildVariationalTickerIcon(String symbol, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1B2023),
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        symbol.isNotEmpty ? symbol.substring(0, 1).toUpperCase() : '',
+        style: GoogleFonts.jetBrainsMono(
+          color: AppColors.textSecondary,
+          fontSize: size * 0.45,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
   Widget _buildTickerIcon(String iconUrl, double size) {
     if (iconUrl.isEmpty) {
       return Icon(Icons.star_border, size: size, color: AppColors.textSecondary);
@@ -690,7 +819,7 @@ class _HomeScreenState extends State<HomeScreen> {
     String? categoryLabel;
 
     // Identify category (DEX or Crypto Category)
-    if (ticker.dex.isNotEmpty && ticker.dex.toLowerCase() != 'hyperliquid') {
+    if (ticker.dex.isNotEmpty && ticker.dex.toLowerCase() != 'hyperliquid' && ticker.dex.toLowerCase() != 'variational') {
       categoryLabel = ticker.dex.toUpperCase();
     } else if (ticker.cryptoCategory.isNotEmpty) {
       final standardCategories = ['layer1', 'layer2', 'defi', 'ai', 'gaming', 'meme'];
@@ -760,26 +889,43 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildTab(HomeViewModel viewModel, String title, Responsive res) {
     bool isActive = viewModel.selectedTab == title;
+    final displayTitle = title == 'WATCHLIST' ? 'WATCHLIST' : title;
     return GestureDetector(
       onTap: () {
         viewModel.setTab(title);
         AnalyticsService.logTabClick(title);
+        if (_mainScrollController.hasClients) {
+          _mainScrollController.jumpTo(0.0);
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: res.spacing(20)),
+        padding: EdgeInsets.symmetric(horizontal: res.spacing(14)),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isActive ? AppColors.surfaceBright : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Text(
-          title,
-          style: GoogleFonts.jetBrainsMono(
-            color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
-            fontSize: res.fontSize(12),
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (title == 'WATCHLIST') ...[
+              Icon(
+                Icons.star,
+                size: res.fontSize(13),
+                color: Colors.amber,
+              ),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              displayTitle,
+              style: GoogleFonts.jetBrainsMono(
+                color: isActive ? AppColors.brandAccent : AppColors.textSecondary,
+                fontSize: res.fontSize(12),
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -953,40 +1099,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ? '0x${wallet.substring(2, 6)}...${wallet.substring(wallet.length - 4)}'
         : '';
 
-    final navItems = [
-      _DrawerItemData(
-        iconAsset: 'assets/appicons/home.png',
-        label: 'Home',
-        subtitle: 'Markets & screener',
-        onTap: () { Navigator.pop(context); setState(() => _selectedIndex = 0); },
-      ),
-      _DrawerItemData(
-        iconAsset: 'assets/appicons/market.png',
-        label: 'Markets',
-        subtitle: 'Live gainers/losers',
-        onTap: () { Navigator.pop(context); setState(() => _selectedIndex = 1); },
-      ),
-      /*
-      _DrawerItemData(
-        iconAsset: 'assets/appicons/stats.png',
-        label: 'Leaderboard',
-        subtitle: 'Global performance',
-        onTap: () { Navigator.pop(context); setState(() => _selectedIndex = 2); },
-      ),
-      */
-      /*
-      _DrawerItemData(
-        iconAsset: 'assets/appicons/protocoltvl.png',
-        label: 'Portfolio',
-        subtitle: 'Your positions',
-        onTap: () {
-          Navigator.pop(context);
-          setState(() => _selectedIndex = 3);
-        },
-      ),
-      */
-    ];
-
     return Drawer(
       backgroundColor: AppColors.background,
       child: Stack(
@@ -1061,7 +1173,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'HyperScreener',
+                          'CoinDuck',
                           style: GoogleFonts.jetBrainsMono(
                             color: AppColors.brandAccent,
                             fontSize: res.fontSize(16),
@@ -1124,39 +1236,27 @@ class _HomeScreenState extends State<HomeScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  _sectionLabel('NAVIGATION'),
-                  ...navItems.asMap().entries.map((e) {
-                    final isActive = (e.key == _selectedIndex);
-                    return _DrawerNavItem(
-                      data: e.value,
-                      isActive: isActive,
-                    );
-                  }),
 
-                  const SizedBox(height: 4),
-
-                  _DrawerNavItem(
-                    data: _DrawerItemData(
-                      iconAsset: 'assets/appicons/feeandrevenue.png',
-                      label: 'Fees & Revenue',
-                      subtitle: 'Protocol earnings',
-                      onTap: () {
-                        Navigator.of(context).push(_smoothRoute(const DefiLlamaScreen()));
-                      },
-                    ),
-                    isActive: false,
-                  ),
-
-                  _DrawerNavItem(
-                    data: _DrawerItemData(
-                      iconAsset: 'assets/appicons/feeintelligence.png',
-                      label: 'Fee Intelligence',
-                      subtitle: 'Advanced fee analytics',
-                      onTap: () {
-                        Navigator.of(context).push(_smoothRoute(const FeeIntelligenceScreen()));
-                      },
-                    ),
-                    isActive: false,
+                  _DrawerExpandableNavItem(
+                    label: 'Fees & Revenue',
+                    subtitle: 'Protocol earnings & analytics',
+                    iconAsset: 'assets/appicons/feeandrevenue.png',
+                    children: [
+                      _SubDrawerItemData(
+                        label: 'Hyperliquid Fees & Revenue',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context).push(_smoothRoute(const DefiLlamaScreen()));
+                        },
+                      ),
+                      _SubDrawerItemData(
+                        label: 'DEX Fees & Revenue',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context).push(_smoothRoute(const FeeIntelligenceScreen()));
+                        },
+                      ),
+                    ],
                   ),
 
                   _DrawerNavItem(
@@ -1184,16 +1284,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     isActive: false,
                   ),
 
-                  _DrawerNavItem(
-                    data: _DrawerItemData(
-                      iconAsset: 'assets/appicons/dexvolume.png',
-                      label: 'DEX Volume',
-                      subtitle: 'Protocol volume',
-                      onTap: () {
-                        Navigator.of(context).push(_smoothRoute(const DexVolumePage()));
-                      },
-                    ),
-                    isActive: false,
+                  _DrawerExpandableNavItem(
+                    label: 'Volume',
+                    subtitle: 'Protocol volume',
+                    iconAsset: 'assets/appicons/dexvolume.png',
+                    children: [
+                      _SubDrawerItemData(
+                        label: 'Hyperliquid Volume',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context).push(_smoothRoute(const DexVolumePage()));
+                        },
+                      ),
+                      _SubDrawerItemData(
+                        label: 'DeFi Volume',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context).push(_smoothRoute(const DefiVolumeScreen()));
+                        },
+                      ),
+                    ],
                   ),
 
                   _DrawerNavItem(
@@ -1227,6 +1337,42 @@ class _HomeScreenState extends State<HomeScreen> {
                       subtitle: 'Derivatives open interest',
                       onTap: () {
                         Navigator.of(context).push(_smoothRoute(const OpenInterestScreen()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
+
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      iconAsset: 'assets/appicons/liquidation.png',
+                      label: 'Liquidations',
+                      subtitle: 'Positions at risk',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const LiquidatablePage()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
+
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      iconAsset: 'assets/appicons/balance.png',
+                      label: 'Leverage & Margin',
+                      subtitle: 'Margin tiers & requirements',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const LeverageMarginPage()));
+                      },
+                    ),
+                    isActive: false,
+                  ),
+
+                  _DrawerNavItem(
+                    data: _DrawerItemData(
+                      iconAsset: 'assets/appicons/balance.png',
+                      label: 'Borrow & Lend',
+                      subtitle: 'Hyperliquid reserve states & rates',
+                      onTap: () {
+                        Navigator.of(context).push(_smoothRoute(const BorrowLendPage()));
                       },
                     ),
                     isActive: false,
@@ -1511,37 +1657,32 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
         animation: _ctrl,
         builder: (_, __) {
           return Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             decoration: BoxDecoration(
-              gradient: widget.isActive
-                  ? LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [
-                        AppColors.brandAccent.withOpacity(0.15),
-                        AppColors.brandAccent.withOpacity(0.04),
-                      ],
-                    )
-                  : null,
               color: widget.isActive
-                  ? null
+                  ? AppColors.brandAccent.withOpacity(0.08)
                   : Color.lerp(
-                      AppColors.surfaceBright.withOpacity(0.15),
-                      AppColors.surfaceBright.withOpacity(0.28),
+                      AppColors.surface.withOpacity(0.2),
+                      AppColors.surfaceBright.withOpacity(0.35),
                       _bg.value,
                     ),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: widget.isActive
-                    ? AppColors.brandAccent.withOpacity(0.3)
-                    : AppColors.surfaceBright.withOpacity(0.20),
+                    ? AppColors.brandAccent.withOpacity(0.4)
+                    : Color.lerp(
+                        AppColors.surfaceBright.withOpacity(0.15),
+                        AppColors.brandAccent.withOpacity(0.25),
+                        _bg.value,
+                      )!,
                 width: 0.8,
               ),
               boxShadow: widget.isActive
                   ? [
                       BoxShadow(
-                        color: AppColors.brandAccent.withOpacity(0.08),
-                        blurRadius: 12,
+                        color: AppColors.brandAccent.withOpacity(0.05),
+                        blurRadius: 10,
                         offset: const Offset(0, 2),
                       ),
                     ]
@@ -1549,53 +1690,34 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
             ),
             child: Row(
               children: [
+                const SizedBox(width: 6),
                 // ── Left accent bar ───────────────────────────────────────
                 Container(
-                  width: 3.5,
-                  height: 60,
+                  width: 3.0,
+                  height: 30,
                   decoration: BoxDecoration(
-                    gradient: widget.isActive
-                        ? LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: widget.isActive
+                          ? [
                               AppColors.brandAccent,
                               AppColors.brandAccent.withOpacity(0.3),
+                            ]
+                          : [
+                              Colors.transparent,
+                              Colors.transparent,
                             ],
-                          )
-                        : null,
-                    color: widget.isActive ? null : Colors.transparent,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(10),
-                      bottomLeft: Radius.circular(10),
                     ),
+                    borderRadius: BorderRadius.circular(1.5),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 6),
                 Container(
                   width: 34,
                   height: 34,
-                  decoration: BoxDecoration(
-                    gradient: widget.isActive
-                        ? LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              AppColors.brandAccent.withOpacity(0.25),
-                              AppColors.brandAccent.withOpacity(0.10),
-                            ],
-                          )
-                        : null,
-                    color: widget.isActive
-                        ? null
-                        : AppColors.surfaceBright.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: widget.isActive
-                          ? AppColors.brandAccent.withOpacity(0.35)
-                          : AppColors.surfaceBright.withOpacity(0.30),
-                      width: 0.8,
-                    ),
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
                   ),
                   child: Center(
                     child: Padding(
@@ -1614,21 +1736,22 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
                     children: [
                       Text(
                         widget.data.label,
-                        style: GoogleFonts.jetBrainsMono(
+                        style: GoogleFonts.inter(
                           color: widget.isActive
                               ? Colors.white
-                              : AppColors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
+                              : Colors.white.withOpacity(0.85),
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         widget.data.subtitle,
-                        style: GoogleFonts.jetBrainsMono(
+                        style: GoogleFonts.inter(
                           color: widget.isActive
-                              ? AppColors.brandAccent.withOpacity(0.6)
-                              : AppColors.textSecondary.withOpacity(0.55),
-                          fontSize: 9.5,
+                              ? AppColors.brandAccent
+                              : Colors.white.withOpacity(0.45),
+                          fontSize: 10,
                         ),
                       ),
                     ],
@@ -1648,7 +1771,7 @@ class _DrawerNavItemState extends State<_DrawerNavItem>
                     size: 16,
                     color: widget.isActive
                         ? AppColors.brandAccent
-                        : AppColors.surfaceBright,
+                        : AppColors.textSecondary.withOpacity(0.4),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1982,6 +2105,231 @@ class _Badge extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
+    );
+  }
+}
+
+class _SubDrawerItemData {
+  final String label;
+  final VoidCallback onTap;
+  const _SubDrawerItemData({
+    required this.label,
+    required this.onTap,
+  });
+}
+
+class _SubDrawerNavItem extends StatelessWidget {
+  final _SubDrawerItemData data;
+  const _SubDrawerNavItem({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: data.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.02),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.05),
+            width: 0.8,
+          ),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 4),
+            Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.brandAccent.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                data.label,
+                style: GoogleFonts.inter(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 14,
+              color: Colors.white.withValues(alpha: 0.35),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerExpandableNavItem extends StatefulWidget {
+  final String label;
+  final String subtitle;
+  final String iconAsset;
+  final List<_SubDrawerItemData> children;
+
+  const _DrawerExpandableNavItem({
+    required this.label,
+    required this.subtitle,
+    required this.iconAsset,
+    required this.children,
+  });
+
+  @override
+  State<_DrawerExpandableNavItem> createState() => _DrawerExpandableNavItemState();
+}
+
+class _DrawerExpandableNavItemState extends State<_DrawerExpandableNavItem> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _isExpanded = !_isExpanded;
+            });
+          },
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            decoration: BoxDecoration(
+              color: _isExpanded
+                  ? AppColors.brandAccent.withOpacity(0.08)
+                  : AppColors.surface.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _isExpanded
+                    ? AppColors.brandAccent.withOpacity(0.4)
+                    : AppColors.surfaceBright.withOpacity(0.15),
+                width: 0.8,
+              ),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(width: 6),
+                // ── Left accent bar ───────────────────────────────────────
+                Container(
+                  width: 3.0,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: _isExpanded
+                          ? [
+                              AppColors.brandAccent,
+                              AppColors.brandAccent.withOpacity(0.3),
+                            ]
+                          : [
+                              Colors.transparent,
+                              Colors.transparent,
+                            ],
+                    ),
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
+                  ),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(5.0),
+                      child: Image.asset(
+                        widget.iconAsset,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.label,
+                              style: GoogleFonts.inter(
+                                color: _isExpanded
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.85),
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              widget.subtitle,
+                              style: GoogleFonts.inter(
+                                color: _isExpanded
+                                    ? AppColors.brandAccent
+                                    : Colors.white.withOpacity(0.45),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  _isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  size: 18,
+                  color: _isExpanded ? AppColors.brandAccent : AppColors.textSecondary.withOpacity(0.5),
+                ),
+                const SizedBox(width: 12),
+              ],
+            ),
+          ),
+        ),
+        if (_isExpanded)
+          Padding(
+            padding: const EdgeInsets.only(left: 44.5, right: 12),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    width: 1.5,
+                    margin: const EdgeInsets.only(right: 14, top: 4, bottom: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceBright.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      children: widget.children.map((subItem) {
+                        return _SubDrawerNavItem(data: subItem);
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

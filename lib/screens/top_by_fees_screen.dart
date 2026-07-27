@@ -9,7 +9,8 @@ import '../utils/responsive.dart';
 import '../widgets/error_state_widget.dart';
 
 class TopByFeesScreen extends StatefulWidget {
-  const TopByFeesScreen({super.key});
+  final bool isRevenue;
+  const TopByFeesScreen({super.key, this.isRevenue = false});
 
   @override
   State<TopByFeesScreen> createState() => _TopByFeesScreenState();
@@ -25,6 +26,21 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
 
+  int _currentPage = 1;
+  int _itemsPerPage = 10;
+
+  int get _totalPages {
+    if (_filteredProtocols.isEmpty) return 1;
+    return (_filteredProtocols.length / _itemsPerPage).ceil();
+  }
+
+  List<TopByFeesProtocol> get _paginatedProtocols {
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    if (startIndex >= _filteredProtocols.length) return [];
+    final endIndex = startIndex + _itemsPerPage;
+    return _filteredProtocols.sublist(startIndex, endIndex.clamp(0, _filteredProtocols.length));
+  }
+
   // Selector States
   String _selectedFeeMetric = '24H FEES'; // '24H FEES', '7D FEES', '30D FEES', '1Y FEES', 'ALL TIME'
   String _selectedChangeMetric = '24H CHANGE'; // '24H CHANGE', '7D CHANGE', '30D CHANGE'
@@ -37,6 +53,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedFeeMetric = widget.isRevenue ? '24H REVENUE' : '24H FEES';
     _loadData();
     _leftVerticalController.addListener(_syncRightScroll);
     _rightVerticalController.addListener(_syncLeftScroll);
@@ -72,9 +89,10 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
       _error = '';
     });
     try {
-      final data = await _service.fetchTopByFees();
+      final data = await _service.fetchTopByFees(isRevenue: widget.isRevenue);
       setState(() {
         _protocols = data;
+        _currentPage = 1;
         _isLoading = false;
       });
     } catch (e) {
@@ -113,16 +131,17 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
   }
 
   double _getFeeValue(FeeTopProtocolMetrics m) {
-    switch (_selectedFeeMetric) {
-      case '7D FEES':
+    final metric = _selectedFeeMetric.replaceAll(' FEES', '').replaceAll(' REVENUE', '');
+    switch (metric) {
+      case '7D':
         return m.total7d;
-      case '30D FEES':
+      case '30D':
         return m.total30d;
-      case '1Y FEES':
+      case '1Y':
         return m.total1y;
       case 'ALL TIME':
         return m.totalAllTime;
-      case '24H FEES':
+      case '24H':
       default:
         return m.total24h;
     }
@@ -166,7 +185,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
           ),
           titleSpacing: 0,
           title: Text(
-            'Top Protocols by Fees',
+            widget.isRevenue ? 'Top Protocols by Revenue' : 'Top Protocols by Fees',
             style: GoogleFonts.jetBrainsMono(
               color: AppColors.brandAccent,
               fontSize: res.fontSize(16),
@@ -195,6 +214,17 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
                         ? _buildErrorView(res)
                         : _buildTableLayout(res),
               ),
+              if (!_isLoading && _error.isEmpty && _filteredProtocols.isNotEmpty)
+                AppPaginationBar(
+                  currentPage: _currentPage,
+                  itemsPerPage: _itemsPerPage,
+                  totalItems: _filteredProtocols.length,
+                  onPageChanged: (page) => setState(() => _currentPage = page),
+                  onItemsPerPageChanged: (limit) => setState(() {
+                    _itemsPerPage = limit;
+                    _currentPage = 1;
+                  }),
+                ),
             ],
           ),
         ),
@@ -240,7 +270,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Top Hyperliquid Apps by Fees',
+              widget.isRevenue ? 'Top Hyperliquid Apps by Revenue' : 'Top Hyperliquid Apps by Fees',
               style: GoogleFonts.jetBrainsMono(
                 color: Colors.white,
                 fontSize: res.fontSize(14),
@@ -275,6 +305,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
                 onChanged: (value) {
                   setState(() {
                     _searchQuery = value;
+                    _currentPage = 1;
                   });
                 },
                 style: GoogleFonts.jetBrainsMono(
@@ -301,6 +332,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
                   _searchController.clear();
                   setState(() {
                     _searchQuery = '';
+                    _currentPage = 1;
                   });
                 },
                 child: Icon(Icons.close, color: AppColors.textSecondary, size: res.fontSize(16)),
@@ -403,11 +435,14 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
             _buildDropdownButton(
               res: res,
               activeLabel: '\$ $_selectedFeeMetric',
-              options: ['24H FEES', '7D FEES', '30D FEES', '1Y FEES', 'ALL TIME'],
+              options: widget.isRevenue 
+                  ? ['24H REVENUE', '7D REVENUE', '30D REVENUE', '1Y REVENUE', 'ALL TIME']
+                  : ['24H FEES', '7D FEES', '30D FEES', '1Y FEES', 'ALL TIME'],
               isPrimary: true,
               onChanged: (val) {
                 setState(() {
                   _selectedFeeMetric = val;
+                  _currentPage = 1;
                 });
               },
             ),
@@ -420,6 +455,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
               onChanged: (val) {
                 setState(() {
                   _selectedChangeMetric = val;
+                  _currentPage = 1;
                 });
               },
             ),
@@ -432,6 +468,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
               onChanged: (val) {
                 setState(() {
                   _selectedAnnualMetric = val;
+                  _currentPage = 1;
                 });
               },
             ),
@@ -445,8 +482,9 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Shimmer.fromColors(
-        baseColor: Colors.white.withOpacity(0.05),
-        highlightColor: Colors.white.withOpacity(0.1),
+        baseColor: const Color(0xFF1E222D),
+        highlightColor: const Color(0xFF2E3340),
+        period: const Duration(milliseconds: 1400),
         child: ListView.builder(
           itemCount: 10,
           itemBuilder: (context, index) {
@@ -454,15 +492,50 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
               padding: const EdgeInsets.symmetric(vertical: 12.0),
               child: Row(
                 children: [
-                  Container(width: 24, height: 16, color: Colors.white),
+                  Container(
+                    width: 24,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  const CircleAvatar(radius: 10, backgroundColor: Colors.white),
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  Container(width: 100, height: 16, color: Colors.white),
+                  Container(
+                    width: 100,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
                   const Spacer(),
-                  Container(width: 60, height: 16, color: Colors.white),
+                  Container(
+                    width: 60,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Container(width: 50, height: 16, color: Colors.white),
+                  Container(
+                    width: 50,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -487,8 +560,8 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
   }
 
   Widget _buildTableLayout(Responsive res) {
-    final filtered = _filteredProtocols;
-    if (filtered.isEmpty) {
+    final filtered = _paginatedProtocols;
+    if (_filteredProtocols.isEmpty) {
       return Center(
         child: Text(
           _searchQuery.isEmpty
@@ -567,7 +640,7 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
                               SizedBox(
                                 width: res.columnWidth(25.0),
                                 child: Text(
-                                  '${index + 1}',
+                                  '${(_currentPage - 1) * _itemsPerPage + index + 1}',
                                   style: GoogleFonts.jetBrainsMono(
                                     color: AppColors.textSecondary,
                                     fontSize: res.fontSize(11),
@@ -724,4 +797,5 @@ class _TopByFeesScreenState extends State<TopByFeesScreen> {
       ),
     );
   }
+
 }

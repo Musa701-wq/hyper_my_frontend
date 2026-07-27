@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hyperscreener/viewmodels/leaderboard_viewmodel.dart';
-import 'package:hyperscreener/viewmodels/wallet_viewmodel.dart';
-import 'package:hyperscreener/viewmodels/defillama_viewmodel.dart';
+import 'package:coinduck/viewmodels/leaderboard_viewmodel.dart';
+import 'package:coinduck/viewmodels/wallet_viewmodel.dart';
+import 'package:coinduck/viewmodels/defillama_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'utils/app_colors.dart';
 import 'screens/splash_screen.dart';
@@ -16,6 +16,7 @@ import 'viewmodels/dex_volume_viewmodel.dart';
 import 'viewmodels/protocol_viewmodel.dart';
 import 'viewmodels/hl_tvl_viewmodel.dart';
 import 'viewmodels/open_interest_viewmodel.dart';
+import 'viewmodels/borrow_lend_viewmodel.dart';
 import 'screens/hl_tvl_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -49,6 +50,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ProtocolViewModel()),
         ChangeNotifierProvider(create: (_) => HlTvlViewModel()),
         ChangeNotifierProvider(create: (_) => OpenInterestViewModel()),
+        ChangeNotifierProvider(create: (_) => BorrowLendViewModel()),
         ChangeNotifierProvider(create: (_) => WalletViewModel(prefs: prefs)),
       ],
       child: const MyApp(),
@@ -61,7 +63,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'HyperScreener',
+      title: 'CoinDuck',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,

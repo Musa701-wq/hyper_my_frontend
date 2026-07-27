@@ -202,7 +202,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     
                     // Text branding
                     Text(
-                      'HyperScreener',
+                      'CoinDuck',
                       style: GoogleFonts.outfit(
                         color: Colors.white,
                         fontSize: 27,

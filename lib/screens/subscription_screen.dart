@@ -193,7 +193,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
         ),
         const SizedBox(height: 32),
         Text(
-          'HYPERSCREENER PRO',
+          'COINDUCK PRO',
           style: GoogleFonts.jetBrainsMono(
             color: Colors.white,
             fontSize: res.fontSize(32),
@@ -386,8 +386,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with SingleTick
         ),
         _buildFAQItem(
           res,
-          question: 'What is HyperScreener Pro?',
-          answer: 'HyperScreener Pro provides institutional-grade trading tools, including giga-depth orderbook visuals, real-time whale inflow alerts, and advanced CVD analytics.',
+          question: 'What is CoinDuck Pro?',
+          answer: 'CoinDuck Pro provides institutional-grade trading tools, including giga-depth orderbook visuals, real-time whale inflow alerts, and advanced CVD analytics.',
         ),
         _buildFAQItem(
           res,

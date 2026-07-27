@@ -13,10 +13,14 @@ import '../widgets/error_state_widget.dart';
 
 class FeeProtocolDetailScreen extends StatefulWidget {
   final FeeTopProtocol protocol;
+  final bool isRevenue;
+  final String? dataType;
 
   const FeeProtocolDetailScreen({
     super.key,
     required this.protocol,
+    this.isRevenue = false,
+    this.dataType,
   });
 
   @override
@@ -144,6 +148,8 @@ class _FeeProtocolDetailScreenState extends State<FeeProtocolDetailScreen> {
       final res = await _service.fetchCompare(
         [widget.protocol.slug],
         range: _selectedRange,
+        isRevenue: widget.isRevenue,
+        dataType: widget.dataType,
       );
 
       final slug = widget.protocol.slug;
@@ -212,7 +218,11 @@ class _FeeProtocolDetailScreenState extends State<FeeProtocolDetailScreen> {
           ),
           titleSpacing: 0,
           title: Text(
-            'Fee Intelligence / ${widget.protocol.name}',
+            widget.dataType == 'holders-revenue'
+                ? 'Holders Revenue / ${widget.protocol.name}'
+                : (widget.isRevenue 
+                    ? 'Revenue Intelligence / ${widget.protocol.name}' 
+                    : 'Fee Intelligence / ${widget.protocol.name}'),
             style: GoogleFonts.jetBrainsMono(
               color: Colors.white,
               fontSize: res.fontSize(14),
@@ -391,26 +401,26 @@ class _FeeProtocolDetailScreenState extends State<FeeProtocolDetailScreen> {
     final p = widget.protocol;
 
     final cell1 = _buildGridCell(
-      title: 'FEES 24H',
+      title: widget.dataType == 'holders-revenue' ? 'HOLDERS REVENUE 24H' : (widget.isRevenue ? 'REVENUE 24H' : 'FEES 24H'),
       value: _fmtMoney(p.fees24h),
       change: p.change1d,
       res: res,
     );
     final cell2 = _buildGridCell(
-      title: 'FEES 7D',
+      title: widget.dataType == 'holders-revenue' ? 'HOLDERS REVENUE 7D' : (widget.isRevenue ? 'REVENUE 7D' : 'FEES 7D'),
       value: _fmtMoney(p.fees7d),
       change: p.change7d,
       res: res,
     );
     final cell3 = _buildGridCell(
-      title: 'FEES 30D',
+      title: widget.dataType == 'holders-revenue' ? 'HOLDERS REVENUE 30D' : (widget.isRevenue ? 'REVENUE 30D' : 'FEES 30D'),
       value: _fmtMoney(p.fees30d),
       change: p.change30d,
       res: res,
     );
 
     final cell4 = _buildGridCell(
-      title: 'FEES 1Y',
+      title: widget.dataType == 'holders-revenue' ? 'HOLDERS REVENUE 1Y' : (widget.isRevenue ? 'REVENUE 1Y' : 'FEES 1Y'),
       value: _fmtMoney(p.fees1y),
       res: res,
     );
@@ -632,7 +642,7 @@ class _FeeProtocolDetailScreenState extends State<FeeProtocolDetailScreen> {
         height: 250,
         child: Center(
           child: Text(
-            'No historical fee data found',
+            widget.dataType == 'holders-revenue' ? 'No historical holders revenue data found' : (widget.isRevenue ? 'No historical revenue data found' : 'No historical fee data found'),
             style: GoogleFonts.inter(color: AppColors.textSecondary),
           ),
         ),
@@ -688,7 +698,7 @@ class _FeeProtocolDetailScreenState extends State<FeeProtocolDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Fee History',
+                    widget.dataType == 'holders-revenue' ? 'Holders Revenue History' : (widget.isRevenue ? 'Revenue History' : 'Fee History'),
                     style: GoogleFonts.inter(
                       color: Colors.white,
                       fontSize: res.fontSize(14),
@@ -1258,7 +1268,11 @@ class _FeeProtocolDetailScreenState extends State<FeeProtocolDetailScreen> {
                     Navigator.push(
                       context,
                       PageRouteBuilder(
-                        pageBuilder: (context, __, ___) => FeeProtocolDetailScreen(protocol: childProtocol),
+                        pageBuilder: (context, __, ___) => FeeProtocolDetailScreen(
+                          protocol: childProtocol, 
+                          isRevenue: widget.isRevenue,
+                          dataType: widget.dataType,
+                        ),
                         transitionDuration: Duration.zero,
                         reverseTransitionDuration: Duration.zero,
                       ),

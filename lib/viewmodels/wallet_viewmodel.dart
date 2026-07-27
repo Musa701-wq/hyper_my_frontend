@@ -51,8 +51,13 @@ class WalletViewModel extends ChangeNotifier {
     // Load accounts
     final accountsRaw = prefs.getString(_kAccountsKey);
     if (accountsRaw != null) {
-      final List decoded = jsonDecode(accountsRaw);
-      _accounts = decoded.map((item) => SavedAccount.fromJson(item)).toList();
+      try {
+        final List decoded = jsonDecode(accountsRaw);
+        _accounts = decoded.map((item) => SavedAccount.fromJson(item)).toList();
+      } catch (e) {
+        debugPrint('WalletViewModel: failed to decode accounts: $e');
+        _accounts = [];
+      }
     }
 
     // Load selected address

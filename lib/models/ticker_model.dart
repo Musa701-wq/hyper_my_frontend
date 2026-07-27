@@ -12,6 +12,7 @@ class TickerModel {
   final String cryptoCategory;
   final String updatedAt;
   final String createdAt;
+  final int? tokenIndex;
 
   // ── Prices ───────────────────────────────────────────────────────
   final double lastPrice;
@@ -46,9 +47,12 @@ class TickerModel {
   final bool? isCanonical;
   final int? szDecimals;
   final int? weiDecimals;
+  final EvmContract? evmContract;
+  final String? deployerTradingFeeShare;
 
   // ── Perp specifics ───────────────────────────────────────────────
   final int maxLeverage;
+  final int? marginTableId;
   final String growthMode;
 
   TickerModel({
@@ -92,9 +96,13 @@ class TickerModel {
     this.isCanonical,
     this.szDecimals,
     this.weiDecimals,
+    this.evmContract,
+    this.deployerTradingFeeShare,
     // perp
     this.maxLeverage = 0,
+    this.marginTableId,
     this.growthMode = '',
+    this.tokenIndex,
   });
 
   factory TickerModel.fromJson(Map<String, dynamic> json) {
@@ -111,6 +119,7 @@ class TickerModel {
       cryptoCategory: json['cryptoCategory']?.toString() ?? json['category']?.toString() ?? '',
       updatedAt: json['updatedAt']?.toString() ?? '',
       createdAt: json['createdAt']?.toString() ?? '',
+      tokenIndex: json['tokenIndex'] != null ? (json['tokenIndex'] as num).toInt() : null,
       // prices
       lastPrice: _toDouble(json['lastPrice']),
       markPx: _toDouble(json['markPx']),
@@ -139,13 +148,50 @@ class TickerModel {
       isCanonical: json['isCanonical'] is bool ? json['isCanonical'] : null,
       szDecimals: json['szDecimals'] is int ? json['szDecimals'] : null,
       weiDecimals: json['weiDecimals'] is int ? json['weiDecimals'] : null,
+      evmContract: json['evmContract'] != null
+          ? EvmContract.fromJson(json['evmContract'] as Map<String, dynamic>)
+          : null,
+      deployerTradingFeeShare: json['deployerTradingFeeShare']?.toString(),
       // perp
       maxLeverage: (json['maxLeverage'] ?? 0) is int
           ? (json['maxLeverage'] ?? 0)
           : (json['maxLeverage'] as num?)?.toInt() ?? 0,
+      marginTableId: json['marginTableId'] != null ? (json['marginTableId'] as num).toInt() : null,
       growthMode: json['growthMode']?.toString() ?? '',
     );
   }
+
+  factory TickerModel.fromVariational(Map<String, dynamic> json) {
+    final openInterestObj = json['open_interest'];
+    double totalOI = 0.0;
+    if (openInterestObj is Map<String, dynamic>) {
+      final longOI = _toDouble(openInterestObj['long_open_interest']);
+      final shortOI = _toDouble(openInterestObj['short_open_interest']);
+      totalOI = longOI + shortOI;
+    }
+
+    final tickerSym = json['ticker']?.toString() ?? json['symbol']?.toString() ?? '';
+
+    return TickerModel(
+      id: tickerSym,
+      dex: 'Variational',
+      symbol: tickerSym,
+      fullSymbol: tickerSym,
+      displayName: json['name']?.toString() ?? '',
+      marketType: 'perp',
+      isDelisted: false,
+      iconUrl: '',
+      cryptoCategory: '',
+      lastPrice: _toDouble(json['mark_price']),
+      change24hPct: _toDouble(json['total_cost_24h_pct']),
+      funding8hPct: _toDouble(json['per_interval_funding_rate_pct']),
+      volume24hUSD: _toDouble(json['volume_24h']),
+      openInterestUSD: totalOI,
+      maxLeverage: 0,
+      growthMode: '',
+    );
+  }
+
 
   // Safe null-aware double parse
   static double _toDouble(dynamic v) {
@@ -227,10 +273,44 @@ class TickerModel {
       isCanonical: p['isCanonical'] is bool ? p['isCanonical'] : isCanonical,
       szDecimals: p['szDecimals'] is int ? p['szDecimals'] : szDecimals,
       weiDecimals: p['weiDecimals'] is int ? p['weiDecimals'] : weiDecimals,
+      evmContract: p.containsKey('evmContract')
+          ? (p['evmContract'] != null ? EvmContract.fromJson(p['evmContract'] as Map<String, dynamic>) : null)
+          : evmContract,
+      deployerTradingFeeShare: p.containsKey('deployerTradingFeeShare')
+          ? p['deployerTradingFeeShare']?.toString()
+          : deployerTradingFeeShare,
       maxLeverage: p.containsKey('maxLeverage') && p['maxLeverage'] != null
           ? (p['maxLeverage'] as num).toInt()
           : maxLeverage,
+      marginTableId: p.containsKey('marginTableId') ? p['marginTableId'] as int? : marginTableId,
       growthMode: p['growthMode']?.toString() ?? growthMode,
+      tokenIndex: p.containsKey('tokenIndex') ? p['tokenIndex'] as int? : tokenIndex,
     );
+  }
+}
+
+class EvmContract {
+  final String address;
+  final int evmExtraWeiDecimals;
+
+  EvmContract({
+    required this.address,
+    required this.evmExtraWeiDecimals,
+  });
+
+  factory EvmContract.fromJson(Map<String, dynamic> json) {
+    return EvmContract(
+      address: json['address']?.toString() ?? '',
+      evmExtraWeiDecimals: (json['evm_extra_wei_decimals'] ?? 0) is int
+          ? (json['evm_extra_wei_decimals'] ?? 0)
+          : (json['evm_extra_wei_decimals'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'address': address,
+      'evm_extra_wei_decimals': evmExtraWeiDecimals,
+    };
   }
 }
